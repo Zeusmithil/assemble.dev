@@ -105,22 +105,37 @@ export const Navbar = ({
             </>
           ) : (
             <>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/dashboard' ? 'text-black font-bold' : ''
-                }`}
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/my-events')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/my-events' ? 'text-black font-bold' : ''
-                }`}
-              >
-                My Events
-              </button>
+              {currentUser.role === 'organizer' ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className={`transition-colors hover:text-black cursor-pointer ${
+                      currentPath === '/dashboard' ? 'text-black font-bold' : ''
+                    }`}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => navigate('/my-events')}
+                    className={`transition-colors hover:text-black cursor-pointer ${
+                      currentPath === '/my-events' ? 'text-black font-bold' : ''
+                    }`}
+                  >
+                    My Events
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className={`transition-colors hover:text-black cursor-pointer ${
+                      currentPath === '/dashboard' || currentPath === '/my-events' ? 'text-black font-bold' : ''
+                    }`}
+                  >
+                    My Events
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => navigate('/profile')}
                 className={`transition-colors hover:text-black cursor-pointer ${
@@ -136,7 +151,7 @@ export const Navbar = ({
         {/* Right Actions & Role Switcher */}
         <div className="flex items-center gap-3">
           {/* Shortcuts for authenticated state */}
-          {currentUser && (
+          {currentUser && currentUser.role === 'organizer' && (
             <button
               onClick={() => navigate('/create-event')}
               className="font-geist text-xs md:text-sm bg-black text-white hover:bg-gray-800 transition-all px-6 py-2.5 rounded-full font-semibold shadow-2xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
@@ -245,26 +260,43 @@ export const Navbar = ({
             </>
           ) : (
             <>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/dashboard');
-                }}
-                className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
-              >
-                <span>Dashboard</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/my-events');
-                }}
-                className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
-              >
-                <span>My Events</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
+              {currentUser.role === 'organizer' ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/dashboard');
+                    }}
+                    className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
+                  >
+                    <span>Dashboard</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/my-events');
+                    }}
+                    className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
+                  >
+                    <span>My Events</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/dashboard');
+                    }}
+                    className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
+                  >
+                    <span>My Events</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -275,16 +307,18 @@ export const Navbar = ({
                 <span>Profile</span>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/create-event');
-                }}
-                className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
-              >
-                <span>Create Event</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
+              {currentUser.role === 'organizer' && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/create-event');
+                  }}
+                  className="text-left py-2 font-medium text-[#191c1d] flex items-center justify-between border-b border-[#edeeef] cursor-pointer"
+                >
+                  <span>Create Event</span>
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              )}
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);

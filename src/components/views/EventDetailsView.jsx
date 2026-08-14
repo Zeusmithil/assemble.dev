@@ -4,12 +4,56 @@ export const EventDetailsView = ({
   event,
   onBack,
   onRegister,
+  isSaved,
+  onToggleSave,
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [saved, setSaved] = useState(false);
   const [selectedTier, setSelectedTier] = useState(() => {
     return event.ticketTiers && event.ticketTiers.length > 0 ? event.ticketTiers[0] : null;
   });
+
+  // Volunteer & Community Application States
+  const [willVolunteer, setWillVolunteer] = useState(false);
+  const [willJoinCommunity, setWillJoinCommunity] = useState(false);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    gender: 'Male',
+    age: '18-24',
+    phone: '',
+    email: '',
+    city: '',
+    state: '',
+    occupation: 'Student',
+    occupationDetails: '',
+    linkedin: '',
+    volunteerWhy: '',
+    communityWhy: ''
+  });
+  const [linkedinError, setLinkedinError] = useState('');
+
+  const handleRegisterClick = () => {
+    if (willVolunteer || willJoinCommunity) {
+      setShowApplicationForm(true);
+    } else {
+      onRegister(event, selectedTier);
+    }
+  };
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.linkedin.trim().match(/^https:\/\/(www\.)?linkedin\.com\/.*$/i)) {
+      setLinkedinError('Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/username).');
+      return;
+    }
+    setLinkedinError('');
+    onRegister(event, selectedTier, {
+      willVolunteer,
+      willJoinCommunity,
+      ...formData
+    });
+    setShowApplicationForm(false);
+  };
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
@@ -24,14 +68,14 @@ export const EventDetailsView = ({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setSaved(!saved)}
+            onClick={onToggleSave}
             className={`px-4 py-2 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold ${
-              saved
+              isSaved
                 ? 'bg-rose-50 border-rose-200 text-rose-600'
                 : 'bg-white border-gray-200 text-black hover:bg-gray-50'
             }`}
           >
-            <span>{saved ? '❤️ Saved' : '🤍 Save'}</span>
+            <span>{isSaved ? '❤️ Saved' : '🤍 Save'}</span>
           </button>
         </div>
       </div>
@@ -282,35 +326,256 @@ export const EventDetailsView = ({
                 </div>
               </div>
             )}
+             {event.volunteersNeeded > 0 && (
+               <div className="bg-[#fff3d6] border border-[#ffe09e] p-3.5 rounded-2xl text-left text-xs font-inter text-[#b46d00] flex items-center gap-2">
+                 <span className="material-symbols-outlined text-sm font-bold">groups</span>
+                 <span><strong>Volunteers Needed:</strong> {event.volunteersNeeded} Volunteers</span>
+               </div>
+             )}
 
-            <div className="space-y-3 text-xs font-inter text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>📅</span>
-                <span className="font-bold text-black">{event.startDate} {event.endDate ? `- ${event.endDate}` : ''}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>⏰</span>
-                <span className="font-bold text-black">{event.time}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>📍</span>
-                <span className="truncate font-bold text-black">{event.location}, {event.city}</span>
-              </div>
-            </div>
+             <div className="space-y-3 text-xs font-inter text-gray-600">
+               <div className="flex items-center gap-2">
+                 <span>📅</span>
+                 <span className="font-bold text-black">{event.startDate} {event.endDate ? `- ${event.endDate}` : ''}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <span>⏰</span>
+                 <span className="font-bold text-black">{event.time}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <span>📍</span>
+                 <span className="truncate font-bold text-black">{event.location}, {event.city}</span>
+               </div>
+             </div>
 
-            <button
-              onClick={() => onRegister(event, selectedTier)}
-              className="w-full py-4 bg-black text-white hover:bg-gray-800 transition-all rounded-2xl font-geist font-bold text-sm shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
-            >
-              <span>🎟️ Register Now</span>
-            </button>
+             <div className="space-y-2 border-t border-gray-100 pt-4 text-left">
+               {event.volunteersNeeded > 0 && (
+                 <label className="flex items-center gap-2.5 text-xs font-semibold text-[#00355f] cursor-pointer">
+                   <input
+                     type="checkbox"
+                     checked={willVolunteer}
+                     onChange={(e) => setWillVolunteer(e.target.checked)}
+                     className="rounded border-gray-300 text-[#0f4c81] focus:ring-[#0f4c81]"
+                   />
+                   <span>Willing to Volunteer</span>
+                 </label>
+               )}
+               <label className="flex items-center gap-2.5 text-xs font-semibold text-[#00355f] cursor-pointer">
+                 <input
+                   type="checkbox"
+                   checked={willJoinCommunity}
+                   onChange={(e) => setWillJoinCommunity(e.target.checked)}
+                   className="rounded border-gray-300 text-[#0f4c81] focus:ring-[#0f4c81]"
+                 />
+                   <span>Willing to Join the Community</span>
+               </label>
+             </div>
 
-            <p className="text-[11px] text-gray-400 text-center leading-relaxed font-inter">
-              Instant digital pass issuance with dynamic QR code verification.
-            </p>
-          </div>
-        </div>
+             <button
+               onClick={handleRegisterClick}
+               className="w-full py-4 bg-black text-white hover:bg-gray-800 transition-all rounded-2xl font-geist font-bold text-sm shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+             >
+               <span>🎟️ Register Now</span>
+             </button>
+
+             <p className="text-[11px] text-gray-400 text-center leading-relaxed font-inter">
+               Instant digital pass issuance with dynamic QR code verification.
+             </p>
+           </div>
+         </div>
+       </div>
+
+       {/* Volunteer & Community Application Form Modal */}
+       {showApplicationForm && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#e1e3e4] space-y-6 animate-scaleUp relative overflow-y-auto max-h-[90vh]">
+             <div className="flex justify-between items-center border-b border-[#edeeef] pb-4">
+               <div className="flex items-center gap-2">
+                 <span className="material-symbols-outlined text-[#0f4c81] text-2xl font-bold">assignment</span>
+                 <span className="font-geist text-lg font-bold text-[#00355f]">Application Form</span>
+               </div>
+               <button onClick={() => setShowApplicationForm(false)} className="p-1 text-[#727780] hover:text-[#191c1d] cursor-pointer">
+                 <span className="material-symbols-outlined text-lg">close</span>
+               </button>
+             </div>
+             
+             <form onSubmit={handleFormSubmit} className="space-y-4 text-left">
+               <div className="p-3 bg-[#d2e4ff]/30 text-[#0f4c81] rounded-xl text-xs font-bold">
+                 Applying for: {willVolunteer && willJoinCommunity ? 'Volunteer + Community' : willVolunteer ? 'Volunteer' : 'Community'}
+               </div>
+               
+               {/* Personal Information */}
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Name</label>
+                 <input
+                   type="text"
+                   required
+                   value={formData.fullName}
+                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                   placeholder="John Doe"
+                   className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                 />
+               </div>
+               
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Gender</label>
+                   <select
+                     value={formData.gender}
+                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                   >
+                     <option value="Male">Male</option>
+                     <option value="Female">Female</option>
+                     <option value="Other">Other</option>
+                   </select>
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Age Group</label>
+                   <select
+                     value={formData.age}
+                     onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                   >
+                     <option value="Under 18">Under 18</option>
+                     <option value="18-24">18-24</option>
+                     <option value="25-34">25-34</option>
+                     <option value="35-44">35-44</option>
+                     <option value="45+">45+</option>
+                   </select>
+                 </div>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number</label>
+                   <input
+                     type="tel"
+                     required
+                     value={formData.phone}
+                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                     placeholder="+91 XXXXX XXXXX"
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                   />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Email Address</label>
+                   <input
+                     type="email"
+                     required
+                     value={formData.email}
+                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                     placeholder="you@domain.com"
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                   />
+                 </div>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">City / Location</label>
+                   <input
+                     type="text"
+                     required
+                     value={formData.city}
+                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                     placeholder="Chennai"
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                   />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">State / Country</label>
+                   <input
+                     type="text"
+                     required
+                     value={formData.state}
+                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                     placeholder="Tamil Nadu, India"
+                     className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                   />
+                 </div>
+               </div>
+               
+               {/* Professional / Educational Information */}
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">What are you currently doing?</label>
+                 <select
+                   value={formData.occupation}
+                   onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                   className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                 >
+                   <option value="Student">Student</option>
+                   <option value="Working Professional">Working Professional</option>
+                   <option value="Entrepreneur">Entrepreneur</option>
+                   <option value="Freelancer">Freelancer</option>
+                   <option value="Researcher">Researcher</option>
+                   <option value="Looking for Opportunities">Looking for Opportunities</option>
+                   <option value="Other">Other</option>
+                 </select>
+               </div>
+               
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Tell us about what you are currently doing</label>
+                 <textarea
+                   value={formData.occupationDetails}
+                   onChange={(e) => setFormData({ ...formData, occupationDetails: e.target.value })}
+                   rows="2"
+                   placeholder="Briefly describe your background..."
+                   className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                 />
+               </div>
+               
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">LinkedIn Profile URL</label>
+                 <input
+                   type="text"
+                   required
+                   value={formData.linkedin}
+                   onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                   placeholder="https://linkedin.com/in/username"
+                   className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-mono text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                 />
+                 {linkedinError && <p className="text-[10px] font-bold text-red-500 mt-1">{linkedinError}</p>}
+               </div>
+
+               {willVolunteer && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Why do you want to volunteer for this event?</label>
+                    <textarea
+                      required
+                      value={formData.volunteerWhy}
+                      onChange={(e) => setFormData({ ...formData, volunteerWhy: e.target.value })}
+                      rows="2"
+                      placeholder="Share your interest in volunteering..."
+                      className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    />
+                  </div>
+                )}
+
+                {willJoinCommunity && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Why do you want to join this community?</label>
+                    <textarea
+                      required
+                      value={formData.communityWhy}
+                      onChange={(e) => setFormData({ ...formData, communityWhy: e.target.value })}
+                      rows="2"
+                      placeholder="Share your interest in joining the community..."
+                      className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    />
+                  </div>
+                )}
+               
+               <button
+                 type="submit"
+                 className="w-full py-4 bg-[#0f4c81] hover:bg-[#00355f] text-white transition-all rounded-xl font-geist font-bold text-xs shadow-xs cursor-pointer animate-fadeIn"
+               >
+                 Submit Application
+               </button>
+             </form>
+           </div>
+         </div>
+       )}
       </div>
-    </div>
-  );
-};
+    );
+  };

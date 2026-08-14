@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { INITIAL_EVENTS, INITIAL_TICKETS } from './data/initialData';
+import { INITIAL_EVENTS, INITIAL_TICKETS, INITIAL_COMMUNITIES } from './data/initialData';
+import { CommunityRoomView } from './components/views/CommunityRoomView';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HomeView } from './components/views/HomeView';
@@ -28,6 +29,120 @@ export function App() {
   const [selectedCity, setSelectedCity] = useState('Chennai');
   const [userRole, setUserRole] = useState('attendee');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [communities, setCommunities] = useState(() => {
+    const saved = localStorage.getItem('assemble_communities');
+    return saved ? JSON.parse(saved) : INITIAL_COMMUNITIES;
+  });
+  const [activeCommunity, setActiveCommunity] = useState(null);
+  const [preSelectedCommunity, setPreSelectedCommunity] = useState(null);
+
+  const [savedEventIds, setSavedEventIds] = useState(() => {
+    const saved = localStorage.getItem('assemble_saved_events');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const handleToggleSaveEvent = (eventId) => {
+    setSavedEventIds((prev) => {
+      const updated = prev.includes(eventId)
+        ? prev.filter((id) => id !== eventId)
+        : [...prev, eventId];
+      localStorage.setItem('assemble_saved_events', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleCreateCommunityRoom = (name, description, logoUrl, basicInfo) => {
+    // Generate unique 8-character uppercase room code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // Ensure unique code
+    while (communities.some(c => c.code === code)) {
+      code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
+
+    const newCommunity = {
+      name,
+      description,
+      logoUrl: logoUrl || 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=200&auto=format&fit=crop',
+      basicInfo: basicInfo || 'General Community',
+      code,
+      members: 1 // Creator is automatically a member
+    };
+
+    const updatedCommunities = [...communities, newCommunity];
+    setCommunities(updatedCommunities);
+    localStorage.setItem('assemble_communities', JSON.stringify(updatedCommunities));
+
+    // Automatically join the current user to this community
+    if (currentUser) {
+      const userCommunities = currentUser.communities || [];
+      if (!userCommunities.includes(name)) {
+        const updatedUser = {
+          ...currentUser,
+          communities: [...userCommunities, name]
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
+        
+        // Update user in localUsers list
+        const localUsers = JSON.parse(localStorage.getItem('assemble_users') || '[]');
+        const updatedLocal = localUsers.map(u => 
+          u.email === currentUser.email ? { ...u, communities: updatedUser.communities } : u
+        );
+        localStorage.setItem('assemble_users', JSON.stringify(updatedLocal));
+      }
+    }
+
+    return newCommunity;
+  };
+
+  const addUserToCommunity = (community) => {
+    if (!currentUser) return;
+    const userCommunities = currentUser.communities || [];
+    if (userCommunities.includes(community.name)) return;
+    const updatedUser = {
+      ...currentUser,
+      communities: [...userCommunities, community.name]
+    };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
+    
+    // Update in users database
+    const localUsers = JSON.parse(localStorage.getItem('assemble_users') || '[]');
+    const updatedUsers = localUsers.map(u => 
+      u.email.toLowerCase() === currentUser.email.toLowerCase()
+        ? { ...u, communities: updatedUser.communities }
+        : u
+    );
+    localStorage.setItem('assemble_users', JSON.stringify(updatedUsers));
+  };
+
+  const handleJoinCommunity = (code) => {
+    if (!currentUser) {
+      return { success: false, message: 'Please sign in to join a community.' };
+    }
+    if (code.trim().toUpperCase() === 'EXPIRED') {
+      return { success: false, message: 'This Community Code Is No Longer Active' };
+    }
+    const matched = communities.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+    if (matched) {
+      const userCommunities = currentUser.communities || [];
+      if (userCommunities.includes(matched.name)) {
+        return { success: true, message: 'You have already joined this community.' };
+      }
+      addUserToCommunity(matched);
+      return { success: true, message: '✓ Community Joined Successfully' };
+    }
+    return { success: false, message: 'Invalid Community Code. Please check the code and try again.' };
+  };
 
   // Main state collections
   const [events, setEvents] = useState(INITIAL_EVENTS);
@@ -208,16 +323,52 @@ export function App() {
   };
 
   // Handler: Register for Event
-  const handleRegisterForEvent = (event, selectedTier) => {
+  const handleRegisterForEvent = (event, selectedTier, applicationDetails) => {
     const finalPrice = selectedTier ? selectedTier.price : event.price;
     const finalTierName = selectedTier ? selectedTier.name : null;
     const newTicketId = `EH-${Math.floor(10000 + Math.random() * 90000)}`;
+    
+    let registrationType = 'Attendee';
+    let volunteerStatus = 'None';
+    let communityStatus = 'None';
+    let communityInterest = false;
+
+    if (applicationDetails) {
+      const { willVolunteer, willJoinCommunity } = applicationDetails;
+      if (willVolunteer && willJoinCommunity) {
+        registrationType = 'Volunteer + Community';
+        volunteerStatus = 'Applied';
+        communityStatus = 'Applied';
+        communityInterest = true;
+      } else if (willVolunteer) {
+        registrationType = 'Volunteer';
+        volunteerStatus = 'Applied';
+      } else if (willJoinCommunity) {
+        registrationType = 'Community';
+        communityStatus = 'Applied';
+        communityInterest = true;
+      }
+    }
+
     const newTicket = {
       ticketId: newTicketId,
       eventId: event.id,
       eventTitle: event.title,
-      userName: currentUser ? currentUser.name : 'Guest User',
-      userEmail: currentUser ? currentUser.email : 'guest@example.com',
+      userName: applicationDetails?.fullName || (currentUser ? currentUser.name : 'Guest User'),
+      userEmail: applicationDetails?.email || (currentUser ? currentUser.email : 'guest@example.com'),
+      gender: applicationDetails?.gender || 'None',
+      phone: applicationDetails?.phone || (currentUser?.phone || ''),
+      location: applicationDetails?.city || (currentUser?.city || ''),
+      state: applicationDetails?.state || '',
+      country: applicationDetails?.country || '',
+      occupation: applicationDetails?.occupation || '',
+      occupationDetails: applicationDetails?.occupationDetails || '',
+      linkedin: applicationDetails?.linkedin || '',
+      registrationType,
+      volunteerStatus,
+      communityStatus,
+      volunteerWhy: applicationDetails?.volunteerWhy || '',
+      communityWhy: applicationDetails?.communityWhy || '',
       date: event.startDate,
       time: event.time,
       venue: `${event.location}, ${event.city}`,
@@ -225,10 +376,20 @@ export function App() {
       ticketTierName: finalTierName,
       registrationDate: new Date().toISOString().split('T')[0],
       status: 'confirmed',
-      qrCodeData: `${newTicketId}-${(currentUser ? currentUser.name : 'GUEST').replace(/\s+/g, '-').toUpperCase()}-${event.id.toUpperCase()}`,
+      qrCodeData: `${newTicketId}-${(applicationDetails?.fullName || (currentUser ? currentUser.name : 'GUEST')).replace(/\s+/g, '-').toUpperCase()}-${event.id.toUpperCase()}`,
     };
 
     setTickets([newTicket, ...tickets]);
+
+    // If they checked communityInterest, join the associated communities of the event
+    if (communityInterest && event.associatedCommunities) {
+      event.associatedCommunities.forEach(comName => {
+        const matchedCom = communities.find(c => c.name === comName);
+        if (matchedCom) {
+          addUserToCommunity(matchedCom);
+        }
+      });
+    }
 
     // Update event stats
     setEvents((prev) =>
@@ -312,6 +473,9 @@ export function App() {
       case 'services-marketplace':
         navigate('/services-marketplace');
         break;
+      case 'my-communities':
+        navigate('/my-communities');
+        break;
       case 'how-it-works':
         navigate('/how-it-works');
         break;
@@ -328,7 +492,7 @@ export function App() {
 
   // Custom Router view rendering
   const renderView = () => {
-    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile'];
+    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities'];
     if (protectedPaths.includes(currentPath) && !currentUser) {
       localStorage.setItem('assemble_redirect', currentPath);
       // Defer navigation to prevent state updates during render
@@ -351,15 +515,39 @@ export function App() {
       case '/login':
         return <LoginView navigate={navigate} onLoginSuccess={handleLoginSuccess} />;
       case '/signup':
-        return <SignupView navigate={navigate} onSignupSuccess={handleSignupSuccess} />;
+        return <SignupView navigate={navigate} onSignupSuccess={handleSignupSuccess} communities={communities} />;
       case '/profile':
         return (
           <ProfileView
             currentUser={currentUser}
             onRoleChange={handleRoleChange}
             onLogout={handleLogout}
+            communities={communities}
+            onJoinCommunity={handleJoinCommunity}
+            onOpenCommunityRoom={(com) => {
+              setActiveCommunity(com);
+              navigate('/community-room');
+            }}
+            onCreateCommunityRoom={handleCreateCommunityRoom}
           />
         );
+      case '/community-room':
+        if (activeCommunity) {
+          return (
+            <CommunityRoomView
+              community={activeCommunity}
+              events={events}
+              onBack={() => navigate('/profile')}
+              onSelectEvent={handleSelectEvent}
+              onPlanCommunityEvent={(comName) => {
+                setPreSelectedCommunity(comName);
+                navigate('/create-event');
+              }}
+            />
+          );
+        }
+        setTimeout(() => navigate('/profile'), 0);
+        return null;
       case '/dashboard':
       case '/my-events':
         if (currentUser.role === 'organizer') {
@@ -380,6 +568,9 @@ export function App() {
               sponsorshipRequests={sponsorshipRequests}
               onRequestSponsorship={handleRequestSponsorship}
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
+              currentUser={currentUser}
+              communities={communities}
+              onUpdateTicket={(updatedTicket) => setTickets(tickets.map(t => t.ticketId === updatedTicket.ticketId ? updatedTicket : t))}
             />
           );
         } else {
@@ -387,17 +578,27 @@ export function App() {
             <AttendeeDashboardView
               tickets={tickets}
               events={events}
+              savedEventIds={savedEventIds}
               onViewTicket={(t) => setViewedTicket(t)}
               setActiveView={handleActiveViewChange}
+              onSelectEvent={handleSelectEvent}
             />
           );
         }
       case '/create-event':
         return (
           <CreateEventView
-            onCancel={() => navigate('/dashboard')}
-            onSaveEvent={handleSaveEvent}
+            onCancel={() => {
+              setPreSelectedCommunity(null);
+              navigate('/dashboard');
+            }}
+            onSaveEvent={(newEvent) => {
+              handleSaveEvent(newEvent);
+              setPreSelectedCommunity(null);
+            }}
             sponsorshipCodes={sponsorshipCodes}
+            currentUser={currentUser}
+            preSelectedCommunity={preSelectedCommunity}
           />
         );
       case '/discover':
@@ -416,6 +617,8 @@ export function App() {
               event={selectedEvent}
               onBack={() => navigate('/discover')}
               onRegister={handleRegisterForEvent}
+              isSaved={savedEventIds.includes(selectedEvent.id)}
+              onToggleSave={() => handleToggleSaveEvent(selectedEvent.id)}
             />
           );
         }
@@ -427,6 +630,64 @@ export function App() {
         return <SpeakerMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
       case '/services-marketplace':
         return <ServicesMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
+      case '/my-communities':
+        return (
+          <div className="px-4 md:px-10 max-w-[800px] mx-auto py-8 space-y-6 text-left animate-fadeIn">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-6">
+              <div>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors mb-2 cursor-pointer"
+                >
+                  <span>← Back to Dashboard</span>
+                </button>
+                <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider block">
+                  Organizer Space
+                </span>
+                <h1 className="font-geist text-2xl md:text-3xl font-bold text-[#00355f] mt-0.5">
+                  My Communities
+                </h1>
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#e1e3e4] rounded-[2.5rem] p-6 md:p-10 shadow-2xs space-y-6">
+              <p className="font-inter text-xs text-[#5f5e5e] text-left leading-relaxed">
+                Click on any community room you belong to, to enter the private member message boards and upcoming events feeds.
+              </p>
+
+              {!(currentUser?.communities && currentUser.communities.length > 0) ? (
+                <div className="p-4 bg-gray-50 border border-dashed border-[#c2c7d1] rounded-xl text-center text-xs text-gray-400 italic">
+                  You haven't joined any communities yet. Join one in your Profile using a room code!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {currentUser.communities.map((comName) => {
+                    const matchedCom = communities.find((c) => c.name === comName);
+                    return (
+                      <div
+                        key={comName}
+                        onClick={() => {
+                          if (matchedCom) {
+                            setActiveCommunity(matchedCom);
+                            navigate('/community-room');
+                          }
+                        }}
+                        className="p-4 border border-[#e1e3e4] rounded-xl bg-[#f8f9fa] hover:bg-[#d2e4ff]/10 hover:border-[#0f4c81] transition-all cursor-pointer flex justify-between items-center text-left"
+                      >
+                        <div>
+                          <h4 className="font-geist font-bold text-xs text-[#00355f]">{comName}</h4>
+                          <span className="font-mono text-[9px] text-[#5f5e5e]">Code: {matchedCom?.code || '—'}</span>
+                        </div>
+                        <span className="material-symbols-outlined text-base text-[#0f4c81]">chevron_right</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case '/how-it-works':
         return <HowItWorksView setActiveView={handleActiveViewChange} />;
       case '/about':

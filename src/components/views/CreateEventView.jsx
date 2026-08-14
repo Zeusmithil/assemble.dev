@@ -5,6 +5,8 @@ export const CreateEventView = ({
   onCancel,
   onSaveEvent,
   sponsorshipCodes,
+  currentUser,
+  preSelectedCommunity,
 }) => {
   // Configurator capabilities state
   const [enabledServices, setEnabledServices] = useState({
@@ -16,6 +18,11 @@ export const CreateEventView = ({
   });
 
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Volunteer & Community states
+  const [volunteersNeededOption, setVolunteersNeededOption] = useState('none');
+  const [volunteersCount, setVolunteersCount] = useState(10);
+  const [selectedCommunities, setSelectedCommunities] = useState(preSelectedCommunity ? [preSelectedCommunity] : []);
 
   // Form State - Basics
   const [title, setTitle] = useState('');
@@ -369,6 +376,8 @@ export const CreateEventView = ({
       },
       whatsIncluded: ['Full Session Access', 'Event Swag Bag', 'Networking Tea & Snacks'],
       visibility: 'Public',
+      volunteersNeeded: volunteersNeededOption === 'number' ? Number(volunteersCount) : 0,
+      associatedCommunities: selectedCommunities,
       budget: budgetType === 'set-budget' ? Number(budget) : (budgetType === 'sponsorship' && budgetSponsorInfo ? budgetSponsorInfo.amount : 0),
       budgetType: budgetType,
       budgetSponsorInfo: budgetSponsorInfo,
@@ -501,6 +510,93 @@ export const CreateEventView = ({
                     className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl font-inter text-sm text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
                   />
                 </div>
+              </div>
+
+              {/* Volunteers Needed Configuration */}
+              <div className="space-y-3 pt-2 text-left">
+                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  Volunteers Needed
+                </label>
+                <div className="flex gap-6 text-xs font-semibold text-[#00355f] pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="volunteersNeededOption"
+                      checked={volunteersNeededOption === 'none'}
+                      onChange={() => setVolunteersNeededOption('none')}
+                      className="text-[#0f4c81]"
+                    />
+                    <span>None Needed</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="volunteersNeededOption"
+                      checked={volunteersNeededOption === 'number'}
+                      onChange={() => setVolunteersNeededOption('number')}
+                      className="text-[#0f4c81]"
+                    />
+                    <span>Number of Volunteers</span>
+                  </label>
+                </div>
+
+                {volunteersNeededOption === 'number' && (
+                  <div className="space-y-1 max-w-[200px] pt-1 text-left">
+                    <label className="block font-inter text-[10px] text-gray-500 font-bold uppercase">Required Count</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={volunteersCount}
+                      onChange={(e) => setVolunteersCount(Math.max(1, Number(e.target.value)))}
+                      className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl font-inter text-sm text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Communities Association */}
+              <div className="space-y-3 pt-2 text-left">
+                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  Associate with Communities
+                </label>
+                {preSelectedCommunity ? (
+                  <div className="p-3 bg-[#d2e4ff]/30 text-[#0f4c81] rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm font-bold">link</span>
+                    <span>Automatically associated with: <strong>{preSelectedCommunity}</strong></span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="font-inter text-[11px] text-gray-500">
+                      Select one or more communities you belong to, to list this event in their Community Rooms.
+                    </p>
+                    {!(currentUser?.communities && currentUser.communities.length > 0) ? (
+                      <div className="text-xs text-gray-400 italic bg-gray-50 border border-gray-100 p-3.5 rounded-xl">
+                        You do not belong to any communities. You can join them in your Profile.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        {currentUser.communities.map((comName) => (
+                          <label key={comName} className="flex items-center gap-2 text-xs font-inter text-[#42474f] cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedCommunities.includes(comName)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCommunities([...selectedCommunities, comName]);
+                                } else {
+                                  setSelectedCommunities(selectedCommunities.filter(c => c !== comName));
+                                }
+                              }}
+                              className="rounded border-[#c2c7d1] text-[#0f4c81] focus:ring-[#0f4c81]"
+                            />
+                            <span>{comName}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Event Budget Funding Selector */}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { GoodiesMerchSection } from './GoodiesMerchSection';
 import { SponsorshipSection } from './SponsorshipSection';
 
@@ -18,11 +19,83 @@ export const OrganizerDashboardView = ({
   sponsorshipRequests,
   onRequestSponsorship,
   onSimulateSponsorApprove,
+  currentUser,
+  communities,
+  onUpdateTicket
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [ticketInput, setTicketInput] = useState('');
   const [checkInResult, setCheckInResult] = useState(null);
   const [selectedAnalyticsEvent, setSelectedAnalyticsEvent] = useState(null);
+  const [dashboardTab, setDashboardTab] = useState('attendees');
+
+  const handleUpdateVolunteerStatus = (ticket, newStatus) => {
+    const updated = {
+      ...ticket,
+      volunteerStatus: newStatus
+    };
+    onUpdateTicket(updated);
+  };
+
+  const handleUpdateCommunityStatus = (ticket, newStatus) => {
+    const updated = {
+      ...ticket,
+      communityStatus: newStatus
+    };
+    onUpdateTicket(updated);
+  };
+
+  const handleDownloadCSV = (event) => {
+    const eventTickets = tickets.filter(t => t.eventId === event.id);
+    const headers = ['Name', 'Gender', 'Phone', 'Email', 'Location', 'Current Status', 'LinkedIn', 'Ticket Type', 'Registration Date', 'Volunteer Status', 'Community Application Status'];
+    
+    const rows = eventTickets.map(t => [
+      t.userName,
+      t.gender || 'None',
+      t.phone || '',
+      t.userEmail,
+      t.location || '',
+      t.occupation || '',
+      t.linkedin || '',
+      t.registrationType || 'Attendee',
+      t.registrationDate || '',
+      t.volunteerStatus || 'None',
+      t.communityStatus || 'None'
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${event.title.replace(/\s+/g, '_')}_Attendees.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadExcel = (event) => {
+    const eventTickets = tickets.filter(t => t.eventId === event.id);
+    const data = eventTickets.map(t => ({
+      'Name': t.userName,
+      'Gender': t.gender || 'None',
+      'Phone': t.phone || '',
+      'Email': t.userEmail,
+      'Location': t.location || '',
+      'Current Status': t.occupation || '',
+      'LinkedIn': t.linkedin || '',
+      'Ticket Type': t.registrationType || 'Attendee',
+      'Registration Date': t.registrationDate || '',
+      'Volunteer Status': t.volunteerStatus || 'None',
+      'Community Application Status': t.communityStatus || 'None'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendees");
+    XLSX.writeFile(workbook, `${event.title.replace(/\s+/g, '_')}_Attendees.xlsx`);
+  };
 
   // Compute aggregate metrics
   const totalRevenue = events.reduce((acc, e) => acc + e.revenue, 0);
@@ -153,6 +226,13 @@ export const OrganizerDashboardView = ({
           className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
         >
           Services & Vendors
+        </button>
+
+        <button
+          onClick={() => setActiveView('my-communities')}
+          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
+        >
+          My Communities
         </button>
       </div>
 
@@ -365,55 +445,298 @@ export const OrganizerDashboardView = ({
                 </div>
               )}
 
-              {/* Attendee registrations table */}
-              <div className="space-y-3">
-                <h4 className="font-geist font-bold text-sm text-[#00355f]">Registered Attendees</h4>
-                <div className="bg-white border border-[#e1e3e4] rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs font-inter">
-                    <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
-                      <tr>
-                        <th className="p-3">Attendee Name</th>
-                        <th className="p-3">Email Address</th>
-                        <th className="p-3">Ticket ID</th>
-                        <th className="p-3">Tier</th>
-                        <th className="p-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#edeeef]">
-                      {tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length === 0 ? (
+              {/* Event Registrations & Staffing with Downloads */}
+              <div className="space-y-4 pt-4">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-[#edeeef] pb-3 text-left">
+                  <div>
+                    <h4 className="font-geist font-bold text-sm text-[#00355f]">Staffing & Registrations</h4>
+                    <p className="font-inter text-[11px] text-gray-500">Review registrations, manage volunteer applications, and join requests.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleDownloadCSV(selectedAnalyticsEvent)}
+                      className="px-3 py-1.5 bg-white border border-[#c2c7d1] hover:bg-gray-50 text-[#00355f] rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-3xs"
+                    >
+                      <span className="material-symbols-outlined text-xs">download</span>
+                      <span>Download CSV</span>
+                    </button>
+                    <button
+                      onClick={() => handleDownloadExcel(selectedAnalyticsEvent)}
+                      className="px-3 py-1.5 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-3xs"
+                    >
+                      <span className="material-symbols-outlined text-xs">download</span>
+                      <span>Download Excel</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-tabs inside selected event dashboard */}
+                <div className="flex border-b border-[#e1e3e4] gap-6 text-xs font-semibold pt-1">
+                  <button
+                    onClick={() => setDashboardTab('attendees')}
+                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
+                      dashboardTab === 'attendees'
+                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+                        : 'text-[#5f5e5e] hover:text-[#00355f]'
+                    }`}
+                  >
+                    Registered Attendees ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length})
+                  </button>
+                  <button
+                    onClick={() => setDashboardTab('volunteers')}
+                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
+                      dashboardTab === 'volunteers'
+                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+                        : 'text-[#5f5e5e] hover:text-[#00355f]'
+                    }`}
+                  >
+                    Volunteers ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Volunteer' || t.registrationType === 'Volunteer + Community')).length})
+                  </button>
+                  <button
+                    onClick={() => setDashboardTab('community')}
+                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
+                      dashboardTab === 'community'
+                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+                        : 'text-[#5f5e5e] hover:text-[#00355f]'
+                    }`}
+                  >
+                    Community Applicants ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community')).length})
+                  </button>
+                </div>
+
+                {/* Tab Rendering content */}
+                {dashboardTab === 'attendees' && (
+                  <div className="bg-white border border-[#e1e3e4] rounded-xl overflow-hidden overflow-x-auto text-left">
+                    <table className="w-full text-left text-xs font-inter min-w-[950px]">
+                      <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
                         <tr>
-                          <td colSpan="5" className="p-6 text-center text-gray-400 italic">
-                            No attendees registered yet for this event.
-                          </td>
+                          <th className="p-3">Attendee Name</th>
+                          <th className="p-3">Phone / Call Action</th>
+                          <th className="p-3">Email Address</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Current Status</th>
+                          <th className="p-3">LinkedIn</th>
+                          <th className="p-3">Reg Date</th>
+                          <th className="p-3">Reg Type</th>
+                          <th className="p-3">Volunteer Status</th>
+                          <th className="p-3">Community Status</th>
                         </tr>
-                      ) : (
-                        tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).map((t) => (
-                          <tr key={t.ticketId} className="hover:bg-gray-50 transition-colors">
-                            <td className="p-3 font-semibold text-[#00355f]">{t.userName}</td>
-                            <td className="p-3 text-gray-500">{t.userEmail}</td>
-                            <td className="p-3 font-mono text-xs">{t.ticketId}</td>
-                            <td className="p-3">
-                              <span className="text-[10px] font-bold bg-[#fff3d6] text-[#b46d00] px-2 py-0.5 rounded uppercase">
-                                {t.ticketTierName || 'General'}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                  t.status === 'checked-in'
-                                    ? 'bg-[#e2f7e2] text-[#1a853e]'
-                                    : 'bg-[#d2e4ff] text-[#0f4c81]'
-                                }`}
-                              >
-                                {t.status}
-                              </span>
+                      </thead>
+                      <tbody className="divide-y divide-[#edeeef]">
+                        {tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length === 0 ? (
+                          <tr>
+                            <td colSpan="10" className="p-6 text-center text-gray-400 italic">
+                              No attendees registered yet for this event.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        ) : (
+                          tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).map((t) => (
+                            <tr key={t.ticketId} className="hover:bg-gray-50 transition-colors">
+                              <td className="p-3 font-semibold text-[#00355f]">{t.userName}</td>
+                              <td className="p-3 text-gray-500">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium">{t.phone || '—'}</span>
+                                  {t.phone && (
+                                    <a
+                                      href={`tel:${t.phone}`}
+                                      className="px-2 py-0.5 bg-[#d2e4ff] text-[#0f4c81] font-bold text-[9px] hover:bg-[#00355f] hover:text-white rounded transition-all whitespace-nowrap"
+                                    >
+                                      Call
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-gray-500">{t.userEmail}</td>
+                              <td className="p-3 text-gray-500">{t.location ? `${t.location}${t.state ? `, ${t.state}` : ''}` : '—'}</td>
+                              <td className="p-3 text-gray-500">{t.occupation || '—'}</td>
+                              <td className="p-3 text-gray-500">
+                                {t.linkedin ? (
+                                  <a href={t.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline">
+                                    Profile
+                                  </a>
+                                ) : '—'}
+                              </td>
+                              <td className="p-3 text-gray-500">{t.registrationDate || '—'}</td>
+                              <td className="p-3">
+                                <span className="text-[9px] font-bold bg-[#fff3d6] text-[#b46d00] px-2 py-0.5 rounded uppercase">
+                                  {t.registrationType || 'Attendee'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  t.volunteerStatus === 'Selected' ? 'bg-[#e2f7e2] text-[#1a853e]' :
+                                  t.volunteerStatus === 'Applied' ? 'bg-[#d2e4ff] text-[#0f4c81]' :
+                                  t.volunteerStatus === 'Under Review' ? 'bg-amber-100 text-amber-800' :
+                                  t.volunteerStatus === 'Rejected' ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-400'
+                                }`}>
+                                  {t.volunteerStatus || 'None'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  t.communityStatus === 'Selected' ? 'bg-[#e2f7e2] text-[#1a853e]' :
+                                  t.communityStatus === 'Applied' ? 'bg-[#d2e4ff] text-[#0f4c81]' :
+                                  t.communityStatus === 'Under Review' ? 'bg-amber-100 text-amber-800' :
+                                  t.communityStatus === 'Rejected' ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-400'
+                                }`}>
+                                  {t.communityStatus || 'None'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {dashboardTab === 'volunteers' && (
+                  <div className="bg-white border border-[#e1e3e4] rounded-xl overflow-hidden overflow-x-auto text-left">
+                    <table className="w-full text-left text-xs font-inter min-w-[950px]">
+                      <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
+                        <tr>
+                          <th className="p-3">Applicant Name</th>
+                          <th className="p-3">Phone</th>
+                          <th className="p-3">Email Address</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Current Status</th>
+                          <th className="p-3">LinkedIn</th>
+                          <th className="p-3">Why Volunteer</th>
+                          <th className="p-3">Application Date</th>
+                          <th className="p-3">Volunteer Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#edeeef]">
+                        {tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Volunteer' || t.registrationType === 'Volunteer + Community')).length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="p-6 text-center text-gray-400 italic">
+                              No volunteer applications submitted yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Volunteer' || t.registrationType === 'Volunteer + Community')).map((t) => (
+                            <tr key={t.ticketId} className="hover:bg-gray-50 transition-colors">
+                              <td className="p-3 font-semibold text-[#00355f]">{t.userName}</td>
+                              <td className="p-3 text-gray-500">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium">{t.phone || '—'}</span>
+                                  {t.phone && (
+                                    <a
+                                      href={`tel:${t.phone}`}
+                                      className="px-2 py-0.5 bg-[#d2e4ff] text-[#0f4c81] font-bold text-[9px] hover:bg-[#00355f] hover:text-white rounded transition-all whitespace-nowrap"
+                                    >
+                                      Call
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-gray-500">{t.userEmail}</td>
+                              <td className="p-3 text-gray-500">{t.location || '—'}</td>
+                              <td className="p-3 text-gray-500">{t.occupation || '—'}</td>
+                              <td className="p-3 text-gray-500">
+                                {t.linkedin ? (
+                                  <a href={t.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline">
+                                    Profile
+                                  </a>
+                                ) : '—'}
+                              </td>
+                              <td className="p-3 text-gray-500 max-w-[180px] truncate font-medium text-gray-600" title={t.volunteerWhy}>
+                                {t.volunteerWhy || '—'}
+                              </td>
+                              <td className="p-3 text-gray-500">{t.registrationDate || '—'}</td>
+                              <td className="p-3">
+                                <select
+                                  value={t.volunteerStatus || 'Applied'}
+                                  onChange={(e) => handleUpdateVolunteerStatus(t, e.target.value)}
+                                  className="px-2 py-1 bg-white border border-[#c2c7d1] rounded-lg text-[10px] font-bold text-[#00355f] focus:outline-none"
+                                >
+                                  <option value="Applied">Applied</option>
+                                  <option value="Under Review">Under Review</option>
+                                  <option value="Selected">Selected</option>
+                                  <option value="Rejected">Rejected</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {dashboardTab === 'community' && (
+                  <div className="bg-white border border-[#e1e3e4] rounded-xl overflow-hidden overflow-x-auto text-left">
+                    <table className="w-full text-left text-xs font-inter min-w-[950px]">
+                      <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
+                        <tr>
+                          <th className="p-3">Applicant Name</th>
+                          <th className="p-3">Phone</th>
+                          <th className="p-3">Email Address</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Current Status</th>
+                          <th className="p-3">LinkedIn</th>
+                          <th className="p-3">Why Join Community</th>
+                          <th className="p-3">Application Date</th>
+                          <th className="p-3">Community Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#edeeef]">
+                        {tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community')).length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="p-6 text-center text-gray-400 italic">
+                              No community join requests submitted yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community')).map((t) => (
+                            <tr key={t.ticketId} className="hover:bg-gray-50 transition-colors">
+                              <td className="p-3 font-semibold text-[#00355f]">{t.userName}</td>
+                              <td className="p-3 text-gray-500">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium">{t.phone || '—'}</span>
+                                  {t.phone && (
+                                    <a
+                                      href={`tel:${t.phone}`}
+                                      className="px-2 py-0.5 bg-[#d2e4ff] text-[#0f4c81] font-bold text-[9px] hover:bg-[#00355f] hover:text-white rounded transition-all whitespace-nowrap"
+                                    >
+                                      Call
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-gray-500">{t.userEmail}</td>
+                              <td className="p-3 text-gray-500">{t.location || '—'}</td>
+                              <td className="p-3 text-gray-500">{t.occupation || '—'}</td>
+                              <td className="p-3 text-gray-500">
+                                {t.linkedin ? (
+                                  <a href={t.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline">
+                                    Profile
+                                  </a>
+                                ) : '—'}
+                              </td>
+                              <td className="p-3 text-gray-500 max-w-[180px] truncate font-medium text-gray-600" title={t.communityWhy}>
+                                {t.communityWhy || '—'}
+                              </td>
+                              <td className="p-3 text-gray-500">{t.registrationDate || '—'}</td>
+                              <td className="p-3">
+                                <select
+                                  value={t.communityStatus || 'Applied'}
+                                  onChange={(e) => handleUpdateCommunityStatus(t, e.target.value)}
+                                  className="px-2 py-1 bg-white border border-[#c2c7d1] rounded-lg text-[10px] font-bold text-[#00355f] focus:outline-none"
+                                >
+                                  <option value="Applied">Applied</option>
+                                  <option value="Under Review">Under Review</option>
+                                  <option value="Selected">Selected</option>
+                                  <option value="Rejected">Rejected</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

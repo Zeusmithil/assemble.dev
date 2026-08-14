@@ -41,12 +41,14 @@ export const HomeView = ({
           >
             Explore Events
           </button>
-          <button
-            onClick={() => navigate(currentUser ? '/create-event' : '/login')}
-            className="px-6 py-3 border border-[#c2c7d1] bg-white hover:bg-gray-100 text-[#00355f] font-geist font-bold text-xs rounded-xl transition-all active:scale-98 cursor-pointer"
-          >
-            Organize an Event
-          </button>
+          {(!currentUser || currentUser.role === 'organizer') && (
+            <button
+              onClick={() => navigate(currentUser ? '/create-event' : '/login')}
+              className="px-6 py-3 border border-[#c2c7d1] bg-white hover:bg-gray-100 text-[#00355f] font-geist font-bold text-xs rounded-xl transition-all active:scale-98 cursor-pointer"
+            >
+              Organize an Event
+            </button>
+          )}
           {!currentUser && (
             <button
               onClick={() => navigate('/login')}
@@ -149,12 +151,18 @@ export const HomeView = ({
               From speakers to venues, we handle every detail for you in one workspace.
             </p>
           </div>
-          <button
-            onClick={() => navigate(currentUser ? '/create-event' : '/login')}
-            className="w-fit px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl text-sm shadow-md hover:bg-blue-700 transition-all mt-6 active:scale-95 cursor-pointer"
-          >
-            Start Planning
-          </button>
+          {(!currentUser || currentUser.role === 'organizer') ? (
+            <button
+              onClick={() => navigate(currentUser ? '/create-event' : '/login')}
+              className="w-fit px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl text-sm shadow-md hover:bg-blue-700 transition-all mt-6 active:scale-95 cursor-pointer"
+            >
+              Start Planning
+            </button>
+          ) : (
+            <div className="text-xs font-bold text-[#0f4c81] italic mt-6 bg-[#d2e4ff] px-4 py-2 rounded-xl">
+              Switch role to Organizer to plan events.
+            </div>
+          )}
         </div>
 
         {/* Tile 4: Speaker Network (col-span-3) */}
@@ -239,52 +247,52 @@ export const HomeView = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">01</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Discover Events</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Discover & Track</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Find events happening around you based on your interests, location, and preferred categories.
+              Find events near you. Bookmark experiences you like for the future and track upcoming or previous tickets in your attendee portal.
             </p>
           </div>
 
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">02</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Easy Registration</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Simple Registration</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Register for events quickly and receive your event ticket or digital pass.
+              Register instantly, customize demographic details, and opt-in to apply for custom volunteer roles or join communities.
             </p>
           </div>
 
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">03</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Create Events</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Plan & Publish</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Create and publish your own events with details such as date, location, schedule, and registration information.
+              Draft, customize sponsorships, set budgeting, order merchandise details, and associate events directly within community spaces.
             </p>
           </div>
 
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">04</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Event Management</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Community Rooms</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Manage attendees, registrations, schedules, speakers, venues, and other event requirements from one place.
+              Generate 8-character codes to host community spaces, coordinate member message boards, and list exclusive room-only events.
             </p>
           </div>
 
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">05</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Venues & Speakers</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Marketplaces</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Find suitable venues and connect with speakers who can make your event more impactful.
+              Search verified city spaces in the Venue Marketplace or hire speakers and coordinate event services directly.
             </p>
           </div>
 
           <div className="bg-white border border-[#e1e3e4] p-6 rounded-3xl space-y-3 shadow-2xs">
             <span className="text-lg font-bold text-[#0f4c81]">06</span>
-            <h3 className="font-geist font-bold text-sm text-[#00355f]">Event Services</h3>
+            <h3 className="font-geist font-bold text-sm text-[#00355f]">Staffing Console</h3>
             <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Manage goodies, merchandise, catering, photography, branding, and other event services.
+              Review candidate motivation questionnaires, update application statuses, and export detailed CSV/Excel data sheets.
             </p>
           </div>
         </div>
@@ -366,12 +374,14 @@ export const HomeView = ({
           >
             Explore Events
           </button>
-          <button
-            onClick={() => navigate(currentUser ? '/create-event' : '/login')}
-            className="px-6 py-3 bg-black hover:bg-gray-800 text-white font-geist font-bold text-xs rounded-xl transition-all active:scale-98 cursor-pointer"
-          >
-            Create an Event
-          </button>
+          {(!currentUser || currentUser.role === 'organizer') && (
+            <button
+              onClick={() => navigate(currentUser ? '/create-event' : '/login')}
+              className="px-6 py-3 bg-black hover:bg-gray-800 text-white font-geist font-bold text-xs rounded-xl transition-all active:scale-98 cursor-pointer"
+            >
+              Create an Event
+            </button>
+          )}
         </div>
       </section>
     </div>

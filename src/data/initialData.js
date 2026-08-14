@@ -52,7 +52,9 @@ export const INITIAL_EVENTS = [
       { time: '02:30 PM', title: 'Figma to Code Live Lab', description: 'Hands-on session with automated code generation.' },
       { time: '04:30 PM', title: 'Closing & Q&A', description: 'Community announcements and raffle.' }
     ],
-    visibility: 'Public'
+    visibility: 'Public',
+    volunteersNeeded: 12,
+    associatedCommunities: ['Code Community']
   },
   {
     id: 'evt-2',
@@ -180,7 +182,9 @@ export const INITIAL_EVENTS = [
       { time: '11:00 AM', title: 'Agentic Workflows in Enterprise' },
       { time: '02:00 PM', title: 'Multimodal Generative Models Workshop' }
     ],
-    visibility: 'Public'
+    visibility: 'Public',
+    volunteersNeeded: 25,
+    associatedCommunities: ['AI Community']
   },
   {
     id: 'evt-5',
@@ -450,6 +454,17 @@ export const INITIAL_TICKETS = [
     eventTitle: 'The Future of AI Summit 2026',
     userName: 'John Doe',
     userEmail: 'john.doe@example.com',
+    gender: 'Male',
+    phone: '+1 (555) 019-2834',
+    location: 'San Francisco',
+    state: 'California',
+    country: 'USA',
+    occupation: 'Working Professional',
+    occupationDetails: 'UX Architect at Horizon Studio.',
+    linkedin: 'https://linkedin.com/in/johndoe',
+    registrationType: 'Volunteer + Community',
+    volunteerStatus: 'Selected',
+    communityInterest: true,
     date: 'Oct 15 - 17, 2026',
     time: '09:00 AM PST',
     venue: 'Moscone Center, San Francisco',
@@ -464,6 +479,17 @@ export const INITIAL_TICKETS = [
     eventTitle: 'Design Systems Architecture Summit',
     userName: 'John Doe',
     userEmail: 'john.doe@example.com',
+    gender: 'Male',
+    phone: '+1 (555) 019-2834',
+    location: 'San Francisco',
+    state: 'California',
+    country: 'USA',
+    occupation: 'Working Professional',
+    occupationDetails: 'UX Architect at Horizon Studio.',
+    linkedin: 'https://linkedin.com/in/johndoe',
+    registrationType: 'Attendee',
+    volunteerStatus: 'None',
+    communityInterest: false,
     date: 'Oct 24, 2026',
     time: '10:00 AM IST',
     venue: 'Sir Mutha Concert Hall, Chennai',
@@ -471,5 +497,61 @@ export const INITIAL_TICKETS = [
     registrationDate: '2026-08-11',
     status: 'confirmed',
     qrCodeData: 'EH-44102-JOHN-DOE-EVT1'
+  },
+  {
+    ticketId: 'EH-31049',
+    eventId: 'evt-4',
+    eventTitle: 'The Future of AI Summit 2026',
+    userName: 'Jane Smith',
+    userEmail: 'jane.smith@example.com',
+    gender: 'Female',
+    phone: '+91 98401 23456',
+    location: 'Chennai',
+    state: 'Tamil Nadu',
+    country: 'India',
+    occupation: 'Student',
+    occupationDetails: 'Pre-final year Computer Science student at IIT Madras.',
+    linkedin: 'https://linkedin.com/in/janesmith',
+    registrationType: 'Volunteer',
+    volunteerStatus: 'Applied',
+    communityInterest: false,
+    date: 'Oct 15 - 17, 2026',
+    time: '09:00 AM PST',
+    venue: 'Moscone Center, San Francisco',
+    price: 0,
+    registrationDate: '2026-08-12',
+    status: 'confirmed',
+    qrCodeData: 'EH-31049-JANE-SMITH-EVT4'
+  },
+  {
+    ticketId: 'EH-55201',
+    eventId: 'evt-4',
+    eventTitle: 'The Future of AI Summit 2026',
+    userName: 'Bob Miller',
+    userEmail: 'bob.miller@example.com',
+    gender: 'Male',
+    phone: '+1 (555) 321-7654',
+    location: 'San Francisco',
+    state: 'California',
+    country: 'USA',
+    occupation: 'Working Professional',
+    occupationDetails: 'Software Engineer specializing in Generative AI.',
+    linkedin: 'https://linkedin.com/in/bobmiller',
+    registrationType: 'Community',
+    volunteerStatus: 'None',
+    communityInterest: true,
+    date: 'Oct 15 - 17, 2026',
+    time: '09:00 AM PST',
+    venue: 'Moscone Center, San Francisco',
+    price: 299,
+    registrationDate: '2026-08-13',
+    status: 'confirmed',
+    qrCodeData: 'EH-55201-BOB-MILLER-EVT4'
   }
+];
+
+export const INITIAL_COMMUNITIES = [
+  { id: 'com-1', name: 'Code Community', code: 'CODE2026', memberCount: 125, members: [] },
+  { id: 'com-2', name: 'Startup Community', code: 'START2026', memberCount: 84, members: [] },
+  { id: 'com-3', name: 'AI Community', code: 'AI2026X7', memberCount: 156, members: [] }
 ];
