@@ -144,8 +144,14 @@ export function App() {
   };
 
   // Main state collections
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [tickets, setTickets] = useState(INITIAL_TICKETS);
+  const [events, setEvents] = useState(() => {
+    const saved = localStorage.getItem('assemble_events');
+    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
+  });
+  const [tickets, setTickets] = useState(() => {
+    const saved = localStorage.getItem('assemble_tickets');
+    return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+  });
 
   // Selected item states
   const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
@@ -378,7 +384,9 @@ export function App() {
       qrCodeData: `${newTicketId}-${(applicationDetails?.fullName || (currentUser ? currentUser.name : 'GUEST')).replace(/\s+/g, '-').toUpperCase()}-${event.id.toUpperCase()}`,
     };
 
-    setTickets([newTicket, ...tickets]);
+    const updatedTickets = [newTicket, ...tickets];
+    setTickets(updatedTickets);
+    localStorage.setItem('assemble_tickets', JSON.stringify(updatedTickets));
 
     // If they checked communityInterest, join the associated communities of the event
     if (communityInterest && event.associatedCommunities) {
@@ -391,22 +399,22 @@ export function App() {
     }
 
     // Update event stats
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === event.id
-          ? {
-              ...e,
-              registeredCount: e.registeredCount + 1,
-              revenue: e.revenue + finalPrice,
-              ticketTiers: e.ticketTiers
-                ? e.ticketTiers.map((t) =>
-                    t.name === finalTierName ? { ...t, sold: (t.sold || 0) + 1 } : t
-                  )
-                : undefined,
-            }
-          : e
-      )
+    const updatedEvents = events.map((e) =>
+      e.id === event.id
+        ? {
+            ...e,
+            registeredCount: e.registeredCount + 1,
+            revenue: e.revenue + finalPrice,
+            ticketTiers: e.ticketTiers
+              ? e.ticketTiers.map((t) =>
+                  t.name === finalTierName ? { ...t, sold: (t.sold || 0) + 1 } : t
+                )
+              : undefined,
+          }
+        : e
     );
+    setEvents(updatedEvents);
+    localStorage.setItem('assemble_events', JSON.stringify(updatedEvents));
 
     // Show pass modal
     setViewedTicket(newTicket);
@@ -414,7 +422,9 @@ export function App() {
 
   // Handler: Save / Publish Created Event
   const handleSaveEvent = (newEvent) => {
-    setEvents([newEvent, ...events]);
+    const updatedEvents = [newEvent, ...events];
+    setEvents(updatedEvents);
+    localStorage.setItem('assemble_events', JSON.stringify(updatedEvents));
     navigate('/dashboard');
   };
 
@@ -427,24 +437,47 @@ export function App() {
     if (!targetTicket) return false;
 
     // Mark ticket checked-in
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.ticketId.toLowerCase() === ticketId.toLowerCase()
-          ? { ...t, status: 'checked-in' }
-          : t
-      )
+    const updatedTickets = tickets.map((t) =>
+      t.ticketId.toLowerCase() === ticketId.toLowerCase()
+        ? { ...t, status: 'checked-in' }
+        : t
     );
+    setTickets(updatedTickets);
+    localStorage.setItem('assemble_tickets', JSON.stringify(updatedTickets));
 
     // Update event checked in count
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === targetTicket.eventId
-          ? { ...e, checkedInCount: e.checkedInCount + 1 }
-          : e
-      )
+    const updatedEvents = events.map((e) =>
+      e.id === targetTicket.eventId
+        ? { ...e, checkedInCount: e.checkedInCount + 1 }
+        : e
     );
+    setEvents(updatedEvents);
+    localStorage.setItem('assemble_events', JSON.stringify(updatedEvents));
 
     return true;
+  };
+
+  const handleUpdateTicket = (updatedTicket) => {
+    const updatedTickets = tickets.map((t) =>
+      t.ticketId === updatedTicket.ticketId ? updatedTicket : t
+    );
+    setTickets(updatedTickets);
+    localStorage.setItem('assemble_tickets', JSON.stringify(updatedTickets));
+  };
+
+  const handleUpdateEventExpenses = (eventId, updatedExpenses, newBudget) => {
+    const updatedEvents = events.map((e) => {
+      if (e.id === eventId) {
+        return {
+          ...e,
+          expenses: updatedExpenses,
+          budget: newBudget !== undefined ? newBudget : e.budget,
+        };
+      }
+      return e;
+    });
+    setEvents(updatedEvents);
+    localStorage.setItem('assemble_events', JSON.stringify(updatedEvents));
   };
 
   const handleActiveViewChange = (view) => {
@@ -566,13 +599,14 @@ export function App() {
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
               currentUser={currentUser}
               communities={communities}
-              onUpdateTicket={(updatedTicket) => setTickets(tickets.map(t => t.ticketId === updatedTicket.ticketId ? updatedTicket : t))}
+              onUpdateTicket={handleUpdateTicket}
+              onUpdateEventExpenses={handleUpdateEventExpenses}
             />
           );
         } else {
           return (
             <AttendeeDashboardView
-              tickets={tickets}
+              tickets={currentUser ? tickets.filter(t => t.userEmail?.toLowerCase() === currentUser.email?.toLowerCase()) : []}
               events={events}
               savedEventIds={savedEventIds}
               onViewTicket={(t) => setViewedTicket(t)}

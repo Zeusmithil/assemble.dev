@@ -157,6 +157,16 @@ export const EventDetailsView = ({
             >
               Venue & Map
             </button>
+            <button
+              onClick={() => setActiveTab('budget')}
+              className={`px-5 py-2.5 rounded-xl transition-all ${
+                activeTab === 'budget'
+                  ? 'bg-white text-black shadow-xs font-bold'
+                  : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              Budget & Expenses
+            </button>
           </div>
 
           {/* Tab Content Panels */}
@@ -279,6 +289,131 @@ export const EventDetailsView = ({
                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">GPS Location Verified</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'budget' && (
+              <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 text-left">
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <div>
+                    <h3 className="font-geist text-lg font-bold text-black">Event Budget & Amount Spent Tracker</h3>
+                    <p className="font-inter text-xs text-gray-500 mt-0.5">Track allocated funds vs actual expenditure for {event.title}.</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    (event.budget || 0) === 0 ? 'bg-gray-100 text-gray-600' :
+                    ((event.expenses || []).reduce((a, b) => a + (b.spent || 0), 0) <= (event.budget || 0))
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {(event.budget || 0) === 0 ? 'Budget Unassigned' :
+                     ((event.expenses || []).reduce((a, b) => a + (b.spent || 0), 0) <= (event.budget || 0))
+                       ? '✓ Within Allocated Budget'
+                       : '⚠️ Over Budget'}
+                  </span>
+                </div>
+
+                {/* Summary Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Allocated Budget</span>
+                    <span className="font-geist text-2xl font-bold text-black">
+                      ${(event.budget || 0).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">Total budget for event</span>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Amount Spent</span>
+                    <span className="font-geist text-2xl font-bold text-[#0f4c81]">
+                      ${((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">Sum of logged expenses</span>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Remaining Balance</span>
+                    <span className={`font-geist text-2xl font-bold ${
+                      (event.budget || 0) - ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) >= 0
+                        ? 'text-emerald-600'
+                        : 'text-rose-600'
+                    }`}>
+                      ${((event.budget || 0) - ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0))).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">Available funds left</span>
+                  </div>
+                </div>
+
+                {/* Utilization Progress Bar */}
+                {(event.budget || 0) > 0 && (
+                  <div className="space-y-1.5 p-4 bg-blue-50/40 border border-blue-100 rounded-2xl">
+                    <div className="flex justify-between text-xs font-bold text-black">
+                      <span>Budget Utilization</span>
+                      <span>
+                        {Math.min(100, Math.round((((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget) * 100))}% Used
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all rounded-full ${
+                          ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) > event.budget
+                            ? 'bg-rose-500'
+                            : ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget > 0.85
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, (((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget) * 100)}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Expenses Table */}
+                <div className="space-y-3 pt-2">
+                  <h4 className="font-geist font-bold text-sm text-black">Itemized Expenditure Breakdown</h4>
+                  {event.expenses && event.expenses.length > 0 ? (
+                    <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-3xs">
+                      <table className="w-full text-left text-xs font-inter">
+                        <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+                          <tr>
+                            <th className="p-3.5">Expense Item</th>
+                            <th className="p-3.5">Category</th>
+                            <th className="p-3.5">Allocated</th>
+                            <th className="p-3.5">Amount Spent</th>
+                            <th className="p-3.5">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {event.expenses.map((exp) => (
+                            <tr key={exp.id} className="hover:bg-gray-50/80 transition-colors">
+                              <td className="p-3.5 font-bold text-black">{exp.title}</td>
+                              <td className="p-3.5">
+                                <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 font-bold rounded text-[10px]">
+                                  {exp.category}
+                                </span>
+                              </td>
+                              <td className="p-3.5 font-medium text-gray-500">${(exp.allocated || 0).toLocaleString()}</td>
+                              <td className="p-3.5 font-bold text-black">${(exp.spent || 0).toLocaleString()}</td>
+                              <td className="p-3.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                  exp.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {exp.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-2xl border border-gray-100 p-6 space-y-1">
+                      <p className="font-geist text-sm font-bold text-black">No expense records logged yet</p>
+                      <p className="font-inter text-xs text-gray-500">The organizer can log itemized expenses from the Organizer Dashboard.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
