@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { INITIAL_VENUES, INITIAL_SPEAKERS, INITIAL_SERVICES } from '../../data/initialData';
 
 export const CreateEventView = ({
@@ -12,7 +12,6 @@ export const CreateEventView = ({
   const [enabledServices, setEnabledServices] = useState({
     venue: true,
     speakers: true,
-    catering: true,
     goodies: true,
     ticketing: true
   });
@@ -42,6 +41,106 @@ export const CreateEventView = ({
   const [imageUrl, setImageUrl] = useState(
     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop'
   );
+
+  const fileInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload a valid image file (JPG, JPEG, PNG, or WEBP).');
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setImageUrl(previewUrl);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+  };
+
+  // Search & Filter State
+  const [venueSearch, setVenueSearch] = useState('');
+  const [venueFilterOpen, setVenueFilterOpen] = useState(false);
+  const [venueFilters, setVenueFilters] = useState({
+    location: '',
+    capacity: '',
+    price: '',
+    type: '',
+    availability: '',
+    facilities: ''
+  });
+
+  // Speakers Search & Topic Domain State
+  const [selectedSpeakerDomains, setSelectedSpeakerDomains] = useState([]);
+  const [speakerSearch, setSpeakerSearch] = useState('');
+
+  // Selected Goodies list state
+  const [selectedGoodies, setSelectedGoodies] = useState([]);
+
+  const handleAddGoodie = (item) => {
+    const defaultGoodie = {
+      id: `goodie-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: item.name,
+      type: item.type,
+      color: 'Black',
+      sizes: item.type === 'printed' ? { XS: 0, S: 10, M: 20, L: 20, XL: 10, XXL: 0, XXXL: 0 } : null,
+      designImage: '',
+      printPlacements: item.type === 'printed' ? ['Front'] : null,
+      quantity: 100,
+      engravingText: '',
+      specifications: ''
+    };
+    setSelectedGoodies([...selectedGoodies, defaultGoodie]);
+  };
+
+  const handleRemoveGoodie = (id) => {
+    setSelectedGoodies(selectedGoodies.filter((g) => g.id !== id));
+  };
+
+  const handleUpdateGoodie = (id, key, val) => {
+    setSelectedGoodies(
+      selectedGoodies.map((g) => (g.id === id ? { ...g, [key]: val } : g))
+    );
+  };
+
+  const handleGoodieImageChange = (id, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload a valid design file (PNG, JPG, JPEG, SVG, or PDF).');
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      handleUpdateGoodie(id, 'designImage', previewUrl);
+    }
+  };
+
+  // Own Venue Custom options
+  const [customVenueType, setCustomVenueType] = useState('physical');
+  const [virtualEventLink, setVirtualEventLink] = useState('');
+  const [customVenueImage, setCustomVenueImage] = useState('');
+  const venueImageInputRef = useRef(null);
+
+  const handleVenueImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload a valid image file (JPG, JPEG, PNG, or WEBP).');
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setCustomVenueImage(previewUrl);
+    }
+  };
+
+  const handleRemoveVenueImage = () => {
+    setCustomVenueImage('');
+  };
 
   // Venue state
   const [venueOption, setVenueOption] = useState('marketplace');
@@ -248,7 +347,6 @@ export const CreateEventView = ({
     const steps = [1]; // Step 1 (Basics) is always active
     if (enabledServices.venue) steps.push(2);
     if (enabledServices.speakers) steps.push(3);
-    if (enabledServices.catering) steps.push(4);
     if (enabledServices.goodies) steps.push(5);
     if (enabledServices.ticketing) steps.push(6);
     steps.push(7); // Step 7 (Review) is always active
@@ -256,6 +354,94 @@ export const CreateEventView = ({
   };
 
   const activeStepsList = getActiveSteps();
+
+  const filteredVenues = INITIAL_VENUES.filter((ven) => {
+    const matchSearch =
+      venueSearch.trim() === '' ||
+      ven.name.toLowerCase().includes(venueSearch.toLowerCase()) ||
+      ven.location.toLowerCase().includes(venueSearch.toLowerCase()) ||
+      ven.city.toLowerCase().includes(venueSearch.toLowerCase());
+
+    if (!matchSearch) return false;
+
+    if (venueFilters.location && ven.city.toLowerCase() !== venueFilters.location.toLowerCase() && ven.location.toLowerCase() !== venueFilters.location.toLowerCase()) {
+      return false;
+    }
+
+    if (venueFilters.capacity) {
+      if (venueFilters.capacity === 'small' && ven.capacity > 100) return false;
+      if (venueFilters.capacity === 'medium' && (ven.capacity < 100 || ven.capacity > 300)) return false;
+      if (venueFilters.capacity === 'large' && ven.capacity < 300) return false;
+    }
+
+    if (venueFilters.price) {
+      if (venueFilters.price === 'low' && ven.pricePerHour >= 150) return false;
+      if (venueFilters.price === 'medium' && (ven.pricePerHour < 150 || ven.pricePerHour > 300)) return false;
+      if (venueFilters.price === 'high' && ven.pricePerHour < 300) return false;
+    }
+
+    if (venueFilters.type && ven.vibe.toLowerCase() !== venueFilters.type.toLowerCase()) {
+      return false;
+    }
+
+    if (venueFilters.availability && ven.availability.toLowerCase() !== venueFilters.availability.toLowerCase()) {
+      return false;
+    }
+
+    if (venueFilters.facilities) {
+      const hasFacility = ven.amenities.some((a) =>
+        a.toLowerCase().includes(venueFilters.facilities.toLowerCase())
+      );
+      if (!hasFacility) return false;
+    }
+
+    return true;
+  });
+
+  const speakerDomainsMap = {
+    'Artificial Intelligence': ['ai', 'autonomous', 'llm', 'robotics', 'machine learning'],
+    'Design': ['design', 'ui', 'ux', 'spatial'],
+    'Technology': ['technology', 'serverless', 'kubernetes', 'devops', 'cloud', 'architecture'],
+    'Business': ['business', 'enterprise', 'strategy'],
+    'Entrepreneurship': ['startup', 'founder', 'entrepreneurship'],
+    'Data Science': ['data', 'analytics'],
+    'Marketing': ['marketing', 'brand', 'growth'],
+    'Finance': ['finance', 'fintech', 'capital'],
+    'Cybersecurity': ['security', 'cybersecurity', 'cryptography', 'network'],
+    'Education': ['education', 'teach', 'academic'],
+    'Leadership': ['leader', 'leadership', 'management']
+  };
+
+  const matchesDomain = (speaker, domain) => {
+    const terms = speakerDomainsMap[domain] || [domain.toLowerCase()];
+    const searchString = [
+      speaker.name,
+      speaker.designation,
+      speaker.company,
+      speaker.bio,
+      ...(speaker.expertise || [])
+    ].join(' ').toLowerCase();
+
+    return terms.some((term) => searchString.includes(term.toLowerCase()));
+  };
+
+  const filteredSpeakers = INITIAL_SPEAKERS.filter((spk) => {
+    const matchSearch =
+      speakerSearch.trim() === '' ||
+      spk.name.toLowerCase().includes(speakerSearch.toLowerCase()) ||
+      spk.designation.toLowerCase().includes(speakerSearch.toLowerCase()) ||
+      spk.company.toLowerCase().includes(speakerSearch.toLowerCase()) ||
+      spk.expertise.some((exp) => exp.toLowerCase().includes(speakerSearch.toLowerCase()));
+
+    if (!matchSearch) return false;
+
+    if (selectedSpeakerDomains.length > 0) {
+      const matchDomain = selectedSpeakerDomains.some((dom) => matchesDomain(spk, dom));
+      if (!matchDomain) return false;
+    }
+
+    return true;
+  });
 
   // Navigation handlers
   const handleNext = () => {
@@ -280,7 +466,6 @@ export const CreateEventView = ({
     const newActiveSteps = [1];
     if (updated.venue) newActiveSteps.push(2);
     if (updated.speakers) newActiveSteps.push(3);
-    if (updated.catering) newActiveSteps.push(4);
     if (updated.goodies) newActiveSteps.push(5);
     if (updated.ticketing) newActiveSteps.push(6);
     newActiveSteps.push(7);
@@ -293,10 +478,10 @@ export const CreateEventView = ({
 
   // Pre-configured Bundle Packages
   const handleApplyPackage = (pkgType) => {
-    let updated = { venue: false, speakers: false, catering: false, goodies: false, ticketing: false };
+    let updated = { venue: false, speakers: false, goodies: false, ticketing: false };
     
     if (pkgType === 'complete') {
-      updated = { venue: true, speakers: true, catering: true, goodies: true, ticketing: true };
+      updated = { venue: true, speakers: true, goodies: true, ticketing: true };
     } else if (pkgType === 'venue-only') {
       updated.venue = true;
     } else if (pkgType === 'venue-speaker') {
@@ -338,14 +523,20 @@ export const CreateEventView = ({
   // Estimated budget is replaced with manual budget state variable
 
   const handlePublish = (status) => {
+    const isVirtual = enabledServices.venue && venueOption === 'custom' && customVenueType === 'virtual';
+
     const venueName =
       enabledServices.venue && venueOption === 'marketplace' && selectedVenue
         ? selectedVenue.name
+        : isVirtual
+        ? 'Virtual Event'
         : customVenueName || 'Main Convention Hall';
     
     const venueAddress =
       enabledServices.venue && venueOption === 'marketplace' && selectedVenue
         ? `${selectedVenue.location}, ${selectedVenue.city}`
+        : isVirtual
+        ? virtualEventLink || 'Virtual Meeting Link'
         : customVenueAddress || `${city} Center`;
 
     const newEvent = {
@@ -372,7 +563,10 @@ export const CreateEventView = ({
       venueDetails: {
         name: venueName,
         address: venueAddress,
-        facilities: selectedVenue?.amenities || ['A/V & Stage', 'Wi-Fi']
+        facilities: selectedVenue?.amenities || ['A/V & Stage', 'Wi-Fi'],
+        image: enabledServices.venue && venueOption === 'marketplace' && selectedVenue
+          ? selectedVenue.image
+          : customVenueImage || null
       },
       whatsIncluded: ['Full Session Access', 'Event Swag Bag', 'Networking Tea & Snacks'],
       visibility: 'Public',
@@ -383,14 +577,17 @@ export const CreateEventView = ({
       budgetSponsorInfo: budgetSponsorInfo,
       budgetSponsorCode: budgetType === 'sponsorship' ? budgetSponsorCode : null,
       ticketTiers: enabledServices.ticketing ? ticketTiers.map((t) => ({ ...t, sold: 0 })) : [],
-      swagOrder: enabledServices.goodies ? {
-        product: swagProduct,
-        quantity: Number(swagQuantity),
-        size: swagSize,
-        design: swagDesign,
-        budget: Number(swagBudget),
-        delivery: swagDelivery
-      } : null
+      swagOrder: enabledServices.goodies ? selectedGoodies.map((g) => ({
+        product: g.name,
+        type: g.type,
+        quantity: g.type === 'printed' ? Object.values(g.sizes || {}).reduce((a, b) => a + b, 0) : g.quantity,
+        sizes: g.type === 'printed' ? g.sizes : null,
+        color: g.color || null,
+        design: g.designImage || null,
+        printPlacement: g.printPlacements || null,
+        engravingText: g.engravingText || null,
+        specifications: g.specifications || null
+      })) : null
     };
 
     onSaveEvent(newEvent);
@@ -408,10 +605,9 @@ export const CreateEventView = ({
             {currentStep === 1 && '1. Event Basics'}
             {currentStep === 2 && '2. Venue Selection'}
             {currentStep === 3 && '3. Keynote Speakers'}
-            {currentStep === 4 && '4. Catering & Event Services'}
-            {currentStep === 5 && '5. Swag & Goodies'}
-            {currentStep === 6 && '6. Registration & Ticketing'}
-            {currentStep === 7 && '7. Review & Publish'}
+            {currentStep === 5 && '4. Swag & Goodies'}
+            {currentStep === 6 && '5. Registration & Ticketing'}
+            {currentStep === 7 && '6. Review & Publish'}
           </h1>
         </div>
 
@@ -693,16 +889,60 @@ export const CreateEventView = ({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
-                  Cover Image URL
+                  Event Cover Image
                 </label>
+                
+                {imageUrl ? (
+                  <div className="space-y-3">
+                    <div className="relative rounded-2xl overflow-hidden border border-[#e1e3e4] bg-[#f8f9fa] h-48 md:h-64 flex items-center justify-center">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4 text-xs font-bold font-geist">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[#0f4c81] hover:underline cursor-pointer"
+                      >
+                        Change Image
+                      </button>
+                      <span className="text-[#c2c7d1]">|</span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#c2c7d1] hover:border-[#0f4c81] rounded-2xl p-8 text-center bg-[#f8f9fa] hover:bg-[#d2e4ff]/10 transition-all cursor-pointer space-y-2"
+                  >
+                    <span className="material-symbols-outlined text-3xl text-gray-400">image</span>
+                    <p className="font-geist text-sm font-bold text-[#00355f]">Upload Cover Image</p>
+                    <p className="font-inter text-xs text-[#5f5e5e]">Drag and drop or click to choose file</p>
+                  </div>
+                )}
+                
                 <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl font-inter text-xs text-[#191c1d]"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  className="hidden"
                 />
+                
+                <p className="font-inter text-[11px] text-[#727780] mt-1 leading-normal">
+                  Supported formats: JPG, JPEG, PNG, WEBP. Recommended dimensions: 1200 x 630 px. Max file size: 5MB.
+                </p>
               </div>
             </div>
           )}
@@ -736,55 +976,354 @@ export const CreateEventView = ({
               </div>
 
               {venueOption === 'marketplace' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {INITIAL_VENUES.map((ven) => (
-                    <div
-                      key={ven.id}
-                      onClick={() => setSelectedVenue(ven)}
-                      className={`p-4 border rounded-2xl cursor-pointer transition-all flex gap-4 ${
-                        selectedVenue?.id === ven.id
-                          ? 'border-[#0f4c81] bg-[#d2e4ff]/20 shadow-xs ring-2 ring-[#0f4c81]'
-                          : 'border-[#e1e3e4] bg-white hover:border-[#c2c7d1]'
-                      }`}
-                    >
-                      <img
-                        src={ven.image}
-                        alt={ven.name}
-                        className="w-20 h-20 rounded-xl object-cover"
-                      />
-                      <div className="space-y-1 flex-grow">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-geist font-bold text-[#00355f] text-sm">{ven.name}</h4>
-                          <span className="font-geist text-xs font-bold text-[#0f4c81]">${ven.pricePerHour}/hr</span>
-                        </div>
-                        <p className="font-inter text-xs text-[#5f5e5e]">{ven.location}, {ven.city}</p>
-                        <p className="font-inter text-[11px] text-[#727780]">Capacity: {ven.capacity} seats • Vibe: {ven.vibe}</p>
+                <div className="space-y-6">
+                  {/* Search and Filter Row */}
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="relative flex-1 text-left">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                        <input
+                          type="text"
+                          placeholder="Search city, area, or location (e.g. Chennai, London, West End)"
+                          value={venueSearch}
+                          onChange={(e) => setVenueSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl font-inter text-sm text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                        />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setVenueFilterOpen(!venueFilterOpen)}
+                        className={`px-4 py-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          venueFilterOpen
+                            ? 'border-[#0f4c81] bg-[#d2e4ff]/20 text-[#0f4c81] shadow-2xs'
+                            : 'border-[#c2c7d1] bg-white text-[#5f5e5e] hover:bg-[#f8f9fa]'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base">filter_list</span>
+                        <span>Filter</span>
+                      </button>
                     </div>
-                  ))}
+
+                    {/* Filter Panel */}
+                    {venueFilterOpen && (
+                      <div className="bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-4 md:p-6 space-y-4 text-left animate-fadeIn">
+                        <div className="flex justify-between items-center border-b border-[#e1e3e4] pb-2">
+                          <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider">Refine Venues</span>
+                          <button
+                            type="button"
+                            onClick={() => setVenueFilters({ location: '', capacity: '', price: '', type: '', availability: '', facilities: '' })}
+                            className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {/* Location Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Location</label>
+                            <select
+                              value={venueFilters.location}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, location: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Location</option>
+                              <option value="New York">New York</option>
+                              <option value="London">London</option>
+                              <option value="San Francisco">San Francisco</option>
+                              <option value="Chennai">Chennai</option>
+                              <option value="Downtown Arts District">Downtown Arts District</option>
+                              <option value="West End">West End</option>
+                              <option value="City Center Park">City Center Park</option>
+                              <option value="Tech Hub Park">Tech Hub Park</option>
+                            </select>
+                          </div>
+
+                          {/* Capacity Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Capacity</label>
+                            <select
+                              value={venueFilters.capacity}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, capacity: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Capacity</option>
+                              <option value="small">Small (&lt; 100 seats)</option>
+                              <option value="medium">Medium (100 - 300 seats)</option>
+                              <option value="large">Large (&gt; 300 seats)</option>
+                            </select>
+                          </div>
+
+                          {/* Price Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Price Range</label>
+                            <select
+                              value={venueFilters.price}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, price: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Price</option>
+                              <option value="low">Under $150/hr</option>
+                              <option value="medium">150 - 300 / hr</option>
+                              <option value="high">Over $300/hr</option>
+                            </select>
+                          </div>
+
+                          {/* Venue Type Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Venue Type</label>
+                            <select
+                              value={venueFilters.type}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, type: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Type</option>
+                              <option value="Industrial">Industrial</option>
+                              <option value="Minimalist">Minimalist</option>
+                              <option value="Outdoor / Indoor">Outdoor / Indoor</option>
+                              <option value="Modern Conference">Modern Conference</option>
+                            </select>
+                          </div>
+
+                          {/* Availability Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Availability</label>
+                            <select
+                              value={venueFilters.availability}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, availability: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Availability</option>
+                              <option value="Available Next Week">Available Next Week</option>
+                              <option value="Available Daily">Available Daily</option>
+                              <option value="Weekend Availability">Weekend Availability</option>
+                              <option value="Immediate Booking">Immediate Booking</option>
+                            </select>
+                          </div>
+
+                          {/* Facilities Filter */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-[#00355f] uppercase">Facilities</label>
+                            <select
+                              value={venueFilters.facilities}
+                              onChange={(e) => setVenueFilters({ ...venueFilters, facilities: e.target.value })}
+                              className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-lg text-xs"
+                            >
+                              <option value="">Any Facility</option>
+                              <option value="Wi-Fi">Wi-Fi / Internet</option>
+                              <option value="Stage">Stage Lighting / Backdrop</option>
+                              <option value="Kitchen">Kitchen / Catering Prep</option>
+                              <option value="Acoustic">Acoustic / Wall Panels</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {filteredVenues.length === 0 ? (
+                    <div className="text-center py-12 bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-6">
+                      <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
+                      <p className="font-geist font-bold text-sm text-[#00355f] mt-2">No matching venues found</p>
+                      <p className="font-inter text-xs text-[#5f5e5e]">Try refining your search terms or clearing filters.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      {filteredVenues.map((ven) => (
+                        <div
+                          key={ven.id}
+                          onClick={() => setSelectedVenue(ven)}
+                          className={`p-4 border rounded-2xl cursor-pointer transition-all flex gap-4 ${
+                            selectedVenue?.id === ven.id
+                              ? 'border-[#0f4c81] bg-[#d2e4ff]/20 shadow-xs ring-2 ring-[#0f4c81]'
+                              : 'border-[#e1e3e4] bg-white hover:border-[#c2c7d1]'
+                          }`}
+                        >
+                          <img
+                            src={ven.image}
+                            alt={ven.name}
+                            className="w-20 h-20 rounded-xl object-cover"
+                          />
+                          <div className="space-y-1 flex-grow">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-geist font-bold text-[#00355f] text-sm">{ven.name}</h4>
+                              <span className="font-geist text-xs font-bold text-[#0f4c81]">${ven.pricePerHour}/hr</span>
+                            </div>
+                            <p className="font-inter text-xs text-[#5f5e5e]">{ven.location}, {ven.city}</p>
+                            <p className="font-inter text-[11px] text-[#727780]">Capacity: {ven.capacity} seats • Vibe: {ven.vibe}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#00355f]">Venue Name</label>
-                    <input
-                      type="text"
-                      value={customVenueName}
-                      onChange={(e) => setCustomVenueName(e.target.value)}
-                      placeholder="e.g. Sir Mutha Venkatasubba Rao Concert Hall"
-                      className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm"
-                    />
+                <div className="space-y-6">
+                  {/* Custom option toggle */}
+                  <div className="flex gap-4 border-b border-[#e1e3e4] pb-2 text-left">
+                    <button
+                      type="button"
+                      onClick={() => setCustomVenueType('physical')}
+                      className={`pb-1 text-xs font-bold transition-all cursor-pointer ${
+                        customVenueType === 'physical'
+                          ? 'border-b-2 border-[#00355f] text-[#00355f]'
+                          : 'text-[#5f5e5e] hover:text-[#00355f]'
+                      }`}
+                    >
+                      🏢 Physical Venue
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomVenueType('virtual')}
+                      className={`pb-1 text-xs font-bold transition-all cursor-pointer ${
+                        customVenueType === 'virtual'
+                          ? 'border-b-2 border-[#00355f] text-[#00355f]'
+                          : 'text-[#5f5e5e] hover:text-[#00355f]'
+                      }`}
+                    >
+                      🌐 Virtual Event / Link
+                    </button>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#00355f]">Full Address / Link</label>
-                    <input
-                      type="text"
-                      value={customVenueAddress}
-                      onChange={(e) => setCustomVenueAddress(e.target.value)}
-                      placeholder="e.g. 7, Lady McNichols Rd, Chetpet, Chennai"
-                      className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm"
-                    />
-                  </div>
+
+                  {customVenueType === 'physical' ? (
+                    <div className="space-y-4 text-left">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#00355f]">Venue Name</label>
+                        <input
+                          type="text"
+                          value={customVenueName}
+                          onChange={(e) => setCustomVenueName(e.target.value)}
+                          placeholder="e.g. Sir Mutha Venkatasubba Rao Concert Hall"
+                          className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm focus:outline-none focus:border-[#0f4c81]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#00355f]">Full Address</label>
+                        <input
+                          type="text"
+                          value={customVenueAddress}
+                          onChange={(e) => setCustomVenueAddress(e.target.value)}
+                          placeholder="e.g. 7, Lady McNichols Rd, Chetpet, Chennai"
+                          className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm focus:outline-none focus:border-[#0f4c81]"
+                        />
+                      </div>
+
+                      {/* Image Upload for physical custom venue */}
+                      <div className="space-y-2">
+                        <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                          Venue Image
+                        </label>
+                        {customVenueImage ? (
+                          <div className="space-y-3">
+                            <div className="relative rounded-2xl overflow-hidden border border-[#e1e3e4] bg-[#f8f9fa] h-48 md:h-64 flex items-center justify-center">
+                              <img
+                                src={customVenueImage}
+                                alt="Venue Preview"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-bold font-geist">
+                              <button
+                                type="button"
+                                onClick={() => venueImageInputRef.current?.click()}
+                                className="text-[#0f4c81] hover:underline cursor-pointer"
+                              >
+                                Change Image
+                              </button>
+                              <span className="text-[#c2c7d1]">|</span>
+                              <button
+                                type="button"
+                                onClick={handleRemoveVenueImage}
+                                className="text-rose-600 hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => venueImageInputRef.current?.click()}
+                            className="border-2 border-dashed border-[#c2c7d1] hover:border-[#0f4c81] rounded-2xl p-8 text-center bg-[#f8f9fa] hover:bg-[#d2e4ff]/10 transition-all cursor-pointer space-y-2"
+                          >
+                            <span className="material-symbols-outlined text-3xl text-gray-400">add_photo_alternate</span>
+                            <p className="font-geist text-sm font-bold text-[#00355f]">Upload Venue Image</p>
+                            <p className="font-inter text-xs text-[#5f5e5e]">Choose a JPG, PNG or WEBP image from your laptop</p>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          ref={venueImageInputRef}
+                          onChange={handleVenueImageChange}
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 text-left">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#00355f]">Virtual Event Link</label>
+                        <input
+                          type="text"
+                          value={virtualEventLink}
+                          onChange={(e) => setVirtualEventLink(e.target.value)}
+                          placeholder="e.g. Zoom or Google Meet Link"
+                          className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm focus:outline-none focus:border-[#0f4c81]"
+                        />
+                      </div>
+
+                      {/* Optional Image Upload for virtual custom venue */}
+                      <div className="space-y-2 opacity-90">
+                        <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                          Venue Image (Optional)
+                        </label>
+                        {customVenueImage ? (
+                          <div className="space-y-3">
+                            <div className="relative rounded-2xl overflow-hidden border border-[#e1e3e4] bg-[#f8f9fa] h-48 md:h-64 flex items-center justify-center">
+                              <img
+                                src={customVenueImage}
+                                alt="Venue Preview"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-bold font-geist">
+                              <button
+                                type="button"
+                                onClick={() => venueImageInputRef.current?.click()}
+                                className="text-[#0f4c81] hover:underline cursor-pointer"
+                              >
+                                Change Image
+                              </button>
+                              <span className="text-[#c2c7d1]">|</span>
+                              <button
+                                type="button"
+                                onClick={handleRemoveVenueImage}
+                                className="text-rose-600 hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => venueImageInputRef.current?.click()}
+                            className="border-2 border-dashed border-[#c2c7d1] hover:border-[#0f4c81] rounded-2xl p-8 text-center bg-[#f8f9fa] hover:bg-[#d2e4ff]/10 transition-all cursor-pointer space-y-2"
+                          >
+                            <span className="material-symbols-outlined text-3xl text-gray-400">add_photo_alternate</span>
+                            <p className="font-geist text-sm font-bold text-[#00355f]">Upload Venue Image</p>
+                            <p className="font-inter text-xs text-[#5f5e5e]">Choose a JPG, PNG or WEBP image from your laptop</p>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          ref={venueImageInputRef}
+                          onChange={handleVenueImageChange}
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -794,43 +1333,159 @@ export const CreateEventView = ({
           {/* Step 3: Keynote Speakers */}
           {currentStep === 3 && (
             <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
-              <h3 className="font-geist text-lg font-bold text-[#00355f]">Select Keynote Speakers & Panellists</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {INITIAL_SPEAKERS.map((spk) => {
-                  const isSelected = selectedSpeakers.some((s) => s.id === spk.id);
-                  return (
-                    <div
-                      key={spk.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedSpeakers(selectedSpeakers.filter((s) => s.id !== spk.id));
-                        } else {
-                          setSelectedSpeakers([...selectedSpeakers, spk]);
-                        }
-                      }}
-                      className={`p-4 border rounded-2xl cursor-pointer transition-all flex gap-4 items-start ${
-                        isSelected
-                          ? 'border-[#0f4c81] bg-[#d2e4ff]/20 shadow-xs ring-2 ring-[#0f4c81]'
-                          : 'border-[#e1e3e4] bg-white hover:border-[#c2c7d1]'
-                      }`}
-                    >
-                      <img
-                        src={spk.photo}
-                        alt={spk.name}
-                        className="w-14 h-14 rounded-full object-cover"
-                      />
-                      <div className="space-y-1 flex-grow">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-geist font-bold text-[#00355f] text-sm">{spk.name}</h4>
-                          <span className="text-[11px] font-bold text-[#0f4c81]">{spk.fee}</span>
-                        </div>
-                        <p className="font-inter text-xs text-[#5f5e5e]">{spk.designation} at {spk.company}</p>
-                        <p className="font-inter text-[11px] text-[#727780] line-clamp-2">{spk.bio}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
+                <h3 className="font-geist text-lg font-bold text-[#00355f] text-left">Select Keynote Speakers & Panellists</h3>
+                <span className="text-xs font-bold text-[#0f4c81] bg-[#d2e4ff] px-3 py-1 rounded-full">
+                  {selectedSpeakers.length} Selected
+                </span>
               </div>
+
+              {/* Selected Speakers Summary list */}
+              {selectedSpeakers.length > 0 && (
+                <div className="bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-4 text-left space-y-3">
+                  <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                    Selected Speakers ({selectedSpeakers.length})
+                  </span>
+                  <div className="divide-y divide-[#e1e3e4]">
+                    {selectedSpeakers.map((spk) => (
+                      <div key={spk.id} className="py-2 flex justify-between items-center first:pt-0 last:pb-0">
+                        <div className="flex items-center gap-2">
+                          <img src={spk.photo} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          <div>
+                            <p className="text-xs font-bold text-[#00355f]">{spk.name}</p>
+                            <p className="text-[10px] text-gray-500">{spk.designation} at {spk.company}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSpeakers(selectedSpeakers.filter((s) => s.id !== spk.id))}
+                          className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Speaker Domain Selection */}
+              <div className="space-y-3 text-left">
+                <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                  1. Filter by Topic Domains
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Artificial Intelligence', 'Data Science', 'Technology', 'Business',
+                    'Marketing', 'Entrepreneurship', 'Finance', 'Cybersecurity',
+                    'Design', 'Education', 'Leadership', 'Other'
+                  ].map((dom) => {
+                    const isSelected = selectedSpeakerDomains.includes(dom);
+                    return (
+                      <button
+                        key={dom}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedSpeakerDomains(selectedSpeakerDomains.filter((d) => d !== dom));
+                          } else {
+                            setSelectedSpeakerDomains([...selectedSpeakerDomains, dom]);
+                          }
+                        }}
+                        className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0f4c81] border-[#0f4c81] text-white shadow-2xs'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {dom}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Speaker search input */}
+              <div className="space-y-2 text-left">
+                <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                  2. Search Speakers
+                </span>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                  <input
+                    type="text"
+                    placeholder="Search by name, expertise, organization, or topic (e.g. Elena, Robotics, CloudScale)"
+                    value={speakerSearch}
+                    onChange={(e) => setSpeakerSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl font-inter text-sm text-[#191c1d] focus:outline-none focus:border-[#0f4c81]"
+                  />
+                </div>
+              </div>
+
+              {/* Speakers Grid Results */}
+              {filteredSpeakers.length === 0 ? (
+                <div className="text-center py-12 bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-6">
+                  <span className="material-symbols-outlined text-4xl text-gray-400">search_off</span>
+                  <p className="font-geist font-bold text-sm text-[#00355f] mt-2">No matching speakers found</p>
+                  <p className="font-inter text-xs text-[#5f5e5e]">Try clearing some domain topic filters or updating search terms.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                  {filteredSpeakers.map((spk) => {
+                    const isSelected = selectedSpeakers.some((s) => s.id === spk.id);
+                    return (
+                      <div
+                        key={spk.id}
+                        className={`p-4 border rounded-2xl transition-all flex gap-4 items-start bg-white ${
+                          isSelected
+                            ? 'border-[#0f4c81] bg-[#d2e4ff]/10 shadow-xs ring-2 ring-[#0f4c81]'
+                            : 'border-[#e1e3e4] hover:border-[#c2c7d1]'
+                        }`}
+                      >
+                        <img
+                          src={spk.photo}
+                          alt={spk.name}
+                          className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                        />
+                        <div className="space-y-1.5 flex-grow min-w-0">
+                          <div>
+                            <h4 className="font-geist font-bold text-[#00355f] text-sm truncate">{spk.name}</h4>
+                            <p className="font-inter text-xs text-gray-500 truncate">{spk.designation} at {spk.company}</p>
+                          </div>
+                          <p className="font-inter text-[11px] text-[#5f5e5e] line-clamp-2 leading-relaxed">{spk.bio}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {spk.expertise.map((exp) => (
+                              <span key={exp} className="bg-gray-100 text-[#42474f] px-2 py-0.5 rounded text-[9px] font-medium">
+                                {exp}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-[#edeeef] mt-2">
+                            <span className="text-[10px] font-bold text-gray-400">{spk.availability || 'Available'}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedSpeakers(selectedSpeakers.filter((s) => s.id !== spk.id));
+                                } else {
+                                  setSelectedSpeakers([...selectedSpeakers, spk]);
+                                }
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100/50'
+                                  : 'bg-[#0f4c81] text-white hover:bg-[#00355f]'
+                              }`}
+                            >
+                              {isSelected ? 'Deselect' : 'Select Speaker'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -888,108 +1543,328 @@ export const CreateEventView = ({
           {currentStep === 5 && (
             <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
               <div>
-                <h3 className="font-geist text-lg font-bold text-[#00355f]">Swag & Goodies Configurator</h3>
-                <p className="font-inter text-xs text-[#5f5e5e] mt-1">
-                  Specify details for customized attendee gifts, goodies, and certificates.
+                <h3 className="font-geist text-lg font-bold text-[#00355f] text-left">Swag & Goodies Configurator</h3>
+                <p className="font-inter text-xs text-[#5f5e5e] mt-1 text-left">
+                  Configure multiple types of custom event goodies, sizes, colors, printing locations, or engravings.
                 </p>
               </div>
 
               {/* Product Selector grid */}
-              <div className="space-y-2">
+              <div className="space-y-3 text-left">
                 <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                  Select Product Item
+                  Select Swag Items to Add
                 </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {['T-shirts', 'Hoodies', 'Bags', 'Notebooks', 'Pens', 'Welcome Kits', 'Custom Swag'].map((prod) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { name: 'T-Shirts', type: 'printed' },
+                    { name: 'Hoodies', type: 'printed' },
+                    { name: 'Tote Bags', type: 'printed' },
+                    { name: 'Caps', type: 'printed' },
+                    { name: 'Notebooks', type: 'none' },
+                    { name: 'Mugs', type: 'engraved' },
+                    { name: 'Pens', type: 'engraved' },
+                    { name: 'Metal Bottles', type: 'engraved' },
+                    { name: 'Keychains', type: 'engraved' },
+                    { name: 'Plaques', type: 'engraved' },
+                    { name: 'ID Cards', type: 'none' },
+                    { name: 'Other Merchandise', type: 'none' }
+                  ].map((item) => (
                     <button
-                      key={prod}
+                      key={item.name}
                       type="button"
-                      onClick={() => setSwagProduct(prod)}
-                      className={`py-3 px-4 border rounded-xl text-xs font-bold text-center transition-all cursor-pointer ${
-                        swagProduct === prod
-                          ? 'border-[#0f4c81] bg-[#d2e4ff]/20 text-[#00355f] shadow-xs'
-                          : 'border-gray-200 bg-[#f8f9fa] text-gray-500 hover:bg-gray-100'
-                      }`}
+                      onClick={() => handleAddGoodie(item)}
+                      className="py-3 px-4 border border-[#c2c7d1] bg-[#f8f9fa] hover:bg-gray-100 rounded-xl text-xs font-bold text-center transition-all cursor-pointer text-[#00355f] flex justify-between items-center"
                     >
-                      {prod}
+                      <span>{item.name}</span>
+                      <span className="text-[10px] text-[#0f4c81]">+ Add</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Quantity, Size, and Budget */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={swagQuantity}
-                    onChange={(e) => setSwagQuantity(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs"
-                  />
-                </div>
+              {/* Configured Goodies List */}
+              <div className="space-y-4 pt-4 border-t border-[#edeeef]">
+                <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block text-left">
+                  Configured Swag Items ({selectedGoodies.length})
+                </span>
+                
+                {selectedGoodies.length === 0 ? (
+                  <div className="text-center py-12 bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-6 text-gray-500 text-xs">
+                    No swag items configured. Select items from the menu above to customize them.
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {selectedGoodies.map((goodie, idx) => (
+                      <div key={goodie.id} className="p-6 border border-[#e1e3e4] bg-[#f8f9fa]/50 rounded-2xl space-y-5 relative text-left">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGoodie(goodie.id)}
+                          className="absolute top-4 right-4 text-xs font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                        >
+                          Remove Item
+                        </button>
+                        
+                        <div>
+                          <span className="text-[10px] font-bold text-[#0f4c81] uppercase tracking-wider">
+                            Swag Configuration #{idx + 1}
+                          </span>
+                          <h4 className="font-geist text-lg font-bold text-[#00355f] mt-0.5">
+                            {goodie.name}
+                          </h4>
+                        </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    Size Selection
-                  </label>
-                  <select
-                    value={swagSize}
-                    onChange={(e) => setSwagSize(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs outline-none"
-                  >
-                    <option value="S">Small (S)</option>
-                    <option value="M">Medium (M)</option>
-                    <option value="L">Large (L)</option>
-                    <option value="XL">Extra Large (XL)</option>
-                    <option value="Free Size">Free Size (One size fits all)</option>
-                  </select>
-                </div>
+                        {/* Printed Config form */}
+                        {goodie.type === 'printed' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase">Product Color</label>
+                                <input
+                                  type="text"
+                                  value={goodie.color || ''}
+                                  onChange={(e) => handleUpdateGoodie(goodie.id, 'color', e.target.value)}
+                                  placeholder="e.g. Black, Navy Blue, White"
+                                  className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-xl text-xs focus:outline-none focus:border-[#0f4c81]"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase block mb-1">Print Placement (Select Multiple)</label>
+                                <div className="flex flex-wrap gap-3">
+                                  {['Front', 'Back', 'Left Chest', 'Right Chest', 'Sleeve', 'Other'].map((loc) => {
+                                    const isChecked = goodie.printPlacements?.includes(loc);
+                                    return (
+                                      <label key={loc} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer font-medium">
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() => {
+                                            const newLocs = isChecked
+                                              ? goodie.printPlacements.filter((l) => l !== loc)
+                                              : [...(goodie.printPlacements || []), loc];
+                                            handleUpdateGoodie(goodie.id, 'printPlacements', newLocs);
+                                          }}
+                                          className="w-4 h-4 text-[#0f4c81] rounded focus:ring-0 cursor-pointer"
+                                        />
+                                        <span>{loc}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    Total Swag Budget ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={swagBudget}
-                    onChange={(e) => setSwagBudget(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs"
-                  />
-                </div>
+                            {/* Sized items configuration */}
+                            <div className="space-y-2.5">
+                              <label className="block text-[10px] font-bold text-[#00355f] uppercase">Select Available Sizes & Quantities</label>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                                {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => {
+                                  const qty = goodie.sizes?.[size] ?? 0;
+                                  const hasSize = qty > 0;
+                                  return (
+                                    <div key={size} className="p-2 border border-[#e1e3e4] bg-white rounded-xl flex flex-col items-center gap-1.5 shadow-2xs">
+                                      <label className="flex items-center gap-1 text-xs font-bold text-gray-700 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={hasSize}
+                                          onChange={() => {
+                                            const newSizes = { ...goodie.sizes, [size]: hasSize ? 0 : 10 };
+                                            handleUpdateGoodie(goodie.id, 'sizes', newSizes);
+                                          }}
+                                          className="w-3.5 h-3.5 text-[#0f4c81] rounded focus:ring-0 cursor-pointer"
+                                        />
+                                        <span>{size}</span>
+                                      </label>
+                                      {hasSize && (
+                                        <input
+                                          type="number"
+                                          value={qty}
+                                          onChange={(e) => {
+                                            const val = Math.max(0, Number(e.target.value));
+                                            const newSizes = { ...goodie.sizes, [size]: val };
+                                            handleUpdateGoodie(goodie.id, 'sizes', newSizes);
+                                          }}
+                                          className="w-16 px-1.5 py-0.5 border border-[#c2c7d1] rounded bg-white text-center text-xs font-bold text-[#00355f] focus:outline-none"
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-xs text-[#0f4c81] font-bold pt-1">
+                                Total Quantity: {Object.values(goodie.sizes || {}).reduce((a, b) => a + b, 0)} Pieces
+                              </p>
+                            </div>
+
+                            {/* Printing Design Upload */}
+                            <div className="space-y-2">
+                              <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                                Upload Printing Design / Logo
+                              </label>
+                              {goodie.designImage ? (
+                                <div className="space-y-3">
+                                  <div className="relative rounded-2xl overflow-hidden border border-[#e1e3e4] bg-white h-40 flex items-center justify-center">
+                                    <img
+                                      src={goodie.designImage}
+                                      alt="Design Preview"
+                                      className="w-full h-full object-contain p-2"
+                                    />
+                                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                      Placement: {goodie.printPlacements?.join(' + ') || 'Front'}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs font-bold font-geist">
+                                    <button
+                                      type="button"
+                                      onClick={() => document.getElementById(`file-goodie-${goodie.id}`)?.click()}
+                                      className="text-[#0f4c81] hover:underline cursor-pointer"
+                                    >
+                                      Change Design
+                                    </button>
+                                    <span className="text-[#c2c7d1]">|</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateGoodie(goodie.id, 'designImage', '')}
+                                      className="text-rose-600 hover:underline cursor-pointer"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  onClick={() => document.getElementById(`file-goodie-${goodie.id}`)?.click()}
+                                  className="border-2 border-dashed border-[#c2c7d1] hover:border-[#0f4c81] rounded-2xl p-6 text-center bg-white hover:bg-[#d2e4ff]/10 transition-all cursor-pointer space-y-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-2xl text-gray-400">upload_file</span>
+                                  <p className="font-geist text-xs font-bold text-[#00355f]">Upload Design File</p>
+                                  <p className="font-inter text-[10px] text-gray-400">PNG, JPG, JPEG, SVG or PDF</p>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                id={`file-goodie-${goodie.id}`}
+                                onChange={(e) => handleGoodieImageChange(goodie.id, e)}
+                                accept="image/png, image/jpeg, image/jpg, image/svg+xml, application/pdf"
+                                className="hidden"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Engraved Config form */}
+                        {goodie.type === 'engraved' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase">Quantity</label>
+                                <input
+                                  type="number"
+                                  value={goodie.quantity || 100}
+                                  onChange={(e) => handleUpdateGoodie(goodie.id, 'quantity', Math.max(0, Number(e.target.value)))}
+                                  className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-xl text-xs focus:outline-none focus:border-[#0f4c81]"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase">What would you like to engrave?</label>
+                                <textarea
+                                  rows={2}
+                                  value={goodie.engravingText || ''}
+                                  onChange={(e) => handleUpdateGoodie(goodie.id, 'engravingText', e.target.value)}
+                                  placeholder="e.g. Evently 2026 AI Innovation Summit"
+                                  className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-xl text-xs focus:outline-none focus:border-[#0f4c81]"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Engraving Design Upload */}
+                            <div className="space-y-2">
+                              <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                                Upload Engraving Design / Logo
+                              </label>
+                              {goodie.designImage ? (
+                                <div className="space-y-3">
+                                  <div className="relative rounded-2xl overflow-hidden border border-[#e1e3e4] bg-white h-40 flex items-center justify-center">
+                                    <img
+                                      src={goodie.designImage}
+                                      alt="Engraving Preview"
+                                      className="w-full h-full object-contain p-2"
+                                    />
+                                    {goodie.engravingText && (
+                                      <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                        Text: "{goodie.engravingText}"
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs font-bold font-geist">
+                                    <button
+                                      type="button"
+                                      onClick={() => document.getElementById(`file-goodie-${goodie.id}`)?.click()}
+                                      className="text-[#0f4c81] hover:underline cursor-pointer"
+                                    >
+                                      Change Design
+                                    </button>
+                                    <span className="text-[#c2c7d1]">|</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateGoodie(goodie.id, 'designImage', '')}
+                                      className="text-rose-600 hover:underline cursor-pointer"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  onClick={() => document.getElementById(`file-goodie-${goodie.id}`)?.click()}
+                                  className="border-2 border-dashed border-[#c2c7d1] hover:border-[#0f4c81] rounded-2xl p-6 text-center bg-white hover:bg-[#d2e4ff]/10 transition-all cursor-pointer space-y-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-2xl text-gray-400">upload_file</span>
+                                  <p className="font-geist text-xs font-bold text-[#00355f]">Upload Engraving Design</p>
+                                  <p className="font-inter text-[10px] text-gray-400">PNG, JPG, JPEG, SVG or PDF</p>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                id={`file-goodie-${goodie.id}`}
+                                onChange={(e) => handleGoodieImageChange(goodie.id, e)}
+                                accept="image/png, image/jpeg, image/jpg, image/svg+xml, application/pdf"
+                                className="hidden"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Non-Customized Config form */}
+                        {goodie.type === 'none' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase">Quantity</label>
+                                <input
+                                  type="number"
+                                  value={goodie.quantity || 100}
+                                  onChange={(e) => handleUpdateGoodie(goodie.id, 'quantity', Math.max(0, Number(e.target.value)))}
+                                  className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-xl text-xs focus:outline-none focus:border-[#0f4c81]"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-[#00355f] uppercase">Product Specifications / Notes</label>
+                                <textarea
+                                  rows={2}
+                                  value={goodie.specifications || ''}
+                                  onChange={(e) => handleUpdateGoodie(goodie.id, 'specifications', e.target.value)}
+                                  placeholder="e.g. Standard lined pages, black hard cover"
+                                  className="w-full px-3 py-2 bg-white border border-[#c2c7d1] rounded-xl text-xs focus:outline-none focus:border-[#0f4c81]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Design instructions */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    Customization Design / Logo Notes
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={swagDesign}
-                    onChange={(e) => setSwagDesign(e.target.value)}
-                    placeholder="e.g. Place company logo centered on chest, font colour white."
-                    className="w-full px-3 py-2 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs"
-                  />
-                </div>
-
-                {/* Delivery Date */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    Swag Delivery Date
-                  </label>
-                  <input
-                    type="date"
-                    value={swagDelivery}
-                    onChange={(e) => setSwagDelivery(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
             </div>
           )}
 
@@ -1256,16 +2131,6 @@ export const CreateEventView = ({
               <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={enabledServices.catering}
-                  onChange={() => handleToggleService('catering')}
-                  className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
-                />
-                <span>☕ Catering & Vendor Services</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
                   checked={enabledServices.goodies}
                   onChange={() => handleToggleService('goodies')}
                   className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
@@ -1313,17 +2178,10 @@ export const CreateEventView = ({
                 </div>
               </div>
               <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">☕</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Catering & AV: </span>
-                  {enabledServices.catering ? `${selectedServices.length} Vendor service(s) configured` : 'Not Required'}
-                </div>
-              </div>
-              <div className="flex gap-2 items-start">
                 <span className="text-[#0f4c81]">🎁</span>
                 <div>
                   <span className="font-bold text-[#00355f]">Swag & Goodies: </span>
-                  {enabledServices.goodies ? `${swagProduct} (${swagQuantity} units)` : 'Not Required'}
+                  {enabledServices.goodies ? `${selectedGoodies.length} item(s) configured` : 'Not Required'}
                 </div>
               </div>
               <div className="flex gap-2 items-start">

@@ -11,7 +11,6 @@ import { OrganizerDashboardView } from './components/views/OrganizerDashboardVie
 import { AttendeeDashboardView } from './components/views/AttendeeDashboardView';
 import { VenueMarketplaceView } from './components/views/VenueMarketplaceView';
 import { SpeakerMarketplaceView } from './components/views/SpeakerMarketplaceView';
-import { ServicesMarketplaceView } from './components/views/ServicesMarketplaceView';
 import { HowItWorksView } from './components/views/HowItWorksView';
 import { AboutView } from './components/views/AboutView';
 import { TicketModal } from './components/modals/TicketModal';
@@ -470,9 +469,6 @@ export function App() {
       case 'speakers-marketplace':
         navigate('/speakers-marketplace');
         break;
-      case 'services-marketplace':
-        navigate('/services-marketplace');
-        break;
       case 'my-communities':
         navigate('/my-communities');
         break;
@@ -628,8 +624,6 @@ export function App() {
         return <VenueMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
       case '/speakers-marketplace':
         return <SpeakerMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
-      case '/services-marketplace':
-        return <ServicesMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
       case '/my-communities':
         return (
           <div className="px-4 md:px-10 max-w-[800px] mx-auto py-8 space-y-6 text-left animate-fadeIn">

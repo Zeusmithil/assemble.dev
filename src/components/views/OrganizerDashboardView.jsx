@@ -222,13 +222,6 @@ export const OrganizerDashboardView = ({
         </button>
 
         <button
-          onClick={() => setActiveView('services-marketplace')}
-          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
-        >
-          Services & Vendors
-        </button>
-
-        <button
           onClick={() => setActiveView('my-communities')}
           className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
         >
