@@ -119,6 +119,8 @@ export const CreateEventView = ({
     }
   };
 
+  const [skippedSteps, setSkippedSteps] = useState([]);
+
   // Own Venue Custom options
   const [customVenueType, setCustomVenueType] = useState('physical');
   const [virtualEventLink, setVirtualEventLink] = useState('');
@@ -445,6 +447,17 @@ export const CreateEventView = ({
 
   // Navigation handlers
   const handleNext = () => {
+    setSkippedSteps((prev) => prev.filter((s) => s !== currentStep));
+    const currentIndex = activeStepsList.indexOf(currentStep);
+    if (currentIndex < activeStepsList.length - 1) {
+      setCurrentStep(activeStepsList[currentIndex + 1]);
+    }
+  };
+
+  const handleSkip = () => {
+    if (!skippedSteps.includes(currentStep)) {
+      setSkippedSteps((prev) => [...prev, currentStep]);
+    }
     const currentIndex = activeStepsList.indexOf(currentStep);
     if (currentIndex < activeStepsList.length - 1) {
       setCurrentStep(activeStepsList[currentIndex + 1]);
@@ -1998,6 +2011,174 @@ export const CreateEventView = ({
                 </div>
               </div>
 
+              {/* Event Setup Summary */}
+              <div className="bg-[#f8f9fa] border border-[#e1e3e4] rounded-2xl p-6 text-left space-y-4 max-w-md mx-auto">
+                <h3 className="font-geist text-sm font-bold text-[#00355f] border-b border-[#e1e3e4] pb-2">
+                  Event Setup Summary
+                </h3>
+                <div className="space-y-3">
+                  {/* Event Basics (Step 1) */}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {skippedSteps.includes(1) ? (
+                        <>
+                          <span className="text-amber-500 font-bold">⚠</span>
+                          <span className="text-gray-500 font-medium font-geist">1. Event Basics — Skipped</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-[#00355f] font-semibold font-geist">1. Event Basics</span>
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      {skippedSteps.includes(1) ? 'Complete Section' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {/* Venue (Step 2) */}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {!enabledServices.venue ? (
+                        <>
+                          <span className="text-gray-400 font-bold">○</span>
+                          <span className="text-gray-400 font-geist">2. Venue Selection — Not Required</span>
+                        </>
+                      ) : skippedSteps.includes(2) ? (
+                        <>
+                          <span className="text-amber-500 font-bold">⚠</span>
+                          <span className="text-gray-500 font-medium font-geist">2. Venue Selection — Skipped</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-[#00355f] font-semibold font-geist">2. Venue Selection</span>
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!enabledServices.venue) {
+                          handleToggleService('venue');
+                        }
+                        setCurrentStep(2);
+                      }}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      {!enabledServices.venue ? 'Enable & Configure' : skippedSteps.includes(2) ? 'Complete Section' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {/* Keynote Speakers (Step 3) */}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {!enabledServices.speakers ? (
+                        <>
+                          <span className="text-gray-400 font-bold">○</span>
+                          <span className="text-gray-400 font-geist">3. Keynote Speakers — Not Required</span>
+                        </>
+                      ) : skippedSteps.includes(3) ? (
+                        <>
+                          <span className="text-amber-500 font-bold">⚠</span>
+                          <span className="text-gray-500 font-medium font-geist">3. Keynote Speakers — Skipped</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-[#00355f] font-semibold font-geist">3. Keynote Speakers</span>
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!enabledServices.speakers) {
+                          handleToggleService('speakers');
+                        }
+                        setCurrentStep(3);
+                      }}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      {!enabledServices.speakers ? 'Enable & Configure' : skippedSteps.includes(3) ? 'Complete Section' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {/* Swag & Goodies (Step 5) */}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {!enabledServices.goodies ? (
+                        <>
+                          <span className="text-gray-400 font-bold">○</span>
+                          <span className="text-gray-400 font-geist">4. Swag & Goodies — Not Required</span>
+                        </>
+                      ) : skippedSteps.includes(5) ? (
+                        <>
+                          <span className="text-amber-500 font-bold">⚠</span>
+                          <span className="text-gray-500 font-medium font-geist">4. Swag & Goodies — Skipped</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-[#00355f] font-semibold font-geist">4. Swag & Goodies</span>
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!enabledServices.goodies) {
+                          handleToggleService('goodies');
+                        }
+                        setCurrentStep(5);
+                      }}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      {!enabledServices.goodies ? 'Enable & Configure' : skippedSteps.includes(5) ? 'Complete Section' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {/* Registration & Ticketing (Step 6) */}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {!enabledServices.ticketing ? (
+                        <>
+                          <span className="text-gray-400 font-bold">○</span>
+                          <span className="text-gray-400 font-geist">5. Registration & Ticketing — Not Required</span>
+                        </>
+                      ) : skippedSteps.includes(6) ? (
+                        <>
+                          <span className="text-amber-500 font-bold">⚠</span>
+                          <span className="text-gray-500 font-medium font-geist">5. Registration & Ticketing — Skipped</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-600 font-bold">✓</span>
+                          <span className="text-[#00355f] font-semibold font-geist">5. Registration & Ticketing</span>
+                        </>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!enabledServices.ticketing) {
+                          handleToggleService('ticketing');
+                        }
+                        setCurrentStep(6);
+                      }}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      {!enabledServices.ticketing ? 'Enable & Configure' : skippedSteps.includes(6) ? 'Complete Section' : 'Edit'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-center gap-4 pt-4">
                 <button
                   type="button"
@@ -2031,13 +2212,22 @@ export const CreateEventView = ({
             )}
 
             {currentStep < 7 && (
-              <button
-                onClick={handleNext}
-                className="px-6 py-2.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Continue</span>
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="px-5 py-2.5 border border-[#c2c7d1] rounded-xl text-xs font-bold text-[#5f5e5e] hover:bg-[#e7e8e9] transition-all cursor-pointer"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="px-6 py-2.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Continue</span>
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
