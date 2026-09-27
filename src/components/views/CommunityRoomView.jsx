@@ -5,7 +5,9 @@ export const CommunityRoomView = ({
   events = [],
   onBack,
   onSelectEvent,
-  onPlanCommunityEvent
+  onPlanCommunityEvent,
+  sponsorshipRequests = [],
+  currentUser,
 }) => {
   const [messages, setMessages] = useState([
     { id: 1, sender: 'Aravind Swaminathan', role: 'Organizer', text: 'Hey everyone! Excited to associate our upcoming AI Summit with this community. Any ideas for volunteer tasks?', time: '10:24 AM' },
@@ -516,7 +518,8 @@ export const CommunityRoomView = ({
           { id: 'events', label: 'Community Events' },
           { id: 'members', label: 'Active Members' },
           { id: 'activities', label: '🎮 Events & Activities Center' },
-          { id: 'registrations', label: 'Registrations' }
+          { id: 'registrations', label: 'Registrations' },
+          { id: 'sponsorships', label: `💰 Sponsorships${sponsorshipRequests.length > 0 ? ` (${sponsorshipRequests.length})` : ''}` }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1616,6 +1619,145 @@ export const CommunityRoomView = ({
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── SPONSORSHIPS TAB ── */}
+      {activeTab === 'sponsorships' && (
+        <div className="bg-white border border-[#e1e3e4] rounded-[2.5rem] p-6 md:p-8 shadow-2xs space-y-6 animate-fadeIn">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#edeeef] pb-5">
+            <div className="text-left">
+              <h3 className="font-geist text-lg font-bold text-[#00355f] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#0f4c81]">paid</span>
+                Community Sponsorship Dashboard
+              </h3>
+              <p className="font-inter text-xs text-[#5f5e5e] mt-1 font-medium">
+                All sponsorship applications submitted by team members — see who applied, which sponsor, and current approval status.
+              </p>
+            </div>
+
+            {/* Summary badges */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl px-4 py-2 text-center">
+                <span className="font-geist text-lg font-bold text-[#00355f] block">{sponsorshipRequests.length}</span>
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Total Applied</span>
+              </div>
+              <div className="bg-[#e2f7e2] border border-[#b7e8b7] rounded-xl px-4 py-2 text-center">
+                <span className="font-geist text-lg font-bold text-[#1a853e] block">
+                  {sponsorshipRequests.filter(r => r.status === 'Sponsorship Code Generated' || r.status === 'Approved' || r.status === 'Active').length}
+                </span>
+                <span className="text-[9px] text-[#1a853e] font-bold uppercase tracking-wider">Approved</span>
+              </div>
+              <div className="bg-[#fff3d6] border border-[#ffd54f] rounded-xl px-4 py-2 text-center">
+                <span className="font-geist text-lg font-bold text-[#b46d00] block">
+                  {sponsorshipRequests.filter(r => r.status === 'Requested').length}
+                </span>
+                <span className="text-[9px] text-[#b46d00] font-bold uppercase tracking-wider">Pending</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sponsorship applications table */}
+          {sponsorshipRequests.length === 0 ? (
+            <div className="py-16 flex flex-col items-center gap-3 text-center">
+              <span className="material-symbols-outlined text-4xl text-gray-300">handshake</span>
+              <p className="text-sm text-gray-400 font-inter italic">No sponsorship applications yet.</p>
+              <p className="text-xs text-gray-400">Team members can apply via the Sponsorships tab in the Organizer Dashboard.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-inter border-collapse">
+                <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4]">
+                  <tr className="text-[#727780] font-bold uppercase tracking-wider text-[9px]">
+                    <th className="p-4">Sponsor</th>
+                    <th className="p-4">Applied By</th>
+                    <th className="p-4">For Event</th>
+                    <th className="p-4">Amount</th>
+                    <th className="p-4">Requirement</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#edeeef]">
+                  {sponsorshipRequests.map((req) => {
+                    const isApproved = req.status === 'Sponsorship Code Generated' || req.status === 'Approved' || req.status === 'Active';
+                    const isPending = req.status === 'Requested';
+                    const isCurrentUser = currentUser && (req.appliedByEmail === currentUser.email || req.appliedBy === currentUser.name);
+
+                    return (
+                      <tr
+                        key={req.requestId}
+                        className={`transition-colors ${
+                          isApproved ? 'bg-[#f0fdf4] hover:bg-[#e8faf0]' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Sponsor */}
+                        <td className="p-4">
+                          <span className="font-semibold text-[#00355f]">{req.sponsorName}</span>
+                        </td>
+
+                        {/* Applied By */}
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                              isCurrentUser ? 'bg-[#0f4c81] text-white' : 'bg-[#d2e4ff] text-[#0f4c81]'
+                            }`}>
+                              {(req.appliedBy || 'T').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-semibold text-[#00355f] block">{req.appliedBy || 'Team Member'}</span>
+                              {isCurrentUser && (
+                                <span className="text-[8px] text-[#0f4c81] font-bold uppercase">You</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Event */}
+                        <td className="p-4 text-gray-600 max-w-[160px] truncate">{req.eventTitle}</td>
+
+                        {/* Amount */}
+                        <td className="p-4 font-bold text-[#1a853e]">${req.amount?.toLocaleString()}</td>
+
+                        {/* Requirement */}
+                        <td className="p-4">
+                          <span className="px-2 py-0.5 bg-[#d2e4ff] text-[#0f4c81] text-[9px] font-bold rounded uppercase">
+                            {req.requirement}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                            isApproved
+                              ? 'bg-[#e2f7e2] text-[#1a853e]'
+                              : isPending
+                              ? 'bg-[#fff3d6] text-[#b46d00]'
+                              : 'bg-[#e7e8e9] text-gray-500'
+                          }`}>
+                            {isApproved ? '✓ Approved' : req.status}
+                          </span>
+                        </td>
+
+                        {/* Date */}
+                        <td className="p-4 text-gray-400">{req.date}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Exclusivity note */}
+          <div className="flex items-start gap-2.5 bg-[#f0f7ff] border border-[#c7dcf7] rounded-xl px-4 py-3 text-xs font-inter text-[#3a5f8a]">
+            <span className="material-symbols-outlined text-[#0f4c81] text-sm mt-0.5">lock</span>
+            <span>
+              <strong>Team Exclusivity Rule:</strong> Each sponsor can only be approached by one team member per event.
+              If a sponsor is already claimed for an event, other members will be blocked from applying to the same sponsor for the same event.
+            </span>
           </div>
         </div>
       )}

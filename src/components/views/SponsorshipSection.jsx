@@ -53,11 +53,9 @@ export const SponsorshipSection = ({
   sponsorshipRequests,
   onRequestSponsorship,
   onSimulateSponsorApprove,
+  currentUser,
 }) => {
-  // Navigation subtabs: 'find', 'my-sponsors'
   const [subTab, setSubTab] = useState('find');
-
-  // Directory filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('All');
 
@@ -68,18 +66,24 @@ export const SponsorshipSection = ({
   const [requestedAmount, setRequestedAmount] = useState(5000);
   const [pitchMessage, setPitchMessage] = useState('');
 
-  // Extract unique industries for filter dropdown
+  // Keep selectedEventId in sync when events array changes or a new event is created
+  React.useEffect(() => {
+    if (events && events.length > 0) {
+      if (!selectedEventId || !events.some(e => e.id === selectedEventId)) {
+        setSelectedEventId(events[0].id);
+      }
+    }
+  }, [events, selectedEventId]);
+
   const industries = useMemo(() => {
     const set = new Set();
     INITIAL_SPONSORS.forEach(s => set.add(s.industry));
     return Array.from(set);
   }, []);
 
-  // Filter sponsors directory
   const filteredSponsors = useMemo(() => {
     return INITIAL_SPONSORS.filter((s) => {
       if (selectedIndustry !== 'All' && s.industry !== selectedIndustry) return false;
-
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesName = s.name.toLowerCase().includes(query);
@@ -87,15 +91,28 @@ export const SponsorshipSection = ({
         const matchesCategory = s.categories.some(c => c.toLowerCase().includes(query));
         if (!matchesName && !matchesDesc && !matchesCategory) return false;
       }
-
       return true;
     });
   }, [selectedIndustry, searchTerm]);
 
-  // Handle Request Submission
+  /**
+   * Check if a sponsor+event combo is already claimed by ANY team member.
+   * Returns the existing request if found.
+   */
+  const getExistingRequest = (sponsorId, eventId) =>
+    sponsorshipRequests.find(r => r.sponsorId === sponsorId && r.eventId === eventId) || null;
+
+  /**
+   * Real-time lock check for the modal's currently selected event.
+   */
+  const modalExistingRequest = useMemo(() => {
+    if (!requestSponsor || !selectedEventId) return null;
+    return getExistingRequest(requestSponsor.id, selectedEventId);
+  }, [requestSponsor, selectedEventId, sponsorshipRequests]);
+
   const handleSendRequest = (e) => {
     e.preventDefault();
-    if (!requestSponsor) return;
+    if (!requestSponsor || modalExistingRequest) return;
 
     const matchedEvent = events.find(evt => evt.id === selectedEventId) || events[0];
 
@@ -103,17 +120,22 @@ export const SponsorshipSection = ({
       requestId: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
       sponsorId: requestSponsor.id,
       sponsorName: requestSponsor.name,
+      eventId: matchedEvent?.id || '',
       eventTitle: matchedEvent ? matchedEvent.title : 'General Event',
       requirement: selectedRequirement,
       amount: Number(requestedAmount),
-      status: 'Requested', // Requested, Pending, Approved, Sponsorship Code Generated
+      pitch: pitchMessage,
+      status: 'Requested',
       code: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      appliedBy: currentUser?.name || 'Team Member',
+      appliedByEmail: currentUser?.email || '',
     };
 
     onRequestSponsorship(newRequest);
-    setRequestSponsor(null); // Close modal
-    setSubTab('my-sponsors'); // Go to Dashboard
+    setRequestSponsor(null);
+    setPitchMessage('');
+    setSubTab('my-sponsors');
   };
 
   return (
@@ -142,9 +164,10 @@ export const SponsorshipSection = ({
         </button>
       </div>
 
-      {/* VIEW: SPONSOR DISCOVERY SEARCH & FILTER */}
+      {/* ── FIND SPONSORS ── */}
       {subTab === 'find' && (
         <div className="space-y-6">
+          {/* Search + filter */}
           <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-2xs space-y-4">
             <div className="relative flex items-center">
               <span className="material-symbols-outlined absolute left-4 text-gray-400">search</span>
@@ -156,7 +179,6 @@ export const SponsorshipSection = ({
                 className="w-full pl-12 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs"
               />
             </div>
-
             <div className="flex items-center gap-3 text-xs font-semibold">
               <span className="text-gray-400">Industry Sector:</span>
               <div className="flex gap-2 flex-wrap">
@@ -187,61 +209,97 @@ export const SponsorshipSection = ({
             </div>
           </div>
 
+          {/* Info banner */}
+          <div className="flex items-start gap-2.5 bg-[#fff8e1] border border-[#ffd54f] rounded-xl px-4 py-3 text-xs font-inter text-[#7a5a00]">
+            <span className="material-symbols-outlined text-[#f9a825] text-base mt-0.5">info</span>
+            <span>
+              <strong>Team Exclusivity:</strong> Only one team member can request sponsorship from a given sponsor per event.
+              A lock badge will appear on a sponsor card when a team member has already applied for a specific event.
+            </span>
+          </div>
+
           {/* Sponsors grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredSponsors.map((sp) => (
-              <div
-                key={sp.id}
-                className="bg-white border border-[#e1e3e4] rounded-[2rem] p-6 shadow-2xs hover:shadow-xs transition-shadow space-y-4 flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <img src={sp.logo} alt={sp.name} className="w-12 h-12 rounded-xl object-cover border border-[#e1e3e4]" />
-                    <div>
-                      <h4 className="font-geist font-bold text-[#00355f] text-base leading-snug">{sp.name}</h4>
-                      <span className="text-[10px] font-bold text-[#0f4c81] uppercase tracking-wider">{sp.industry}</span>
+            {filteredSponsors.map((sp) => {
+              const claimedRequests = sponsorshipRequests.filter(r => r.sponsorId === sp.id);
+
+              return (
+                <div
+                  key={sp.id}
+                  className="bg-white border border-[#e1e3e4] rounded-[2rem] p-6 shadow-2xs hover:shadow-xs transition-shadow space-y-4 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <img src={sp.logo} alt={sp.name} className="w-12 h-12 rounded-xl object-cover border border-[#e1e3e4]" />
+                      <div>
+                        <h4 className="font-geist font-bold text-[#00355f] text-base leading-snug">{sp.name}</h4>
+                        <span className="text-[10px] font-bold text-[#0f4c81] uppercase tracking-wider">{sp.industry}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <p className="font-inter text-xs text-[#5f5e5e] line-clamp-3 leading-relaxed">
-                    {sp.description}
-                  </p>
+                    <p className="font-inter text-xs text-[#5f5e5e] line-clamp-3 leading-relaxed">{sp.description}</p>
 
-                  <div className="space-y-2 pt-1">
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Interested In:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {sp.categories.map((c, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-[#f3f4f5] text-[#42474f] text-[9px] font-semibold rounded">
-                          {c}
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Interested In:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {sp.categories.map((c, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-[#f3f4f5] text-[#42474f] text-[9px] font-semibold rounded">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Lock badge: shows which events are already claimed */}
+                    {claimedRequests.length > 0 && (
+                      <div className="bg-[#fff3d6] border border-[#ffd54f] rounded-xl px-3 py-2 space-y-1.5">
+                        <span className="text-[9px] font-bold text-[#b46d00] uppercase tracking-wider flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs leading-none">lock</span>
+                          Claimed for some events
                         </span>
-                      ))}
+                        {claimedRequests.map((cr, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5 flex-wrap text-[9px] text-[#7a5a00] font-inter">
+                            <span className="font-bold">{cr.appliedBy || 'Team Member'}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="italic truncate max-w-[120px]">{cr.eventTitle}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                              cr.status === 'Sponsorship Code Generated' || cr.status === 'Approved'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {cr.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-[#edeeef] flex justify-between items-center">
+                    <div className="text-left">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase block">Funding Available</span>
+                      <span className="font-geist text-xs font-bold text-[#1a853e]">{sp.availableBudget}</span>
                     </div>
+                    <button
+                      onClick={() => {
+                        setRequestSponsor(sp);
+                        setRequestedAmount(sp.minAmt);
+                        setSelectedEventId(events[0]?.id || '');
+                        setPitchMessage('');
+                      }}
+                      className="px-4 py-2 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Request Sponsorship
+                    </button>
                   </div>
                 </div>
-
-                <div className="pt-4 border-t border-[#edeeef] flex justify-between items-center">
-                  <div className="text-left">
-                    <span className="text-[9px] font-bold text-gray-400 uppercase block">Funding Available</span>
-                    <span className="font-geist text-xs font-bold text-[#1a853e]">{sp.availableBudget}</span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setRequestSponsor(sp);
-                      setRequestedAmount(sp.minAmt);
-                    }}
-                    className="px-4 py-2 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Request Sponsorship
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* VIEW: MY SPONSOR AGREEMENTS */}
+      {/* ── MY SPONSOR AGREEMENTS ── */}
       {subTab === 'my-sponsors' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
@@ -255,11 +313,11 @@ export const SponsorshipSection = ({
                 <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
                   <tr>
                     <th className="p-4">Sponsor</th>
+                    <th className="p-4">Applied By</th>
                     <th className="p-4">Agreed Amount</th>
                     <th className="p-4">Used For</th>
                     <th className="p-4">Linked Event</th>
-                    <th className="p-4">Sponsorship Status</th>
-                    <th className="p-4 text-right">Actions / Code</th>
+                    <th className="p-4">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#edeeef]">
@@ -273,6 +331,14 @@ export const SponsorshipSection = ({
                     sponsorshipRequests.map((req) => (
                       <tr key={req.requestId} className="hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-semibold text-[#00355f]">{req.sponsorName}</td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-6 h-6 rounded-full bg-[#d2e4ff] text-[#0f4c81] text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                              {(req.appliedBy || 'T').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-[#00355f] font-semibold">{req.appliedBy || 'Team Member'}</span>
+                          </div>
+                        </td>
                         <td className="p-4 font-bold text-[#1a853e]">${req.amount.toLocaleString()}</td>
                         <td className="p-4">
                           <span className="px-2.5 py-1 bg-[#d2e4ff] text-[#0f4c81] text-[10px] font-bold rounded uppercase">
@@ -281,43 +347,15 @@ export const SponsorshipSection = ({
                         </td>
                         <td className="p-4 text-gray-500 truncate max-w-[150px]">{req.eventTitle}</td>
                         <td className="p-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
-                              req.status === 'Sponsorship Code Generated' || req.status === 'Verified' || req.status === 'Active'
-                                ? 'bg-[#e2f7e2] text-[#1a853e]'
-                                : req.status === 'Requested'
-                                ? 'bg-[#fff3d6] text-[#b46d00]'
-                                : 'bg-[#e7e8e9] text-gray-500'
-                            }`}
-                          >
+                          <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
+                            req.status === 'Sponsorship Code Generated' || req.status === 'Verified' || req.status === 'Active' || req.status === 'Approved'
+                              ? 'bg-[#e2f7e2] text-[#1a853e]'
+                              : req.status === 'Requested'
+                              ? 'bg-[#fff3d6] text-[#b46d00]'
+                              : 'bg-[#e7e8e9] text-gray-500'
+                          }`}>
                             {req.status}
                           </span>
-                        </td>
-                        <td className="p-4 text-right space-x-2">
-                          {req.status === 'Requested' ? (
-                            <button
-                              onClick={() => onSimulateSponsorApprove(req.requestId)}
-                              className="px-3 py-1.5 bg-[#1a853e] text-white hover:bg-[#13622e] rounded-lg font-bold text-[10px] cursor-pointer"
-                            >
-                              Approve & Code
-                            </button>
-                          ) : (
-                            <div className="flex justify-end items-center gap-1.5">
-                              <span className="font-mono bg-gray-50 border border-gray-200 px-2.5 py-1 rounded text-[#00355f] text-[10px] font-bold">
-                                {req.code}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(req.code);
-                                  alert("Sponsorship code copied to clipboard!");
-                                }}
-                                className="p-1 text-gray-400 hover:text-black cursor-pointer"
-                                title="Copy Code"
-                              >
-                                <span className="material-symbols-outlined text-sm">content_copy</span>
-                              </button>
-                            </div>
-                          )}
                         </td>
                       </tr>
                     ))
@@ -329,15 +367,25 @@ export const SponsorshipSection = ({
         </div>
       )}
 
-      {/* REQUEST SPONSORSHIP DRAWER / MODAL */}
+      {/* ── REQUEST SPONSORSHIP MODAL ── */}
       {requestSponsor && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-6 max-w-md w-full space-y-4 animate-scaleUp text-left">
-            <h3 className="font-geist text-lg font-bold text-[#00355f]">
-              Request Sponsorship from {requestSponsor.name}
-            </h3>
+          <div className="bg-white rounded-[2rem] p-6 max-w-md w-full space-y-4 animate-scaleUp text-left shadow-2xl">
+            <div className="flex items-start justify-between">
+              <h3 className="font-geist text-lg font-bold text-[#00355f]">
+                Request Sponsorship from {requestSponsor.name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRequestSponsor(null)}
+                className="text-gray-400 hover:text-black cursor-pointer border-none bg-transparent text-xl leading-none ml-2"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleSendRequest} className="space-y-4 text-xs font-semibold">
+              {/* Event selector */}
               <div className="space-y-1">
                 <label className="text-[10px] text-gray-400 uppercase tracking-wider block">Target Event</label>
                 <select
@@ -352,23 +400,45 @@ export const SponsorshipSection = ({
                 </select>
               </div>
 
+              {/* Lock warning */}
+              {modalExistingRequest && (
+                <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 animate-fadeIn">
+                  <span className="material-symbols-outlined text-rose-500 text-base mt-0.5 flex-shrink-0">lock</span>
+                  <div>
+                    <p className="font-bold text-rose-700 text-[11px]">Sponsorship Already Claimed</p>
+                    <p className="text-rose-600 text-[10px] font-normal mt-0.5 leading-relaxed">
+                      <strong>{modalExistingRequest.appliedBy || 'A team member'}</strong> has already submitted a request
+                      to <strong>{requestSponsor.name}</strong> for this event. Only one request is allowed
+                      per sponsor per event across the team.
+                    </p>
+                    <p className="text-[9px] text-rose-400 mt-1.5 font-normal">
+                      Current status:{' '}
+                      <span className="font-bold uppercase">{modalExistingRequest.status}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Requirement */}
               <div className="space-y-1">
                 <label className="text-[10px] text-gray-400 uppercase tracking-wider block">Requirement / Service</label>
                 <select
                   value={selectedRequirement}
                   onChange={(e) => setSelectedRequirement(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                  className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl ${modalExistingRequest ? 'opacity-50' : ''}`}
+                  disabled={!!modalExistingRequest}
                 >
                   <option value="Venue">Venue infrastructure</option>
-                  <option value="Speakers">Keynote Speakers & Hosts</option>
-                  <option value="Goodies">Goodies & Merchandise</option>
+                  <option value="Speakers">Keynote Speakers &amp; Hosts</option>
+                  <option value="Goodies">Goodies &amp; Merchandise</option>
                   <option value="Catering">Catering / AV Services</option>
                 </select>
               </div>
 
+              {/* Amount */}
               <div className="space-y-1">
                 <label className="text-[10px] text-gray-400 uppercase tracking-wider block">
-                  Requested Funding Amount ($) (Sponsor range: {requestSponsor.availableBudget})
+                  Requested Funding Amount ($) — Range: {requestSponsor.availableBudget}
                 </label>
                 <input
                   type="number"
@@ -376,35 +446,44 @@ export const SponsorshipSection = ({
                   max={requestSponsor.maxAmt}
                   value={requestedAmount}
                   onChange={(e) => setRequestedAmount(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                  className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold ${modalExistingRequest ? 'opacity-50' : ''}`}
                   required
+                  disabled={!!modalExistingRequest}
                 />
               </div>
 
+              {/* Pitch */}
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-400 uppercase tracking-wider block">Pitch / Proposal message</label>
+                <label className="text-[10px] text-gray-400 uppercase tracking-wider block">Pitch / Proposal Message</label>
                 <textarea
                   rows={3}
                   value={pitchMessage}
                   onChange={(e) => setPitchMessage(e.target.value)}
                   placeholder="Pitch your event demographic and details to get sponsored..."
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-normal"
+                  className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-normal ${modalExistingRequest ? 'opacity-50' : ''}`}
+                  disabled={!!modalExistingRequest}
                 />
               </div>
 
+              {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setRequestSponsor(null)}
-                  className="flex-grow py-3 border border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 cursor-pointer"
+                  className="flex-grow py-3 border border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 cursor-pointer font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow py-3 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl cursor-pointer"
+                  disabled={!!modalExistingRequest}
+                  className={`flex-grow py-3 rounded-xl font-semibold transition-all ${
+                    modalExistingRequest
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-[#0f4c81] text-white hover:bg-[#00355f] cursor-pointer'
+                  }`}
                 >
-                  Send Proposal
+                  {modalExistingRequest ? 'Slot Already Taken' : 'Send Proposal'}
                 </button>
               </div>
             </form>

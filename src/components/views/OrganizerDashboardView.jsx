@@ -1262,6 +1262,7 @@ export const OrganizerDashboardView = ({
           sponsorshipRequests={sponsorshipRequests}
           onRequestSponsorship={onRequestSponsorship}
           onSimulateSponsorApprove={onSimulateSponsorApprove}
+          currentUser={currentUser}
         />
       )}
     </div>

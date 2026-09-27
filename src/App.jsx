@@ -223,23 +223,29 @@ export function App() {
       requestId: 'REQ-1092',
       sponsorId: 'sp-1',
       sponsorName: 'TechNova Solutions',
+      eventId: 'evt-1',
       eventTitle: 'Design Systems Architecture Summit',
       requirement: 'Venue',
       amount: 75000,
       status: 'Sponsorship Code Generated',
       code: 'TN2026-75K',
-      date: '2026-08-12'
+      date: '2026-08-12',
+      appliedBy: 'Aravind Swaminathan',
+      appliedByEmail: 'organizer@assemble.dev'
     },
     {
       requestId: 'REQ-2201',
       sponsorId: 'sp-2',
       sponsorName: 'BrandX Media',
+      eventId: 'evt-1',
       eventTitle: 'Design Systems Architecture Summit',
       requirement: 'Goodies',
       amount: 30000,
       status: 'Requested',
       code: '',
-      date: '2026-08-13'
+      date: '2026-08-13',
+      appliedBy: 'Meera Sen',
+      appliedByEmail: 'meera@assemble.dev'
     }
   ]);
 
@@ -572,6 +578,8 @@ export function App() {
                 setPreSelectedCommunity(comName);
                 navigate('/create-event');
               }}
+              sponsorshipRequests={sponsorshipRequests}
+              currentUser={currentUser}
             />
           );
         }
