@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { INITIAL_EVENTS, INITIAL_TICKETS, INITIAL_COMMUNITIES } from './data/initialData';
+import { INITIAL_EVENTS, INITIAL_TICKETS, INITIAL_COMMUNITIES, INITIAL_VENUES, INITIAL_SPEAKERS } from './data/initialData';
 import { CommunityRoomView } from './components/views/CommunityRoomView';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -9,6 +9,9 @@ import { EventDetailsView } from './components/views/EventDetailsView';
 import { CreateEventView } from './components/views/CreateEventView';
 import { OrganizerDashboardView } from './components/views/OrganizerDashboardView';
 import { AttendeeDashboardView } from './components/views/AttendeeDashboardView';
+import { SpeakerDashboardView } from './components/views/SpeakerDashboardView';
+import { SponsorDashboardView } from './components/views/SponsorDashboardView';
+import { VenueProviderDashboardView } from './components/views/VenueProviderDashboardView';
 import { VenueMarketplaceView } from './components/views/VenueMarketplaceView';
 import { SpeakerMarketplaceView } from './components/views/SpeakerMarketplaceView';
 import { HowItWorksView } from './components/views/HowItWorksView';
@@ -26,7 +29,18 @@ export function App() {
   });
 
   const [selectedCity, setSelectedCity] = useState('Chennai');
-  const [userRole, setUserRole] = useState('attendee');
+  const [userRole, setUserRole] = useState(() => {
+    const saved = localStorage.getItem('assemble_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.role || 'attendee';
+      } catch (e) {
+        return 'attendee';
+      }
+    }
+    return 'attendee';
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   const [communities, setCommunities] = useState(() => {
@@ -151,6 +165,47 @@ export function App() {
   const [tickets, setTickets] = useState(() => {
     const saved = localStorage.getItem('assemble_tickets');
     return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+  });
+
+  const [venues, setVenues] = useState(() => {
+    const saved = localStorage.getItem('assemble_venues');
+    return saved ? JSON.parse(saved) : INITIAL_VENUES;
+  });
+  const [speakers, setSpeakers] = useState(() => {
+    const saved = localStorage.getItem('assemble_speakers');
+    return saved ? JSON.parse(saved) : INITIAL_SPEAKERS;
+  });
+  const [speakingInvites, setSpeakingInvites] = useState(() => {
+    const saved = localStorage.getItem('assemble_speaking_invites');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'inv-demo-1',
+        speakerName: 'Dr. Elena Rostova',
+        speakerEmail: 'speaker@assemble.dev',
+        eventTitle: 'Design Systems Architecture Summit',
+        message: 'We would love to invite you for a 45-minute keynote on scalable component tokens.',
+        status: 'pending',
+        date: '2026-10-10'
+      }
+    ];
+  });
+  const [venueBookings, setVenueBookings] = useState(() => {
+    const saved = localStorage.getItem('assemble_venue_bookings');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'bk-demo-1',
+        venueId: 'ven-1',
+        venueName: 'Sir Mutha Venkatasubba Rao Concert Hall',
+        eventName: 'AI Frontier Summit 2026',
+        date: '2026-11-20',
+        durationHours: 8,
+        expectedAttendees: 400,
+        estimatedTotal: 1800,
+        status: 'pending',
+        organizerName: 'Design Scale India',
+        organizerEmail: 'organizer@assemble.dev'
+      }
+    ];
   });
 
   // Selected item states
@@ -318,12 +373,97 @@ export function App() {
   };
 
   const handleRoleChange = (newRole) => {
+    setUserRole(newRole);
     if (currentUser) {
       const updatedUser = { ...currentUser, role: newRole };
       setCurrentUser(updatedUser);
-      setUserRole(newRole);
       localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
-      navigate('/dashboard');
+    }
+    navigate('/dashboard');
+  };
+
+  const handleAcceptSpeakingInvite = (inviteId) => {
+    const updated = speakingInvites.map(inv => inv.id === inviteId ? { ...inv, status: 'accepted' } : inv);
+    setSpeakingInvites(updated);
+    localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
+  };
+
+  const handleDeclineSpeakingInvite = (inviteId) => {
+    const updated = speakingInvites.map(inv => inv.id === inviteId ? { ...inv, status: 'declined' } : inv);
+    setSpeakingInvites(updated);
+    localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
+  };
+
+  const handleApplyForSpeaking = (eventId, pitch) => {
+    const targetEvent = events.find(e => e.id === eventId);
+    const newApp = {
+      id: `spk-app-${Date.now()}`,
+      eventId,
+      eventTitle: targetEvent?.title || 'Conference Keynote',
+      speakerName: currentUser?.name || 'Applicant Speaker',
+      speakerEmail: currentUser?.email || 'speaker@assemble.dev',
+      message: pitch,
+      status: 'pending',
+      date: new Date().toISOString().split('T')[0]
+    };
+    const updated = [newApp, ...speakingInvites];
+    setSpeakingInvites(updated);
+    localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
+  };
+
+  const handleUpdateSpeakerProfile = (profileData) => {
+    if (!currentUser) return;
+    const updatedUser = {
+      ...currentUser,
+      speakerProfile: {
+        ...(currentUser.speakerProfile || {}),
+        ...profileData
+      }
+    };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
+
+    const updatedSpeakers = speakers.map(s => 
+      s.email === currentUser.email ? { ...s, ...profileData, name: currentUser.name } : s
+    );
+    setSpeakers(updatedSpeakers);
+    localStorage.setItem('assemble_speakers', JSON.stringify(updatedSpeakers));
+  };
+
+  const handleAddVenue = (newVenue) => {
+    const updated = [newVenue, ...venues];
+    setVenues(updated);
+    localStorage.setItem('assemble_venues', JSON.stringify(updated));
+  };
+
+  const handleUpdateVenue = (updatedVenue) => {
+    const updated = venues.map(v => v.id === updatedVenue.id ? updatedVenue : v);
+    setVenues(updated);
+    localStorage.setItem('assemble_venues', JSON.stringify(updated));
+  };
+
+  const handleAcceptVenueBooking = (bookingId) => {
+    const updated = venueBookings.map(b => b.id === bookingId ? { ...b, status: 'confirmed' } : b);
+    setVenueBookings(updated);
+    localStorage.setItem('assemble_venue_bookings', JSON.stringify(updated));
+  };
+
+  const handleDeclineVenueBooking = (bookingId) => {
+    const updated = venueBookings.map(b => b.id === bookingId ? { ...b, status: 'declined' } : b);
+    setVenueBookings(updated);
+    localStorage.setItem('assemble_venue_bookings', JSON.stringify(updated));
+  };
+
+  const handleUpdateCapabilities = (newCap) => {
+    if (!currentUser) return;
+    const currentCaps = currentUser.capabilities || [currentUser.role, 'attendee'];
+    if (!currentCaps.includes(newCap)) {
+      const updatedUser = {
+        ...currentUser,
+        capabilities: [...currentCaps, newCap]
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
     }
   };
 
@@ -564,6 +704,7 @@ export function App() {
               navigate('/community-room');
             }}
             onCreateCommunityRoom={handleCreateCommunityRoom}
+            onUpdateCapabilities={handleUpdateCapabilities}
           />
         );
       case '/community-room':
@@ -586,8 +727,10 @@ export function App() {
         setTimeout(() => navigate('/profile'), 0);
         return null;
       case '/dashboard':
-      case '/my-events':
-        if (currentUser.role === 'organizer') {
+      case '/my-events': {
+        const currentActiveRole = userRole || currentUser?.role || 'attendee';
+
+        if (currentActiveRole === 'organizer') {
           return (
             <OrganizerDashboardView
               events={events}
@@ -609,20 +752,82 @@ export function App() {
               communities={communities}
               onUpdateTicket={handleUpdateTicket}
               onUpdateEventExpenses={handleUpdateEventExpenses}
-            />
-          );
-        } else {
-          return (
-            <AttendeeDashboardView
-              tickets={currentUser ? tickets.filter(t => t.userEmail?.toLowerCase() === currentUser.email?.toLowerCase()) : []}
-              events={events}
-              savedEventIds={savedEventIds}
-              onViewTicket={(t) => setViewedTicket(t)}
-              setActiveView={handleActiveViewChange}
-              onSelectEvent={handleSelectEvent}
+              onRoleChange={handleRoleChange}
             />
           );
         }
+
+        if (currentActiveRole === 'speaker') {
+          return (
+            <SpeakerDashboardView
+              currentUser={currentUser}
+              events={events}
+              speakers={speakers}
+              speakingInvites={speakingInvites}
+              onAcceptInvite={handleAcceptSpeakingInvite}
+              onDeclineInvite={handleDeclineSpeakingInvite}
+              onApplyForSpeaking={handleApplyForSpeaking}
+              onUpdateSpeakerProfile={handleUpdateSpeakerProfile}
+              setActiveView={handleActiveViewChange}
+              onSelectEvent={handleSelectEvent}
+              onRoleChange={handleRoleChange}
+            />
+          );
+        }
+
+        if (currentActiveRole === 'sponsor') {
+          return (
+            <SponsorDashboardView
+              currentUser={currentUser}
+              events={events}
+              sponsorshipRequests={sponsorshipRequests}
+              sponsorshipCodes={sponsorshipCodes}
+              onSimulateSponsorApprove={handleSimulateSponsorApprove}
+              onRequestSponsorship={handleRequestSponsorship}
+              setActiveView={handleActiveViewChange}
+              onSelectEvent={handleSelectEvent}
+              onRoleChange={handleRoleChange}
+            />
+          );
+        }
+
+        if (currentActiveRole === 'venue') {
+          return (
+            <VenueProviderDashboardView
+              currentUser={currentUser}
+              venues={venues}
+              venueBookings={venueBookings}
+              onAddVenue={handleAddVenue}
+              onUpdateVenue={handleUpdateVenue}
+              onAcceptBooking={handleAcceptVenueBooking}
+              onDeclineBooking={handleDeclineVenueBooking}
+              setActiveView={handleActiveViewChange}
+              onRoleChange={handleRoleChange}
+            />
+          );
+        }
+
+        // Default: Attendee Dashboard
+        return (
+          <AttendeeDashboardView
+            currentUser={currentUser}
+            tickets={currentUser ? tickets.filter(t => t.userEmail?.toLowerCase() === currentUser.email?.toLowerCase()) : tickets}
+            events={events}
+            savedEventIds={savedEventIds}
+            communities={communities}
+            onViewTicket={(t) => setViewedTicket(t)}
+            setActiveView={handleActiveViewChange}
+            onSelectEvent={handleSelectEvent}
+            onJoinCommunity={handleJoinCommunity}
+            onCreateCommunityRoom={handleCreateCommunityRoom}
+            onOpenCommunityRoom={(com) => {
+              setActiveCommunity(com);
+              navigate('/community-room');
+            }}
+            onRoleChange={handleRoleChange}
+          />
+        );
+      }
       case '/create-event':
         return (
           <CreateEventView
@@ -663,9 +868,27 @@ export function App() {
         setTimeout(() => navigate('/discover'), 0);
         return null;
       case '/venues-marketplace':
-        return <VenueMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
+        return (
+          <VenueMarketplaceView
+            onBack={() => handleActiveViewChange('dashboard')}
+            onRequestVenueBooking={(newBooking) => {
+              const updated = [newBooking, ...venueBookings];
+              setVenueBookings(updated);
+              localStorage.setItem('assemble_venue_bookings', JSON.stringify(updated));
+            }}
+          />
+        );
       case '/speakers-marketplace':
-        return <SpeakerMarketplaceView onBack={() => handleActiveViewChange('dashboard')} />;
+        return (
+          <SpeakerMarketplaceView
+            onBack={() => handleActiveViewChange('dashboard')}
+            onInviteSpeaker={(newInvite) => {
+              const updated = [newInvite, ...speakingInvites];
+              setSpeakingInvites(updated);
+              localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
+            }}
+          />
+        );
       case '/my-communities':
         return (
           <div className="px-4 md:px-10 max-w-[800px] mx-auto py-8 space-y-6 text-left animate-fadeIn">

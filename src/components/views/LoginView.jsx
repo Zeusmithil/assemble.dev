@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+
+
 export const LoginView = ({ navigate, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -9,14 +11,15 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
     e.preventDefault();
     setError('');
 
-    // Fetch local storage users
     const localUsers = JSON.parse(localStorage.getItem('assemble_users') || '[]');
-    
-    // Seed default users
+
     const defaultUsers = [
-      { name: 'John Doe', email: 'john.doe@example.com', password: 'password123', role: 'attendee' },
-      { name: 'Alice Smith', email: 'attendee@assemble.dev', password: 'password123', role: 'attendee' },
-      { name: 'Bob Johnson', email: 'organizer@assemble.dev', password: 'password123', role: 'organizer' }
+      { name: 'John Doe', email: 'john.doe@example.com', password: 'password123', role: 'attendee', capabilities: ['attendee'] },
+      { name: 'Alice Smith', email: 'attendee@assemble.dev', password: 'password123', role: 'attendee', capabilities: ['attendee'] },
+      { name: 'Bob Johnson', email: 'organizer@assemble.dev', password: 'password123', role: 'organizer', capabilities: ['organizer', 'attendee'] },
+      { name: 'Dr. Elena Rostova', email: 'speaker@assemble.dev', password: 'password123', role: 'speaker', capabilities: ['speaker', 'attendee'], speakerProfile: { title: 'Principal AI Researcher', organization: 'Stanford AI Lab', topics: ['AI Ethics', 'Large Language Models'], feeType: 'fee', feeAmount: '3500', currency: '€', availability: 'Available for Bookings' } },
+      { name: 'Marcus Vance', email: 'sponsor@assemble.dev', password: 'password123', role: 'sponsor', capabilities: ['sponsor', 'attendee', 'organizer'], sponsorProfile: { companyName: 'TechNova Solutions', industry: 'Enterprise AI & Cloud', budgetRange: '€10,000+', budgetAmount: 25000 } },
+      { name: 'David Chen', email: 'venue@assemble.dev', password: 'password123', role: 'venue', capabilities: ['venue', 'attendee'], venueProfile: { venueName: 'Sir Mutha Concert Hall', capacity: 500, type: 'Auditorium' } },
     ];
 
     const allUsers = [...defaultUsers, ...localUsers];
@@ -26,13 +29,7 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
     );
 
     if (matchedUser) {
-      onLoginSuccess({
-        name: matchedUser.name,
-        email: matchedUser.email,
-        role: matchedUser.role
-      });
-      
-      // Redirect to intended dashboard or standard dashboard
+      onLoginSuccess(matchedUser);
       const redirectPath = localStorage.getItem('assemble_redirect') || '/dashboard';
       localStorage.removeItem('assemble_redirect');
       navigate(redirectPath);
@@ -41,23 +38,25 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
     }
   };
 
+
+
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-md w-full shadow-lg border border-[#e1e3e4] space-y-6">
+    <div className="min-h-[85vh] flex items-center justify-center p-4 py-12 text-left animate-fadeIn">
+      <div className="bg-white/90 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-8 md:p-10 max-w-md w-full shadow-2xl shadow-blue-900/10 space-y-6">
         <div className="flex items-center gap-2 justify-center">
-          <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold font-geist">A</span>
-          <span className="font-geist text-xl font-bold text-[#00355f]">assemble.dev</span>
+          <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold font-geist">E</span>
+          <span className="font-geist text-xl font-bold text-[#00355f]">Event Horizon</span>
         </div>
 
         <div className="text-center">
           <h2 className="font-geist text-2xl font-bold text-[#00355f]">Welcome Back</h2>
           <p className="font-inter text-xs text-[#5f5e5e] mt-1.5">
-            Sign in to access your registered tickets & events
+            Sign in to access your multi-role dashboard & live experiences
           </p>
         </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold text-center">
+          <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold text-center">
             {error}
           </div>
         )}
@@ -102,16 +101,18 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
 
           <button
             type="submit"
-            className="w-full py-4 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl font-geist font-bold text-xs shadow-xs transition-all active:scale-98"
+            className="w-full py-4 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-98 cursor-pointer"
           >
-            Login
+            Log In to Account
           </button>
         </form>
+
+
 
         <div className="text-center pt-2 border-t border-[#edeeef]">
           <button
             onClick={() => navigate('/signup')}
-            className="text-xs font-bold text-[#0f4c81] hover:underline"
+            className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
           >
             Don’t have an account? Sign Up
           </button>
@@ -120,3 +121,4 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
     </div>
   );
 };
+export default LoginView;

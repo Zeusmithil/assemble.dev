@@ -231,6 +231,7 @@ export const OrganizerDashboardView = ({
           </span>
           <h1 className="font-geist text-2xl md:text-3xl font-bold text-[#00355f] mt-0.5">
             Event Management Console
+            
           </h1>
         </div>
 
