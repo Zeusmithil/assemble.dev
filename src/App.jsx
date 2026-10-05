@@ -181,7 +181,7 @@ export function App() {
       {
         id: 'inv-demo-1',
         speakerName: 'Dr. Elena Rostova',
-        speakerEmail: 'speaker@assemble.dev',
+        speakerEmail: 'speaker@eventhorizon.dev',
         eventTitle: 'Design Systems Architecture Summit',
         message: 'We would love to invite you for a 45-minute keynote on scalable component tokens.',
         status: 'pending',
@@ -203,13 +203,23 @@ export function App() {
         estimatedTotal: 1800,
         status: 'pending',
         organizerName: 'Design Scale India',
-        organizerEmail: 'organizer@assemble.dev'
+        organizerEmail: 'organizer@eventhorizon.dev'
       }
     ];
   });
 
   // Selected item states
-  const [selectedEvent, setSelectedEvent] = useState(INITIAL_EVENTS[0]);
+  const [selectedEvent, setSelectedEvent] = useState(() => {
+    const saved = localStorage.getItem('assemble_selected_event');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_EVENTS[0];
+      }
+    }
+    return INITIAL_EVENTS[0];
+  });
   const [viewedTicket, setViewedTicket] = useState(null);
 
   // Goodies E-commerce states
@@ -286,7 +296,7 @@ export function App() {
       code: 'TN2026-75K',
       date: '2026-08-12',
       appliedBy: 'Aravind Swaminathan',
-      appliedByEmail: 'organizer@assemble.dev'
+      appliedByEmail: 'organizer@eventhorizon.dev'
     },
     {
       requestId: 'REQ-2201',
@@ -300,7 +310,7 @@ export function App() {
       code: '',
       date: '2026-08-13',
       appliedBy: 'Meera Sen',
-      appliedByEmail: 'meera@assemble.dev'
+      appliedByEmail: 'meera@eventhorizon.dev'
     }
   ]);
 
@@ -401,7 +411,7 @@ export function App() {
       eventId,
       eventTitle: targetEvent?.title || 'Conference Keynote',
       speakerName: currentUser?.name || 'Applicant Speaker',
-      speakerEmail: currentUser?.email || 'speaker@assemble.dev',
+      speakerEmail: currentUser?.email || 'speaker@eventhorizon.dev',
       message: pitch,
       status: 'pending',
       date: new Date().toISOString().split('T')[0]
@@ -470,6 +480,12 @@ export function App() {
   // Handler: Select Event Details
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
+    localStorage.setItem('assemble_selected_event', JSON.stringify(event));
+    if (!currentUser) {
+      localStorage.setItem('assemble_redirect', '/event-details');
+      navigate('/login');
+      return;
+    }
     navigate('/event-details');
   };
 
@@ -667,7 +683,7 @@ export function App() {
 
   // Custom Router view rendering
   const renderView = () => {
-    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities'];
+    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/event-details'];
     if (protectedPaths.includes(currentPath) && !currentUser) {
       localStorage.setItem('assemble_redirect', currentPath);
       // Defer navigation to prevent state updates during render
@@ -862,6 +878,8 @@ export function App() {
               onRegister={handleRegisterForEvent}
               isSaved={savedEventIds.includes(selectedEvent.id)}
               onToggleSave={() => handleToggleSaveEvent(selectedEvent.id)}
+              currentUser={currentUser}
+              tickets={tickets}
             />
           );
         }
@@ -899,7 +917,7 @@ export function App() {
                   onClick={() => navigate('/dashboard')}
                   className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors mb-2 cursor-pointer"
                 >
-                  <span>← Back to Dashboard</span>
+                  <span>← Back to Home</span>
                 </button>
                 <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider block">
                   Organizer Space

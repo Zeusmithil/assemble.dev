@@ -105,7 +105,7 @@ export const AttendeeDashboardView = ({
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
               <span>🎟</span>
-              <span>Attendee Dashboard</span>
+              <span>Attendee Home</span>
             </div>
             <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
               Discover what’s happening around you.

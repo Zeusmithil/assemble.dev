@@ -15,10 +15,15 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
 
     const defaultUsers = [
       { name: 'John Doe', email: 'john.doe@example.com', password: 'password123', role: 'attendee', capabilities: ['attendee'] },
+      { name: 'Alice Smith', email: 'attendee@eventhorizon.dev', password: 'password123', role: 'attendee', capabilities: ['attendee'] },
       { name: 'Alice Smith', email: 'attendee@assemble.dev', password: 'password123', role: 'attendee', capabilities: ['attendee'] },
+      { name: 'Bob Johnson', email: 'organizer@eventhorizon.dev', password: 'password123', role: 'organizer', capabilities: ['organizer', 'attendee'] },
       { name: 'Bob Johnson', email: 'organizer@assemble.dev', password: 'password123', role: 'organizer', capabilities: ['organizer', 'attendee'] },
+      { name: 'Dr. Elena Rostova', email: 'speaker@eventhorizon.dev', password: 'password123', role: 'speaker', capabilities: ['speaker', 'attendee'], speakerProfile: { title: 'Principal AI Researcher', organization: 'Stanford AI Lab', topics: ['AI Ethics', 'Large Language Models'], feeType: 'fee', feeAmount: '3500', currency: '€', availability: 'Available for Bookings' } },
       { name: 'Dr. Elena Rostova', email: 'speaker@assemble.dev', password: 'password123', role: 'speaker', capabilities: ['speaker', 'attendee'], speakerProfile: { title: 'Principal AI Researcher', organization: 'Stanford AI Lab', topics: ['AI Ethics', 'Large Language Models'], feeType: 'fee', feeAmount: '3500', currency: '€', availability: 'Available for Bookings' } },
+      { name: 'Marcus Vance', email: 'sponsor@eventhorizon.dev', password: 'password123', role: 'sponsor', capabilities: ['sponsor', 'attendee', 'organizer'], sponsorProfile: { companyName: 'TechNova Solutions', industry: 'Enterprise AI & Cloud', budgetRange: '€10,000+', budgetAmount: 25000 } },
       { name: 'Marcus Vance', email: 'sponsor@assemble.dev', password: 'password123', role: 'sponsor', capabilities: ['sponsor', 'attendee', 'organizer'], sponsorProfile: { companyName: 'TechNova Solutions', industry: 'Enterprise AI & Cloud', budgetRange: '€10,000+', budgetAmount: 25000 } },
+      { name: 'David Chen', email: 'venue@eventhorizon.dev', password: 'password123', role: 'venue', capabilities: ['venue', 'attendee'], venueProfile: { venueName: 'Sir Mutha Concert Hall', capacity: 500, type: 'Auditorium' } },
       { name: 'David Chen', email: 'venue@assemble.dev', password: 'password123', role: 'venue', capabilities: ['venue', 'attendee'], venueProfile: { venueName: 'Sir Mutha Concert Hall', capacity: 500, type: 'Auditorium' } },
     ];
 
@@ -40,12 +45,35 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
 
 
 
+  const handleBack = () => {
+    const redirectPath = localStorage.getItem('assemble_redirect');
+    if (redirectPath) {
+      localStorage.removeItem('assemble_redirect');
+      navigate(redirectPath);
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4 py-12 text-left animate-fadeIn">
       <div className="bg-white/90 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-8 md:p-10 max-w-md w-full shadow-2xl shadow-blue-900/10 space-y-6">
-        <div className="flex items-center gap-2 justify-center">
-          <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold font-geist">E</span>
-          <span className="font-geist text-xl font-bold text-[#00355f]">Event Horizon</span>
+        <div className="flex items-center justify-between border-b border-[#edeeef] pb-4">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#0f4c81] hover:text-[#00355f] hover:bg-blue-50 px-3 py-1.5 rounded-full transition-all cursor-pointer border border-blue-100"
+          >
+            <span className="material-symbols-outlined text-base">arrow_back</span>
+            <span>Back</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold font-geist">E</span>
+            <span className="font-geist text-lg font-bold text-[#00355f]">Event Horizon</span>
+          </div>
         </div>
 
         <div className="text-center">

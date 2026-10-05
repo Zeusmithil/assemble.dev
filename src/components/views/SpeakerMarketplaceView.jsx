@@ -118,7 +118,7 @@ export const SpeakerMarketplaceView = ({ onBack, onInviteSpeaker }) => {
           onClick={onBack}
           className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer"
         >
-          <span>← Back to Dashboard</span>
+          <span>← Back to Home</span>
         </button>
       )}
 

@@ -12,14 +12,14 @@ export const AboutView = () => {
           Making Events Easier for Everyone
         </h1>
         <p className="font-inter text-sm md:text-base text-[#5f5e5e] max-w-xl mx-auto leading-relaxed">
-          assemble.dev was created to simplify the event ecosystem—connecting curious attendees with passionate organizers, inspiring venues, keynote speakers, and local vendors.
+          Event Horizon was created to simplify the event ecosystem—connecting curious attendees with passionate organizers, inspiring venues, keynote speakers, and local vendors.
         </p>
       </div>
 
       <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-10 shadow-2xs space-y-6">
-        <h2 className="font-geist text-xl font-bold text-[#00355f]">The assemble.dev Principle</h2>
+        <h2 className="font-geist text-xl font-bold text-[#00355f]">The Event Horizon Principle</h2>
         <p className="font-inter text-sm text-[#42474f] leading-relaxed">
-          Traditional event platforms suffer from visual clutter, confusing multi-step checkouts, and disconnected vendor communications. assemble.dev combines discovery, ticketing, venue sourcing, speaker management, catering, and live door check-ins into one elegant, fast, and minimal interface.
+          Traditional event platforms suffer from visual clutter, confusing multi-step checkouts, and disconnected vendor communications. Event Horizon combines discovery, ticketing, venue sourcing, speaker management, catering, and live door check-ins into one elegant, fast, and minimal interface.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-[#edeeef]">

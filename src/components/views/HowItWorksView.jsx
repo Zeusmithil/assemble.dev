@@ -9,7 +9,7 @@ export const HowItWorksView = ({ setActiveView }) => {
           Platform Architecture
         </span>
         <h1 className="font-geist text-3xl md:text-4xl font-bold text-[#00355f]">
-          How assemble.dev Works
+          How Event Horizon Works
         </h1>
         <p className="font-inter text-sm text-[#5f5e5e] leading-relaxed">
           Designed for seamless interaction between attendees and organizers. Simple enough for first-time attendees, powerful enough for multi-day summits.

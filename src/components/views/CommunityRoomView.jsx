@@ -696,7 +696,7 @@ export const CommunityRoomView = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {[
               { name: 'Aravind Swaminathan', initials: 'AS', role: 'Organizer', desc: 'Host & Director', email: 'aravind@mavora.dev' },
-              { name: 'Meera Sen', initials: 'MS', role: 'Member', desc: 'Product Designer', email: 'meera@assemble.dev' },
+              { name: 'Meera Sen', initials: 'MS', role: 'Member', desc: 'Product Designer', email: 'meera@eventhorizon.dev' },
               { name: 'Vikram Grover', initials: 'VG', role: 'Member', desc: 'Developer Relations', email: 'vikram@aura.io' },
               { name: 'Samantha Clark', initials: 'SC', role: 'Member', desc: 'Frontend Dev', email: 'samantha@clark.io' }
             ].map((member, i) => (
@@ -1612,7 +1612,7 @@ export const CommunityRoomView = ({
                 </tr>
                 <tr>
                   <td className="py-3 px-4 font-bold text-[#00355f]">Meera Sen</td>
-                  <td className="py-3 px-4">meera@assemble.dev</td>
+                  <td className="py-3 px-4">meera@eventhorizon.dev</td>
                   <td className="py-3 px-4">AI Innovation Summit</td>
                   <td className="py-3 px-4">VIP Pass</td>
                   <td className="py-3 px-4">2026-08-14</td>

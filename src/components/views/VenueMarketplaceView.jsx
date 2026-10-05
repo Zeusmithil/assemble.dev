@@ -105,7 +105,7 @@ export const VenueMarketplaceView = ({ onBack, onRequestVenueBooking }) => {
         estimatedTotal: (Number(bookingHours) || 6) * (selectedVenueForBooking.pricePerHour || 150),
         status: 'pending',
         organizerName: 'Current Organizer',
-        organizerEmail: 'organizer@assemble.dev',
+        organizerEmail: 'organizer@eventhorizon.dev',
       };
       bookings.unshift(newBooking);
       localStorage.setItem('assemble_venue_bookings', JSON.stringify(bookings));
@@ -130,7 +130,7 @@ export const VenueMarketplaceView = ({ onBack, onRequestVenueBooking }) => {
           onClick={onBack}
           className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer"
         >
-          <span>← Back to Dashboard</span>
+          <span>← Back to Home</span>
         </button>
       )}
 

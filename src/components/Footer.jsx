@@ -6,11 +6,11 @@ export const Footer = ({ setActiveView }) => {
       <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-xs flex flex-col md:flex-row justify-between items-start gap-8">
         <div className="flex flex-col gap-3">
           <div className="font-geist text-xl font-black uppercase text-black flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">A</span>
-            <span>assemble.dev</span>
+            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">E</span>
+            <span>Event Horizon</span>
           </div>
           <p className="font-inter text-xs text-gray-500 max-w-sm leading-relaxed">
-            © 2026 assemble.dev. Discover events or bring your own to life — from planning to execution.
+            © 2026 Event Horizon. Discover events or bring your own to life — from planning to execution.
           </p>
         </div>
 

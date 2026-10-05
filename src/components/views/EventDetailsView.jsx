@@ -6,11 +6,24 @@ export const EventDetailsView = ({
   onRegister,
   isSaved,
   onToggleSave,
+  currentUser,
+  tickets = [],
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedTier, setSelectedTier] = useState(() => {
     return event.ticketTiers && event.ticketTiers.length > 0 ? event.ticketTiers[0] : null;
   });
+
+  // Check if current user is already registered for this event
+  const isRegistered = Boolean(
+    currentUser &&
+      tickets.some(
+        (t) =>
+          t.eventId === event.id &&
+          ((t.userEmail && t.userEmail.toLowerCase() === currentUser.email?.toLowerCase()) ||
+            (t.userName && t.userName.toLowerCase() === currentUser.name?.toLowerCase()))
+      )
+  );
 
   // Volunteer & Community Application States
   const [willVolunteer, setWillVolunteer] = useState(false);
@@ -33,6 +46,7 @@ export const EventDetailsView = ({
   const [linkedinError, setLinkedinError] = useState('');
 
   const handleRegisterClick = () => {
+    if (isRegistered) return;
     if (willVolunteer || willJoinCommunity) {
       setShowApplicationForm(true);
     } else {
@@ -508,9 +522,14 @@ export const EventDetailsView = ({
 
              <button
                onClick={handleRegisterClick}
-               className="w-full py-4 bg-black text-white hover:bg-gray-800 transition-all rounded-2xl font-geist font-bold text-sm shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+               disabled={isRegistered}
+               className={`w-full py-4 rounded-2xl font-geist font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all ${
+                 isRegistered
+                   ? 'bg-emerald-600 text-white cursor-not-allowed opacity-95'
+                   : 'bg-black text-white hover:bg-gray-800 cursor-pointer active:scale-95'
+               }`}
              >
-               <span>🎟️ Register Now</span>
+               <span>{isRegistered ? '✓ Registered' : '🎟️ Register Now'}</span>
              </button>
 
              <p className="text-[11px] text-gray-400 text-center leading-relaxed font-inter">

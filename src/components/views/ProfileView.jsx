@@ -135,10 +135,10 @@ export const ProfileView = ({
           <div className="flex justify-between items-center">
             <div>
               <h3 className="font-geist font-bold text-sm text-[#00355f] uppercase tracking-wider">
-                Active Dashboard View
+                Active Home View
               </h3>
               <p className="font-inter text-xs text-[#5f5e5e] mt-0.5">
-                Switch which dashboard loads when you visit Event Horizon.
+                Switch which view loads when you visit Event Horizon.
               </p>
             </div>
           </div>

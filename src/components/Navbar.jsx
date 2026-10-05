@@ -64,126 +64,107 @@ export const Navbar = ({
             <span>Event Horizon</span>
           </button>
 
-          {/* Quick Location Badge */}
-          <div className="relative hidden lg:block">
-            <button
-              onClick={() => setLocationDropdownOpen(!locationDropdownOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white/90 text-xs font-semibold text-gray-700 hover:text-black hover:border-black transition-all shadow-2xs cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm text-gray-500">location_on</span>
-              <span>{selectedCity}</span>
-              <span className="material-symbols-outlined text-xs">expand_more</span>
-            </button>
+          {/* Quick Location Badge - shown only after user logs in */}
+          {currentUser && (
+            <div className="relative hidden lg:block">
+              <button
+                onClick={() => setLocationDropdownOpen(!locationDropdownOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white/90 text-xs font-semibold text-gray-700 hover:text-black hover:border-black transition-all shadow-2xs cursor-pointer backdrop-blur-md"
+              >
+                <span className="material-symbols-outlined text-sm text-gray-500">location_on</span>
+                <span>{selectedCity}</span>
+                <span className="material-symbols-outlined text-xs">expand_more</span>
+              </button>
 
-            {locationDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-scaleUp">
-                <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Select City
+              {locationDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-scaleUp">
+                  <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Select City
+                  </div>
+                  {CITIES.map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => {
+                        setSelectedCity(city);
+                        setLocationDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${
+                        selectedCity === city ? 'font-bold text-[#00355f] bg-blue-50/60' : 'text-gray-600'
+                      }`}
+                    >
+                      <span>{city}</span>
+                      {selectedCity === city && (
+                        <span className="material-symbols-outlined text-sm text-[#00355f]">check</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
-                {CITIES.map((city) => (
-                  <button
-                    key={city}
-                    onClick={() => {
-                      setSelectedCity(city);
-                      setLocationDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${
-                      selectedCity === city ? 'font-bold text-[#00355f] bg-blue-50/60' : 'text-gray-600'
-                    }`}
-                  >
-                    <span>{city}</span>
-                    {selectedCity === city && (
-                      <span className="material-symbols-outlined text-sm text-[#00355f]">check</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex gap-6 lg:gap-8 items-center text-xs font-semibold text-gray-600">
-          {!currentUser ? (
-            <>
-              <button
-                onClick={() => handleNavClick('home')}
-                className="transition-colors hover:text-black cursor-pointer"
-              >
-                Home
-              </button>
-              <button
-                onClick={() => navigate('/discover')}
-                className="transition-colors hover:text-black cursor-pointer"
-              >
-                Discover Events
-              </button>
-              <button
-                onClick={() => navigate('/speakers-marketplace')}
-                className="transition-colors hover:text-black cursor-pointer"
-              >
-                Speakers
-              </button>
-              <button
-                onClick={() => navigate('/venues-marketplace')}
-                className="transition-colors hover:text-black cursor-pointer"
-              >
-                Venues
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Primary Dashboard Link */}
-              <button
-                onClick={() => navigate('/dashboard')}
-                className={`transition-colors hover:text-black cursor-pointer flex items-center gap-1.5 ${
-                  currentPath === '/dashboard' ? 'text-[#00355f] font-bold' : ''
-                }`}
-              >
-                <span>Dashboard</span>
-              </button>
+        {/* Desktop Navigation Links - shown only after user logs in */}
+        {currentUser && (
+          <nav className="hidden md:flex gap-6 lg:gap-8 items-center text-xs font-semibold text-gray-600">
+            {/* Primary Home Link */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`transition-colors hover:text-black cursor-pointer flex items-center gap-1.5 ${
+                currentPath === '/dashboard' ? 'text-[#00355f] font-bold' : ''
+              }`}
+            >
+              <span>Home</span>
+            </button>
 
-              {/* Discover Link */}
-              <button
-                onClick={() => navigate('/discover')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/discover' ? 'text-[#00355f] font-bold' : ''
-                }`}
-              >
-                Browse Events
-              </button>
+            {/* Discover Link */}
+            <button
+              onClick={() => navigate('/discover')}
+              className={`transition-colors hover:text-black cursor-pointer ${
+                currentPath === '/discover' ? 'text-[#00355f] font-bold' : ''
+              }`}
+            >
+              Browse Events
+            </button>
 
-              {/* Marketplaces */}
-              <button
-                onClick={() => navigate('/speakers-marketplace')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/speakers-marketplace' ? 'text-[#00355f] font-bold' : ''
-                }`}
-              >
-                Speakers
-              </button>
+            {/* Marketplaces - Hide for Attendee Role */}
+            {activeRole !== 'attendee' && (
+              <>
+                <button
+                  onClick={() => navigate('/speakers-marketplace')}
+                  className={`transition-colors hover:text-black cursor-pointer ${
+                    currentPath === '/speakers-marketplace' ? 'text-[#00355f] font-bold' : ''
+                  }`}
+                >
+                  Speakers
+                </button>
 
-              <button
-                onClick={() => navigate('/venues-marketplace')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/venues-marketplace' ? 'text-[#00355f] font-bold' : ''
-                }`}
-              >
-                Venues
-              </button>
+                <button
+                  onClick={() => navigate('/venues-marketplace')}
+                  className={`transition-colors hover:text-black cursor-pointer ${
+                    currentPath === '/venues-marketplace' ? 'text-[#00355f] font-bold' : ''
+                  }`}
+                >
+                  Venues
+                </button>
+              </>
+            )}
 
-              {/* Profile Link */}
-              <button
-                onClick={() => navigate('/profile')}
-                className={`transition-colors hover:text-black cursor-pointer ${
-                  currentPath === '/profile' ? 'text-[#00355f] font-bold' : ''
-                }`}
-              >
-                Profile & Roles
-              </button>
-            </>
-          )}
-        </nav>
+            {/* Profile Button */}
+            <button
+              onClick={() => navigate('/profile')}
+              className={`px-3.5 py-1.5 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
+                currentPath === '/profile'
+                  ? 'bg-black text-white border-black shadow-2xs'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-200'
+              }`}
+              title="Profile & Roles"
+            >
+              <span className="material-symbols-outlined text-sm">account_circle</span>
+              <span>Profile</span>
+            </button>
+          </nav>
+        )}
 
         {/* Right Actions & Multi-Role Switcher */}
         <div className="flex items-center gap-2.5">
@@ -204,7 +185,7 @@ export const Navbar = ({
                 {roleDropdownOpen && (
                   <div className="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-scaleUp text-left">
                     <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Switch Role Dashboard
+                      Switch Role View
                     </div>
                     {Object.entries(ROLE_CONFIGS).map(([key, config]) => (
                       <button
@@ -249,32 +230,34 @@ export const Navbar = ({
             <>
               <button
                 onClick={() => navigate('/login')}
-                className="font-geist text-xs text-black hover:bg-gray-100 px-3.5 py-2 rounded-full transition-colors font-bold hidden sm:block cursor-pointer"
+                className="font-geist text-xs text-black hover:bg-gray-100 px-3.5 py-2 rounded-full transition-colors font-bold cursor-pointer"
               >
                 Login
               </button>
               <button
                 onClick={() => navigate('/signup')}
-                className="font-geist text-xs bg-[#0f4c81] text-white hover:bg-[#00355f] transition-all px-5 py-2 rounded-full font-bold shadow-2xs active:scale-95 cursor-pointer"
+                className="font-geist text-xs bg-[#0f4c81] text-white hover:bg-[#00355f] transition-all px-4 sm:px-5 py-2 rounded-full font-bold shadow-2xs active:scale-95 cursor-pointer"
               >
                 Sign Up
               </button>
             </>
           )}
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-black p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-            aria-label="Toggle Navigation Menu"
-          >
-            <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
-          </button>
+          {/* Mobile Menu Button - shown only after user logs in */}
+          {currentUser && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden text-black p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
+      {/* Mobile Drawer Menu - only after user logs in */}
+      {mobileMenuOpen && currentUser && (
         <div className="md:hidden bg-white/95 backdrop-blur-2xl border-b border-[#e1e3e4] px-5 py-4 flex flex-col gap-3 animate-fadeIn shadow-lg text-left">
           {/* Mobile City Selector */}
           <div className="flex items-center justify-between pb-2 border-b border-[#e1e3e4]">
@@ -319,7 +302,7 @@ export const Navbar = ({
             }}
             className="py-2 text-xs font-bold text-[#00355f] flex items-center justify-between border-b border-gray-100"
           >
-            <span>{currentUser ? 'Dashboard' : 'Home'}</span>
+            <span>Home</span>
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
 
@@ -334,27 +317,31 @@ export const Navbar = ({
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
 
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              navigate('/speakers-marketplace');
-            }}
-            className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
-          >
-            <span>Speakers Marketplace</span>
-            <span className="material-symbols-outlined text-sm">chevron_right</span>
-          </button>
+          {activeRole !== 'attendee' && (
+            <>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/speakers-marketplace');
+                }}
+                className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
+              >
+                <span>Speakers Marketplace</span>
+                <span className="material-symbols-outlined text-sm">chevron_right</span>
+              </button>
 
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              navigate('/venues-marketplace');
-            }}
-            className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
-          >
-            <span>Venues Marketplace</span>
-            <span className="material-symbols-outlined text-sm">chevron_right</span>
-          </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/venues-marketplace');
+                }}
+                className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
+              >
+                <span>Venues Marketplace</span>
+                <span className="material-symbols-outlined text-sm">chevron_right</span>
+              </button>
+            </>
+          )}
 
           {currentUser ? (
             <>
@@ -365,7 +352,10 @@ export const Navbar = ({
                 }}
                 className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
               >
-                <span>Profile & Roles</span>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">account_circle</span>
+                  <span>Profile</span>
+                </div>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
 

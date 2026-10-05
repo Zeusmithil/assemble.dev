@@ -555,7 +555,7 @@ export const CreateEventView = ({
     const newEvent = {
       id: `evt-created-${Date.now()}`,
       title: title || 'New Horizon Gathering',
-      description: description || 'Exclusive community gathering curated via assemble.dev.',
+      description: description || 'Exclusive community gathering curated via Event Horizon.',
       category,
       format,
       startDate,
@@ -564,7 +564,7 @@ export const CreateEventView = ({
       location: venueName,
       city,
       organizer: currentUser?.name || 'Curated Organizer',
-      organizerEmail: currentUser?.email || 'organizer@assemble.dev',
+      organizerEmail: currentUser?.email || 'organizer@eventhorizon.dev',
       price: enabledServices.ticketing && ticketTiers.length > 0 ? ticketTiers[0].price : 0,
       isFree: enabledServices.ticketing ? ticketTiers.every((t) => t.price === 0) : true,
       imageUrl,
@@ -1980,7 +1980,7 @@ export const CreateEventView = ({
                 <span className="material-symbols-outlined text-4xl text-[#0f4c81]">auto_awesome</span>
                 <h2 className="font-geist text-2xl font-bold text-[#00355f]">Your Event Is Ready</h2>
                 <p className="font-inter text-xs text-[#5f5e5e]">
-                  Review your event details before publishing to the live assemble.dev discovery feed.
+                  Review your event details before publishing to the live Event Horizon discovery feed.
                 </p>
               </div>
 
@@ -2240,7 +2240,7 @@ export const CreateEventView = ({
               <span>Services Configurator</span>
             </h3>
             <p className="font-inter text-[11px] text-[#5f5e5e] leading-relaxed">
-              Add or remove services at any stage. assemble.dev automatically builds your custom event package and plan.
+              Add or remove services at any stage. Event Horizon automatically builds your custom event package and plan.
             </p>
           </div>
 

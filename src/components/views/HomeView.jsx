@@ -21,9 +21,6 @@ export const HomeView = ({
       {/* Hero Header Section */}
       <header id="home" className="flex flex-col gap-6 max-w-3xl pt-4">
         <div className="space-y-3">
-          <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-widest">
-            Welcome to assemble.dev
-          </span>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-black leading-tight">
             Discover Events. <br />
             <span className="text-[#0f4c81]">Create Experiences.</span>
@@ -49,99 +46,72 @@ export const HomeView = ({
               Organize an Event
             </button>
           )}
-          {!currentUser && (
-            <button
-              onClick={() => navigate('/login')}
-              className="px-6 py-3 text-[#0f4c81] hover:underline font-geist font-bold text-xs cursor-pointer"
-            >
-              Login
-            </button>
-          )}
         </div>
       </header>
 
-      {/* Primary Bento Grid Layout (Hero Visual) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        {/* Tile 1: Big Featured Event Card (col-span-8) */}
-        <div
-          onClick={() => onSelectEvent(featuredEvent)}
-          className="col-span-12 md:col-span-8 min-h-[380px] md:min-h-[440px] bg-gray-900 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden text-white flex flex-col justify-end group cursor-pointer border border-black shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          <img
-            src={featuredEvent.imageUrl}
-            alt={featuredEvent.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
-          <div className="absolute top-8 right-8 z-20 flex flex-wrap gap-2">
-            <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-white border border-white/10">
-              Featured
-            </span>
-            <span className="bg-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest">
-              Selling Fast
-            </span>
-          </div>
-          <div className="z-20">
-            <p className="text-orange-400 font-mono text-sm mb-2">
-              {featuredEvent.startDate} • {featuredEvent.time}
-            </p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 leading-tight font-geist">
-              {featuredEvent.title}
+      {/* Events Near You Grid (Moved Above Upper Sections) */}
+      <section className="space-y-6 pt-2">
+        <div className="flex justify-between items-end flex-wrap gap-4">
+          <div>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Local Gathering</span>
+            <h2 className="text-2xl md:text-3xl font-bold text-black mt-1 font-geist">
+              Explore Events in {selectedCity}
             </h2>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-300 font-inter">
-              <span className="flex items-center gap-1.5">📍 {featuredEvent.location}, {featuredEvent.city}</span>
-              <span className="flex items-center gap-1.5">🎟️ {featuredEvent.isFree ? 'Free Pass' : `$${featuredEvent.price}`}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Tile 2: Near You Card (col-span-4) */}
-        <div className="col-span-12 md:col-span-4 bg-white rounded-[2.5rem] p-6 md:p-8 border border-gray-100 shadow-xs flex flex-col justify-between gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-lg text-black font-geist">Near You</h3>
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 cursor-pointer outline-none hover:text-black transition-colors"
-            >
-              <option value="Chennai">📍 Chennai</option>
-              <option value="San Francisco">📍 San Francisco</option>
-              <option value="New York">📍 New York</option>
-              <option value="London">📍 London</option>
-              <option value="Bangalore">📍 Bangalore</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-3 overflow-hidden">
-            {displayEvents.map((evt) => (
-              <div
-                key={evt.id}
-                onClick={() => onSelectEvent(evt)}
-                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 cursor-pointer group"
-              >
-                <img src={evt.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm leading-tight text-black truncate group-hover:text-blue-600 transition-colors">
-                    {evt.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 truncate">
-                    {evt.startDate} • {evt.location}
-                  </p>
-                </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${evt.isFree ? 'text-blue-600 bg-blue-50' : 'text-gray-600 bg-gray-100'}`}>
-                  {evt.isFree ? 'Free' : `$${evt.price}`}
-                </span>
-              </div>
-            ))}
           </div>
 
           <button
             onClick={() => navigate(currentUser ? '/dashboard' : '/login')}
-            className="mt-auto w-full py-3.5 bg-gray-100 text-black font-bold rounded-2xl text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+            className="text-xs font-bold bg-gray-100 hover:bg-gray-200 text-black px-5 py-2.5 rounded-full transition-colors cursor-pointer"
           >
-            View All Local Events
+            Browse All Categories →
           </button>
         </div>
+
+        {/* Event Cards Grid in Bento Aesthetic */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayEvents.map((evt) => (
+            <article
+              key={evt.id}
+              onClick={() => onSelectEvent(evt)}
+              className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden flex flex-col group hover:shadow-lg hover:border-gray-200 transition-all duration-300 cursor-pointer"
+            >
+              <div className="h-52 relative overflow-hidden bg-gray-100">
+                <img
+                  src={evt.imageUrl}
+                  alt={evt.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-black uppercase tracking-wider">
+                  {evt.category}
+                </div>
+                <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${evt.isFree ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
+                  {evt.isFree ? 'Free' : `$${evt.price}`}
+                </div>
+              </div>
+
+              <div className="p-6 flex flex-col flex-grow justify-between gap-4">
+                <div>
+                  <h3 className="font-geist text-lg font-bold text-black line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                    {evt.title}
+                  </h3>
+                  <div className="mt-3 space-y-1 text-xs text-gray-500 font-inter">
+                    <p>📅 {evt.startDate} • {evt.time}</p>
+                    <p>📍 {evt.location}, {evt.city}</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-black">
+                  <span>{evt.organizer}</span>
+                  <span className="text-blue-600 group-hover:translate-x-1 transition-transform">Details →</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Primary Bento Grid Layout (Hero Visual) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
 
         {/* Tile 3: Organize Your Own (col-span-4) */}
         <div className="col-span-12 md:col-span-4 bg-[#EBF4FF] rounded-[2.5rem] p-6 md:p-8 flex flex-col justify-between border border-blue-100">
@@ -206,7 +176,7 @@ export const HomeView = ({
             Everything You Need for Your Next Event
           </h2>
           <p className="font-inter text-sm text-[#5f5e5e] leading-relaxed">
-            assemble.dev is an all-in-one platform designed to make discovering and organizing events simple. Whether you’re looking for an event to attend or planning one of your own, assemble.dev brings everything together in one place.
+            Event Horizon is an all-in-one platform designed to make discovering and organizing events simple. Whether you’re looking for an event to attend or planning one of your own, Event Horizon brings everything together in one place.
           </p>
         </div>
 
@@ -298,92 +268,7 @@ export const HomeView = ({
         </div>
       </section>
 
-      {/* Events Near You Grid */}
-      <section className="space-y-6 pt-6">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Local Gathering</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-black mt-1 font-geist">
-              Explore Events in {selectedCity}
-            </h2>
-          </div>
 
-          <button
-            onClick={() => navigate(currentUser ? '/dashboard' : '/login')}
-            className="text-xs font-bold bg-gray-100 hover:bg-gray-200 text-black px-5 py-2.5 rounded-full transition-colors cursor-pointer"
-          >
-            Browse All Categories →
-          </button>
-        </div>
-
-        {/* Event Cards Grid in Bento Aesthetic */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {displayEvents.map((evt) => (
-            <article
-              key={evt.id}
-              onClick={() => onSelectEvent(evt)}
-              className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden flex flex-col group hover:shadow-lg hover:border-gray-200 transition-all duration-300 cursor-pointer"
-            >
-              <div className="h-52 relative overflow-hidden bg-gray-100">
-                <img
-                  src={evt.imageUrl}
-                  alt={evt.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-black uppercase tracking-wider">
-                  {evt.category}
-                </div>
-                <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${evt.isFree ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
-                  {evt.isFree ? 'Free' : `$${evt.price}`}
-                </div>
-              </div>
-
-              <div className="p-6 flex flex-col flex-grow justify-between gap-4">
-                <div>
-                  <h3 className="font-geist text-lg font-bold text-black line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
-                    {evt.title}
-                  </h3>
-                  <div className="mt-3 space-y-1 text-xs text-gray-500 font-inter">
-                    <p>📅 {evt.startDate} • {evt.time}</p>
-                    <p>📍 {evt.location}, {evt.city}</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex justify-between items-center text-xs font-bold text-black">
-                  <span>{evt.organizer}</span>
-                  <span className="text-blue-600 group-hover:translate-x-1 transition-transform">Details →</span>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="bg-[#EBF4FF] border border-blue-100 rounded-[2.5rem] p-8 md:p-12 text-center space-y-6">
-        <h2 className="font-geist text-2xl md:text-3xl font-bold text-black max-w-xl mx-auto leading-tight">
-          Ready to Make Your Next Event Happen?
-        </h2>
-        <p className="font-inter text-sm text-blue-800/70 max-w-md mx-auto">
-          Discover something exciting or start planning your own event today.
-        </p>
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={() => navigate(currentUser ? '/dashboard' : '/login')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-geist font-bold text-xs rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer"
-          >
-            Explore Events
-          </button>
-          {(!currentUser || currentUser.role === 'organizer') && (
-            <button
-              onClick={() => navigate(currentUser ? '/create-event' : '/login')}
-              className="px-6 py-3 bg-black hover:bg-gray-800 text-white font-geist font-bold text-xs rounded-xl transition-all active:scale-98 cursor-pointer"
-            >
-              Create an Event
-            </button>
-          )}
-        </div>
-      </section>
     </div>
   );
 };
