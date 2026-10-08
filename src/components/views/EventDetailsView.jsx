@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveCommunityForEvent } from '../../utils/communityAnalysis';
 
 export const EventDetailsView = ({
   event,
@@ -8,11 +9,39 @@ export const EventDetailsView = ({
   onToggleSave,
   currentUser,
   tickets = [],
+  communities = [],
+  onAnalyzeCommunity,
+  onRequestSponsorship,
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedTier, setSelectedTier] = useState(() => {
     return event.ticketTiers && event.ticketTiers.length > 0 ? event.ticketTiers[0] : null;
   });
+
+  const resolvedCommunity = resolveCommunityForEvent(event, communities);
+  const isSponsorRole =
+    currentUser?.role === 'sponsor' ||
+    currentUser?.roles?.includes('sponsor') ||
+    currentUser?.activeRole === 'sponsor';
+
+  // Sponsorship Opportunities & Packages Fallbacks
+  const sponsorshipOpportunities = event.sponsorshipOpportunities || [
+    { id: 'so-def-1', requirement: 'Main Venue & Keynote Stage', amount: Math.round((event.budget || 30000) * 0.4), fundedAmount: 0, status: 'Open', description: 'Co-branding across main stage screens and venue signage.' },
+    { id: 'so-def-2', requirement: 'Attendee Welcome Swag & Badges', amount: Math.round((event.budget || 30000) * 0.2), fundedAmount: 0, status: 'Open', description: 'Co-branded badges, notebooks, and attendee materials.' },
+    { id: 'so-def-3', requirement: 'VIP Networking Lounge & Catering', amount: Math.round((event.budget || 30000) * 0.25), fundedAmount: 0, status: 'Open', description: 'Exclusive executive lounge branding and barista service.' }
+  ];
+
+  const sponsorshipPackages = event.sponsorshipPackages || [
+    { id: 'pkg-def-1', tier: 'Title Partner', amount: Math.round((event.budget || 30000) * 0.5), spotsAvailable: 1, spotsTaken: 0, perks: ['Opening Keynote 5-Min Address', 'Main Stage Naming Rights', '8 All-Access VIP Passes', 'Logo on All Media'] },
+    { id: 'pkg-def-2', tier: 'Gold Sponsor', amount: Math.round((event.budget || 30000) * 0.3), spotsAvailable: 2, spotsTaken: 0, perks: ['Track Stage Naming', '4 All-Access Passes', 'Expo Booth Space', 'Social Media Features'] },
+    { id: 'pkg-def-3', tier: 'Silver Sponsor', amount: Math.round((event.budget || 30000) * 0.15), spotsAvailable: 4, spotsTaken: 1, perks: ['Logo on Conference Website & Program', '2 Passes', 'Attendee Swag Inclusion'] }
+  ];
+
+  const handleForAnalysis = () => {
+    if (onAnalyzeCommunity) {
+      onAnalyzeCommunity(resolvedCommunity, event);
+    }
+  };
 
   // Check if current user is already registered for this event
   const isRegistered = Boolean(
@@ -72,18 +101,31 @@ export const EventDetailsView = ({
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
       {/* Back Button & Breadcrumbs */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors"
+          className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer"
         >
           <span>← Back to Discovery</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {/* Prominent For Analysis Button */}
+          <button
+            onClick={handleForAnalysis}
+            className="px-4 py-2 bg-gradient-to-r from-[#00355f] to-[#0f4c81] hover:from-[#002244] hover:to-[#00355f] text-white rounded-full font-geist font-bold text-xs shadow-md border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Open Community Credibility & Sponsorship Due-Diligence Report"
+          >
+            <span className="material-symbols-outlined text-sm text-cyan-300">insights</span>
+            <span>For Analysis</span>
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full font-mono uppercase">
+              {resolvedCommunity?.name || 'Community'}
+            </span>
+          </button>
+
           <button
             onClick={onToggleSave}
-            className={`px-4 py-2 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold ${
+            className={`px-4 py-2 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
               isSaved
                 ? 'bg-rose-50 border-rose-200 text-rose-600'
                 : 'bg-white border-gray-200 text-black hover:bg-gray-50'
@@ -92,6 +134,35 @@ export const EventDetailsView = ({
             <span>{isSaved ? '❤️ Saved' : '🤍 Save'}</span>
           </button>
         </div>
+      </div>
+
+      {/* Prominent Sponsor Due-Diligence Banner */}
+      <div className="bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] rounded-[2rem] p-5 md:p-6 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-cyan-300 text-2xl">verified_user</span>
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-geist font-bold text-sm sm:text-base">Community Credibility & Due-Diligence Available</span>
+              <span className="text-[10px] bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
+                {resolvedCommunity?.name}
+              </span>
+            </div>
+            <p className="font-inter text-xs text-blue-100/90 leading-relaxed max-w-xl">
+              Inspect historical event attendance, verified sponsorship funding, and community track record before sponsoring.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleForAnalysis}
+          className="px-6 py-3 bg-white text-[#00355f] hover:bg-blue-50 rounded-2xl font-geist font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
+        >
+          <span className="material-symbols-outlined text-sm">analytics</span>
+          <span>For Analysis</span>
+          <span>→</span>
+        </button>
       </div>
 
       {/* Main Hero Header */}
@@ -180,6 +251,19 @@ export const EventDetailsView = ({
               }`}
             >
               Budget & Expenses
+            </button>
+            <button
+              onClick={() => setActiveTab('sponsorship')}
+              className={`px-5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                activeTab === 'sponsorship'
+                  ? 'bg-white text-[#00355f] shadow-xs font-bold'
+                  : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              <span>💼 Sponsorship Packages</span>
+              <span className="px-1.5 py-0.5 bg-blue-100 text-[#0f4c81] text-[10px] rounded-full font-mono font-bold">
+                {sponsorshipOpportunities.length}
+              </span>
             </button>
           </div>
 
@@ -428,6 +512,161 @@ export const EventDetailsView = ({
                       <p className="font-inter text-xs text-gray-500">The organizer can log itemized expenses from the Organizer Dashboard.</p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'sponsorship' && (
+              <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 text-left">
+                {/* Header */}
+                <div className="flex justify-between items-start flex-wrap gap-4 border-b border-gray-100 pb-4">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#0f4c81] px-2.5 py-1 rounded-md">
+                      Sponsor Portal
+                    </span>
+                    <h3 className="font-geist text-xl font-bold text-[#00355f] mt-1.5">
+                      Sponsorship Requirements & Packages
+                    </h3>
+                    <p className="font-inter text-xs text-gray-500 mt-0.5">
+                      Partner with {event.organizer} / {resolvedCommunity?.name}. Target audience: {event.expectedAttendees || 500}+ participants.
+                    </p>
+                  </div>
+
+                  {/* Prominent For Analysis Button */}
+                  <button
+                    onClick={handleForAnalysis}
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#00355f] to-[#0f4c81] hover:from-[#002244] hover:to-[#00355f] text-white rounded-2xl font-geist font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-sm text-cyan-300">insights</span>
+                    <span>For Analysis</span>
+                    <span>→</span>
+                  </button>
+                </div>
+
+                {/* Due-Diligence Callout Card */}
+                <div className="p-5 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 rounded-2xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#0f4c81] text-white flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-xl">policy</span>
+                    </div>
+                    <div>
+                      <h4 className="font-geist font-bold text-xs text-[#00355f]">
+                        Evaluating Community Credibility Before Sponsoring?
+                      </h4>
+                      <p className="font-inter text-[11px] text-gray-600 mt-0.5">
+                        Inspect {resolvedCommunity?.name}'s past events, attendee turnouts, and verified sponsorship track record.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleForAnalysis}
+                    className="px-4 py-2 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 shrink-0 flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-sm">analytics</span>
+                    <span>For Analysis</span>
+                  </button>
+                </div>
+
+                {/* Section A: Open Sponsorship Requirements / Opportunities */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-geist font-bold text-sm text-[#00355f]">
+                      Sponsorship Requirements & Open Grants
+                    </h4>
+                    <span className="text-xs font-inter text-gray-400">
+                      Total Event Budget: €{(event.budget || 25000).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sponsorshipOpportunities.map((opp) => (
+                      <div
+                        key={opp.id}
+                        className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                          opp.status === 'Funded'
+                            ? 'bg-gray-50/80 border-gray-200 opacity-80'
+                            : 'bg-white border-[#e1e3e4] hover:shadow-xs'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                              opp.status === 'Funded'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-blue-50 text-[#0f4c81]'
+                            }`}>
+                              {opp.status === 'Funded' ? '✓ Funded' : 'Open for Sponsorship'}
+                            </span>
+                            <h5 className="font-geist font-bold text-sm text-[#00355f] mt-1.5">{opp.requirement}</h5>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold block">Grant Target</span>
+                            <span className="font-geist text-base font-black text-[#0f4c81]">
+                              €{opp.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="font-inter text-xs text-gray-600 leading-relaxed">
+                          {opp.description}
+                        </p>
+
+                        {opp.status === 'Funded' && opp.sponsor && (
+                          <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1 pt-1 border-t border-gray-100">
+                            <span className="material-symbols-outlined text-sm">verified</span>
+                            <span>Funded by <strong>{opp.sponsor}</strong></span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section B: Available Sponsorship Packages */}
+                <div className="space-y-3 pt-4 border-t border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-geist font-bold text-sm text-[#00355f]">
+                      Available Sponsorship Packages
+                    </h4>
+                    <span className="text-xs text-gray-400">Exclusive partner tiers</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {sponsorshipPackages.map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        className="bg-white border border-[#e1e3e4] rounded-2xl p-5 space-y-4 shadow-3xs flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-baseline">
+                            <h5 className="font-geist font-black text-sm text-[#00355f]">{pkg.tier}</h5>
+                            <span className="text-[10px] text-gray-400 font-bold">
+                              {pkg.spotsTaken}/{pkg.spotsAvailable} Taken
+                            </span>
+                          </div>
+                          <div className="font-geist text-2xl font-black text-[#0f4c81]">
+                            €{pkg.amount.toLocaleString()}
+                          </div>
+                          <ul className="space-y-1.5 pt-2 border-t border-gray-100 text-xs font-inter text-gray-600">
+                            {pkg.perks.map((perk, i) => (
+                              <li key={i} className="flex items-start gap-1.5">
+                                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                                <span className="text-[11px] leading-tight">{perk}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <button
+                          onClick={handleForAnalysis}
+                          className="w-full py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-[#00355f] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <span>Analyze Before Pledging</span>
+                          <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

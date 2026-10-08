@@ -35,9 +35,6 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
 
     if (matchedUser) {
       onLoginSuccess(matchedUser);
-      const redirectPath = localStorage.getItem('assemble_redirect') || '/dashboard';
-      localStorage.removeItem('assemble_redirect');
-      navigate(redirectPath);
     } else {
       setError('Incorrect email or password. Please try again.');
     }

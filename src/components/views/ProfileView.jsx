@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { userHasRoleSetup } from '../../utils/roles';
 
 const ALL_ROLES = [
   { id: 'attendee', title: 'Attendee', icon: '🎟', desc: 'Discover and participate in experiences' },
@@ -138,7 +139,7 @@ export const ProfileView = ({
                 Active Home View
               </h3>
               <p className="font-inter text-xs text-[#5f5e5e] mt-0.5">
-                Switch which view loads when you visit Event Horizon.
+                Attendee is always available. Sponsor asks only for company and budget. Other roles will follow the same pattern next.
               </p>
             </div>
           </div>
@@ -146,6 +147,7 @@ export const ProfileView = ({
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
             {ALL_ROLES.map((r) => {
               const isActive = currentRole === r.id;
+              const ready = userHasRoleSetup(currentUser, r.id);
               return (
                 <button
                   key={r.id}
@@ -158,7 +160,13 @@ export const ProfileView = ({
                 >
                   <span className="text-xl">{r.icon}</span>
                   <span className="text-xs font-bold">{r.title}</span>
-                  {isActive && <span className="text-[9px] text-blue-200 uppercase font-black">Active</span>}
+                  {isActive ? (
+                    <span className="text-[9px] text-blue-200 uppercase font-black">Active</span>
+                  ) : ready ? (
+                    <span className="text-[9px] text-blue-700 uppercase font-bold">Switch</span>
+                  ) : (
+                    <span className="text-[9px] text-emerald-600 uppercase font-bold">Set up</span>
+                  )}
                 </button>
               );
             })}

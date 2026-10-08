@@ -33,7 +33,7 @@ export const HomeView = ({
         {/* Hero Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => navigate(currentUser ? '/dashboard' : '/login')}
+            onClick={() => navigate('/discover')}
             className="px-6 py-3 bg-[#0f4c81] hover:bg-[#00355f] text-white font-geist font-bold text-xs rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer"
           >
             Explore Events
@@ -60,7 +60,7 @@ export const HomeView = ({
           </div>
 
           <button
-            onClick={() => navigate(currentUser ? '/dashboard' : '/login')}
+            onClick={() => navigate('/discover')}
             className="text-xs font-bold bg-gray-100 hover:bg-gray-200 text-black px-5 py-2.5 rounded-full transition-colors cursor-pointer"
           >
             Browse All Categories →

@@ -492,7 +492,7 @@ export const AttendeeDashboardView = ({
           <h3 className="font-geist text-base font-bold text-[#00355f]">More Ways to Participate</h3>
         </div>
         <p className="font-inter text-xs text-gray-600 max-w-2xl leading-relaxed">
-          Ready to share your insights on stage, host your own event, or represent a sponsor? You can switch roles or activate new capabilities at any time.
+          You can always browse and register as an attendee. Switching to Sponsor (or any other role besides Attendee) stays on this account — we keep your details and only ask what that role needs. You must be signed in.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <button

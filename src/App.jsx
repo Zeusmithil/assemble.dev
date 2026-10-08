@@ -20,6 +20,10 @@ import { TicketModal } from './components/modals/TicketModal';
 import { LoginView } from './components/views/LoginView';
 import { SignupView } from './components/views/SignupView';
 import { ProfileView } from './components/views/ProfileView';
+import { BecomeSponsorView } from './components/views/BecomeSponsorView';
+import { RoleSetupPendingView } from './components/views/RoleSetupPendingView';
+import { RoleSetupView } from './components/views/RoleSetupView';
+import { getUserCapabilities, persistUserRecord, userHasRoleSetup } from './utils/roles';
 
 export function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -364,32 +368,201 @@ export function App() {
   }, []);
 
   // Auth Action Handlers
+  const applyActiveRole = (user, newRole) => {
+    const capabilities = getUserCapabilities(user);
+    if (!capabilities.includes(newRole)) capabilities.push(newRole);
+    if (!capabilities.includes('attendee')) capabilities.push('attendee');
+    const updatedUser = { ...user, role: newRole, capabilities };
+    setCurrentUser(updatedUser);
+    setUserRole(newRole);
+    persistUserRecord(updatedUser);
+    navigate('/dashboard');
+  };
+
   const handleLoginSuccess = (user) => {
+    persistUserRecord(user);
+    const intendedRole = localStorage.getItem('assemble_intended_role');
+    localStorage.removeItem('assemble_intended_role');
+    if (intendedRole && intendedRole !== 'attendee') {
+      handleRoleChange(intendedRole, user);
+      return;
+    }
     setCurrentUser(user);
     setUserRole(user.role);
-    localStorage.setItem('assemble_session', JSON.stringify(user));
+    const redirectPath = localStorage.getItem('assemble_redirect') || '/dashboard';
+    localStorage.removeItem('assemble_redirect');
+    navigate(redirectPath);
   };
 
   const handleSignupSuccess = (user) => {
     setCurrentUser(user);
     setUserRole(user.role);
-    localStorage.setItem('assemble_session', JSON.stringify(user));
+    persistUserRecord(user);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('assemble_session');
+    localStorage.removeItem('assemble_intended_role');
     setCurrentUser(null);
+    setUserRole('attendee');
     navigate('/');
   };
 
-  const handleRoleChange = (newRole) => {
-    setUserRole(newRole);
-    if (currentUser) {
-      const updatedUser = { ...currentUser, role: newRole };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('assemble_session', JSON.stringify(updatedUser));
+  const handleRoleChange = (newRole, userOverride) => {
+    const user = userOverride || currentUser;
+
+    if (newRole === 'attendee') {
+      if (!user) {
+        setUserRole('attendee');
+        navigate('/discover');
+        return;
+      }
+      applyActiveRole(user, 'attendee');
+      navigate('/dashboard');
+      return;
     }
+
+    if (!user) {
+      localStorage.setItem('assemble_intended_role', newRole);
+      localStorage.setItem('assemble_redirect', `/setup-role/${newRole}`);
+      navigate('/login');
+      return;
+    }
+
+    if (userHasRoleSetup(user, newRole)) {
+      applyActiveRole(user, newRole);
+      navigate('/dashboard');
+      return;
+    }
+
+    setCurrentUser(user);
+    setUserRole(user.role || 'attendee');
+    persistUserRecord(user);
+
+    navigate(`/setup-role/${newRole}`);
+  };
+
+  const handleActivateRole = (role, roleData = {}) => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const capabilities = getUserCapabilities(currentUser);
+    if (!capabilities.includes(role)) capabilities.push(role);
+
+    let updatedUser = {
+      ...currentUser,
+      role,
+      capabilities,
+    };
+
+    if (role === 'speaker') {
+      updatedUser.speakerProfile = {
+        ...(currentUser.speakerProfile || {}),
+        ...roleData,
+      };
+
+      // Also register into global assemble_speakers so organizers can discover them in marketplace
+      const currentSpeakers = JSON.parse(localStorage.getItem('assemble_speakers') || '[]');
+      const existingIdx = currentSpeakers.findIndex(
+        (s) => s.email?.toLowerCase() === currentUser.email?.toLowerCase()
+      );
+      const speakerEntry = {
+        id: existingIdx >= 0 ? currentSpeakers[existingIdx].id : `spk-${Date.now()}`,
+        name: currentUser.name,
+        email: currentUser.email,
+        designation: roleData.title || 'Keynote Speaker',
+        company: roleData.organization || 'Independent',
+        photo: currentUser.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400',
+        expertise: roleData.topics || ['Technology'],
+        bio: roleData.bio || '',
+        fee:
+          roleData.feeType === 'free'
+            ? 'Free / Pro-bono'
+            : `${roleData.currency || '€'}${roleData.feeAmount || '2000'} / event`,
+        videoUrl: roleData.videoUrl || '',
+        videoFileName: roleData.videoFileName || '',
+        videoFileSize: roleData.videoFileSize || '',
+        location: currentUser.location || 'Chennai',
+      };
+      if (existingIdx >= 0) {
+        currentSpeakers[existingIdx] = { ...currentSpeakers[existingIdx], ...speakerEntry };
+      } else {
+        currentSpeakers.unshift(speakerEntry);
+      }
+      setSpeakers(currentSpeakers);
+      localStorage.setItem('assemble_speakers', JSON.stringify(currentSpeakers));
+    } else if (role === 'sponsor') {
+      updatedUser.sponsorProfile = {
+        ...(currentUser.sponsorProfile || {}),
+        ...roleData,
+      };
+    } else if (role === 'venue') {
+      updatedUser.venueProfile = {
+        ...(currentUser.venueProfile || {}),
+        ...roleData,
+      };
+
+      // Also register into global assemble_venues so organizers can discover them in marketplace
+      const currentVenues = JSON.parse(localStorage.getItem('assemble_venues') || '[]');
+      const venueEntry = {
+        id: `ven-${Date.now()}`,
+        name: roleData.venueName || 'Venue Space',
+        location: roleData.address || currentUser.location || 'Chennai',
+        address: roleData.address || '',
+        city: roleData.city || currentUser.location || 'Chennai',
+        capacity: Number(roleData.capacity) || 300,
+        vibe: roleData.venueType || 'Auditorium',
+        pricePerHour: Number(roleData.pricePerHour) || 150,
+        description: roleData.description || '',
+        amenities: roleData.facilities || [],
+        image: (roleData.images && roleData.images[0]) || '',
+        images: roleData.images || [],
+        providerEmail: currentUser.email,
+        providerName: currentUser.name,
+        rating: 4.9,
+        reviews: 1,
+        available: true,
+      };
+      currentVenues.unshift(venueEntry);
+      setVenues(currentVenues);
+      localStorage.setItem('assemble_venues', JSON.stringify(currentVenues));
+    } else if (role === 'organizer') {
+      updatedUser.organizerProfile = {
+        ...(currentUser.organizerProfile || {}),
+        ...roleData,
+      };
+      updatedUser.organizationName = roleData.organizationName;
+
+      // Handle community creation or joining if provided
+      if (roleData.communityAction === 'create' && roleData.communityName) {
+        const createdCom = handleCreateCommunityRoom(
+          roleData.communityName,
+          roleData.communityDesc || '',
+          '',
+          roleData.communityCat || 'Technology & AI'
+        );
+        if (createdCom && !updatedUser.communities?.includes(createdCom.name)) {
+          updatedUser.communities = [...(updatedUser.communities || []), createdCom.name];
+        }
+      } else if (roleData.communityAction === 'join' && roleData.communityCode) {
+        handleJoinCommunity(roleData.communityCode);
+      }
+    } else if (role === 'attendee') {
+      if (roleData && roleData.interests) {
+        updatedUser.interests = roleData.interests;
+      }
+    }
+
+    setCurrentUser(updatedUser);
+    setUserRole(role);
+    persistUserRecord(updatedUser);
     navigate('/dashboard');
+  };
+
+  const handleActivateSponsor = (sponsorProfile) => {
+    handleActivateRole('sponsor', sponsorProfile);
   };
 
   const handleAcceptSpeakingInvite = (inviteId) => {
@@ -481,16 +654,16 @@ export function App() {
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
     localStorage.setItem('assemble_selected_event', JSON.stringify(event));
-    if (!currentUser) {
-      localStorage.setItem('assemble_redirect', '/event-details');
-      navigate('/login');
-      return;
-    }
     navigate('/event-details');
   };
 
   // Handler: Register for Event
   const handleRegisterForEvent = (event, selectedTier, applicationDetails) => {
+    if (!currentUser) {
+      localStorage.setItem('assemble_redirect', '/event-details');
+      navigate('/login');
+      return;
+    }
     const finalPrice = selectedTier ? selectedTier.price : event.price;
     const finalTierName = selectedTier ? selectedTier.name : null;
     const newTicketId = `EH-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -683,12 +856,24 @@ export function App() {
 
   // Custom Router view rendering
   const renderView = () => {
-    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/event-details'];
-    if (protectedPaths.includes(currentPath) && !currentUser) {
+    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/become-sponsor'];
+    if ((protectedPaths.includes(currentPath) || currentPath.startsWith('/setup-role')) && !currentUser) {
       localStorage.setItem('assemble_redirect', currentPath);
       // Defer navigation to prevent state updates during render
       setTimeout(() => navigate('/login'), 0);
       return null;
+    }
+
+    if (currentPath.startsWith('/setup-role/')) {
+      const targetRole = currentPath.split('/')[2] || 'speaker';
+      return (
+        <RoleSetupView
+          role={targetRole}
+          currentUser={currentUser}
+          onComplete={(roleData) => handleActivateRole(targetRole, roleData)}
+          onCancel={() => navigate('/dashboard')}
+        />
+      );
     }
 
     switch (currentPath) {
@@ -707,6 +892,23 @@ export function App() {
         return <LoginView navigate={navigate} onLoginSuccess={handleLoginSuccess} />;
       case '/signup':
         return <SignupView navigate={navigate} onSignupSuccess={handleSignupSuccess} communities={communities} />;
+      case '/become-sponsor':
+      case '/setup-role/speaker':
+      case '/setup-role/sponsor':
+      case '/setup-role/venue':
+      case '/setup-role/venue-provider':
+      case '/setup-role/organizer':
+      case '/setup-role/attendee': {
+        const targetRole = currentPath === '/become-sponsor' ? 'sponsor' : currentPath.split('/').pop();
+        return (
+          <RoleSetupView
+            role={targetRole}
+            currentUser={currentUser}
+            onComplete={(roleData) => handleActivateRole(targetRole, roleData)}
+            onCancel={() => navigate('/dashboard')}
+          />
+        );
+      }
       case '/profile':
         return (
           <ProfileView
@@ -994,7 +1196,7 @@ export function App() {
         selectedCity={selectedCity}
         setSelectedCity={setSelectedCity}
         userRole={userRole}
-        setUserRole={setUserRole}
+        onRoleChange={handleRoleChange}
       />
 
       {/* Main Content Area */}

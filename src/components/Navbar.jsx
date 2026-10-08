@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { userHasRoleSetup } from '../utils/roles';
 
 const CITIES = ['Chennai', 'San Francisco', 'New York', 'London', 'Bangalore', 'Tokyo'];
 
@@ -18,7 +19,7 @@ export const Navbar = ({
   selectedCity,
   setSelectedCity,
   userRole,
-  setUserRole,
+  onRoleChange,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
@@ -41,15 +42,11 @@ export const Navbar = ({
   };
 
   const handleRoleSwitch = (newRole) => {
-    setUserRole(newRole);
     setRoleDropdownOpen(false);
     setMobileMenuOpen(false);
-    if (currentUser) {
-      const updated = { ...currentUser, role: newRole };
-      localStorage.setItem('assemble_session', JSON.stringify(updated));
-    }
-    navigate('/dashboard');
+    if (onRoleChange) onRoleChange(newRole);
   };
+
 
   return (
     <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-2xs transition-all">
@@ -104,10 +101,8 @@ export const Navbar = ({
           )}
         </div>
 
-        {/* Desktop Navigation Links - shown only after user logs in */}
-        {currentUser && (
-          <nav className="hidden md:flex gap-6 lg:gap-8 items-center text-xs font-semibold text-gray-600">
-            {/* Primary Home Link */}
+        <nav className="hidden md:flex gap-6 lg:gap-8 items-center text-xs font-semibold text-gray-600">
+            {currentUser && (
             <button
               onClick={() => navigate('/dashboard')}
               className={`transition-colors hover:text-black cursor-pointer flex items-center gap-1.5 ${
@@ -116,8 +111,8 @@ export const Navbar = ({
             >
               <span>Home</span>
             </button>
+            )}
 
-            {/* Discover Link */}
             <button
               onClick={() => navigate('/discover')}
               className={`transition-colors hover:text-black cursor-pointer ${
@@ -127,8 +122,7 @@ export const Navbar = ({
               Browse Events
             </button>
 
-            {/* Marketplaces - Hide for Attendee Role */}
-            {activeRole !== 'attendee' && (
+            {currentUser && activeRole !== 'attendee' && (
               <>
                 <button
                   onClick={() => navigate('/speakers-marketplace')}
@@ -150,7 +144,7 @@ export const Navbar = ({
               </>
             )}
 
-            {/* Profile Button */}
+            {currentUser && (
             <button
               onClick={() => navigate('/profile')}
               className={`px-3.5 py-1.5 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
@@ -163,8 +157,8 @@ export const Navbar = ({
               <span className="material-symbols-outlined text-sm">account_circle</span>
               <span>Profile</span>
             </button>
+            )}
           </nav>
-        )}
 
         {/* Right Actions & Multi-Role Switcher */}
         <div className="flex items-center gap-2.5">
@@ -185,9 +179,15 @@ export const Navbar = ({
                 {roleDropdownOpen && (
                   <div className="absolute right-0 top-full mt-2 w-52 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-scaleUp text-left">
                     <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Switch Role View
+                      Switch Role
                     </div>
-                    {Object.entries(ROLE_CONFIGS).map(([key, config]) => (
+                    <p className="px-3 pb-2 text-[10px] text-gray-400 leading-relaxed">
+                      Attendee is always available. Other roles need a signed-in account, and extra details if they are new.
+                    </p>
+                    {Object.entries(ROLE_CONFIGS).map(([key, config]) => {
+                      const ready = userHasRoleSetup(currentUser, key) || key === 'attendee';
+                      const isSponsorSetup = key === 'sponsor' && !ready;
+                      return (
                       <button
                         key={key}
                         onClick={() => handleRoleSwitch(key)}
@@ -199,11 +199,16 @@ export const Navbar = ({
                           <span>{config.icon}</span>
                           <span>{config.label}</span>
                         </div>
-                        {activeRole === key && (
+                        {activeRole === key ? (
                           <span className="material-symbols-outlined text-sm text-[#00355f]">check</span>
-                        )}
+                        ) : isSponsorSetup ? (
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700">Set up</span>
+                        ) : !ready ? (
+                          <span className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Soon</span>
+                        ) : null}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -243,21 +248,17 @@ export const Navbar = ({
             </>
           )}
 
-          {/* Mobile Menu Button - shown only after user logs in */}
-          {currentUser && (
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-black p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-              aria-label="Toggle Navigation Menu"
-            >
-              <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
-            </button>
-          )}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-black p-2 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+          >
+            <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu - only after user logs in */}
-      {mobileMenuOpen && currentUser && (
+      {mobileMenuOpen && (
         <div className="md:hidden bg-white/95 backdrop-blur-2xl border-b border-[#e1e3e4] px-5 py-4 flex flex-col gap-3 animate-fadeIn shadow-lg text-left">
           {/* Mobile City Selector */}
           <div className="flex items-center justify-between pb-2 border-b border-[#e1e3e4]">
@@ -317,7 +318,7 @@ export const Navbar = ({
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
 
-          {activeRole !== 'attendee' && (
+          {currentUser && activeRole !== 'attendee' && (
             <>
               <button
                 onClick={() => {
