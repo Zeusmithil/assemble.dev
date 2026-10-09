@@ -1133,6 +1133,7 @@ export function App() {
               onToggleSave={() => handleToggleSaveEvent(selectedEvent.id)}
               currentUser={currentUser}
               userRole={userRole}
+              activeRole={currentActiveRole}
               tickets={tickets}
               communities={communities}
               onAnalyzeCommunity={handleAnalyzeCommunity}

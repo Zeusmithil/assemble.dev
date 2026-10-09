@@ -102,13 +102,6 @@ export const SponsorDashboardView = ({
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => setActiveView('discover')}
-              className="px-5 py-2.5 bg-white/90 hover:bg-white text-[#00355f] rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">search</span>
-              <span>Find Events to Sponsor</span>
-            </button>
-            <button
               onClick={() => onRoleChange && onRoleChange('attendee')}
               className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
             >

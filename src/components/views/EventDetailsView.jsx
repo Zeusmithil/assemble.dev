@@ -10,6 +10,7 @@ export const EventDetailsView = ({
   onToggleSave,
   currentUser,
   userRole,
+  activeRole,
   tickets = [],
   communities = [],
   onAnalyzeCommunity,
@@ -21,11 +22,9 @@ export const EventDetailsView = ({
   });
 
   const resolvedCommunity = resolveCommunityForEvent(event, communities);
-  const isSponsorRole =
-    userRole === 'sponsor' ||
-    currentUser?.role === 'sponsor' ||
-    currentUser?.roles?.includes('sponsor') ||
-    currentUser?.activeRole === 'sponsor';
+  // Strictly check active role so role switches immediately update visibility
+  const effectiveRole = activeRole || userRole || currentUser?.role || 'attendee';
+  const isSponsorRole = effectiveRole === 'sponsor';
 
   const handleForAnalysis = () => {
     if (onAnalyzeCommunity) {
@@ -124,34 +123,36 @@ export const EventDetailsView = ({
         </div>
       </div>
 
-      {/* Prominent Sponsor Due-Diligence Banner */}
-      <div className="bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] rounded-[2rem] p-5 md:p-6 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-cyan-300 text-2xl">verified_user</span>
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-geist font-bold text-sm sm:text-base">Community Credibility & Due-Diligence Available</span>
-              <span className="text-[10px] bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
-                {resolvedCommunity?.name}
-              </span>
+      {/* Prominent Sponsor Due-Diligence Banner — sponsor role only */}
+      {isSponsorRole && (
+        <div className="bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] rounded-[2rem] p-5 md:p-6 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-cyan-300 text-2xl">verified_user</span>
             </div>
-            <p className="font-inter text-xs text-blue-100/90 leading-relaxed max-w-xl">
-              Inspect historical event attendance, verified sponsorship funding, and community track record before sponsoring.
-            </p>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-geist font-bold text-sm sm:text-base">Community Credibility & Due-Diligence Available</span>
+                <span className="text-[10px] bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
+                  {resolvedCommunity?.name}
+                </span>
+              </div>
+              <p className="font-inter text-xs text-blue-100/90 leading-relaxed max-w-xl">
+                Inspect historical event attendance, verified sponsorship funding, and community track record before sponsoring.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={handleForAnalysis}
-          className="px-6 py-3 bg-white text-[#00355f] hover:bg-blue-50 rounded-2xl font-geist font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
-        >
-          <span className="material-symbols-outlined text-sm">analytics</span>
-          <span>For Analysis</span>
-          <span>→</span>
-        </button>
-      </div>
+          <button
+            onClick={handleForAnalysis}
+            className="px-6 py-3 bg-white text-[#00355f] hover:bg-blue-50 rounded-2xl font-geist font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
+          >
+            <span className="material-symbols-outlined text-sm">analytics</span>
+            <span>For Analysis</span>
+            <span>→</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Hero Header */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
