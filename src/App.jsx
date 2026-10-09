@@ -6,6 +6,7 @@ import { Footer } from './components/Footer';
 import { HomeView } from './components/views/HomeView';
 import { DiscoverView } from './components/views/DiscoverView';
 import { EventDetailsView } from './components/views/EventDetailsView';
+import { CommunityAnalysisView } from './components/views/CommunityAnalysisView';
 import { CreateEventView } from './components/views/CreateEventView';
 import { OrganizerDashboardView } from './components/views/OrganizerDashboardView';
 import { AttendeeDashboardView } from './components/views/AttendeeDashboardView';
@@ -49,10 +50,49 @@ export function App() {
 
   const [communities, setCommunities] = useState(() => {
     const saved = localStorage.getItem('assemble_communities');
-    return saved ? JSON.parse(saved) : INITIAL_COMMUNITIES;
+    if (!saved) return INITIAL_COMMUNITIES;
+    try {
+      const parsed = JSON.parse(saved);
+      const merged = INITIAL_COMMUNITIES.map((initCom) => {
+        const existing = parsed.find((p) => p.id === initCom.id || p.name === initCom.name);
+        return existing
+          ? {
+              ...initCom,
+              ...existing,
+              pastEvents: initCom.pastEvents || existing.pastEvents,
+              sponsorshipHistory: initCom.sponsorshipHistory || existing.sponsorshipHistory,
+            }
+          : initCom;
+      });
+      parsed.forEach((p) => {
+        if (!merged.some((m) => m.id === p.id || m.name === p.name)) {
+          merged.push(p);
+        }
+      });
+      return merged;
+    } catch {
+      return INITIAL_COMMUNITIES;
+    }
   });
   const [activeCommunity, setActiveCommunity] = useState(null);
   const [preSelectedCommunity, setPreSelectedCommunity] = useState(null);
+
+  const [analyzedCommunity, setAnalyzedCommunity] = useState(() => {
+    const saved = localStorage.getItem('assemble_analyzed_community');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [analyzedEvent, setAnalyzedEvent] = useState(() => {
+    const saved = localStorage.getItem('assemble_analyzed_event');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const handleAnalyzeCommunity = (community, event) => {
+    setAnalyzedCommunity(community);
+    setAnalyzedEvent(event);
+    localStorage.setItem('assemble_analyzed_community', JSON.stringify(community));
+    localStorage.setItem('assemble_analyzed_event', JSON.stringify(event));
+    navigate('/community-analysis');
+  };
 
   const [savedEventIds, setSavedEventIds] = useState(() => {
     const saved = localStorage.getItem('assemble_saved_events');
@@ -323,10 +363,10 @@ export function App() {
   };
 
   const handleSimulateSponsorApprove = (requestId) => {
-    const req = sponsorshipRequests.find(r => r.requestId === requestId);
+    const req = sponsorshipRequests.find(r => r.requestId === requestId || r.id === requestId);
     if (!req) return;
 
-    const sponsorAbbr = req.sponsorName.split(' ')[0].substring(0, 2).toUpperCase();
+    const sponsorAbbr = (req.sponsorName || 'TN').split(' ')[0].substring(0, 2).toUpperCase();
     const amountVal = req.amount >= 1000 ? `${Math.round(req.amount / 1000)}K` : req.amount;
     const generatedCode = `${sponsorAbbr}2026-${amountVal}-${Math.floor(100 + Math.random() * 900)}`;
 
@@ -334,7 +374,7 @@ export function App() {
     setSponsorshipCodes({
       ...sponsorshipCodes,
       [generatedCode]: {
-        sponsor: req.sponsorName,
+        sponsor: req.sponsorName || 'TechNova Solutions',
         amount: req.amount,
         requirement: req.requirement,
         status: 'Active',
@@ -345,8 +385,18 @@ export function App() {
     // Update request status
     setSponsorshipRequests(
       sponsorshipRequests.map(r =>
-        r.requestId === requestId
-          ? { ...r, status: 'Sponsorship Code Generated', code: generatedCode }
+        (r.requestId === requestId || r.id === requestId)
+          ? { ...r, status: 'approved', code: generatedCode, generatedCode: generatedCode }
+          : r
+      )
+    );
+  };
+
+  const handleSimulateSponsorReject = (requestId) => {
+    setSponsorshipRequests(
+      sponsorshipRequests.map(r =>
+        (r.requestId === requestId || r.id === requestId)
+          ? { ...r, status: 'rejected' }
           : r
       )
     );
@@ -856,6 +906,7 @@ export function App() {
 
   // Custom Router view rendering
   const renderView = () => {
+    const currentActiveRole = userRole || currentUser?.role || 'attendee';
     const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/become-sponsor'];
     if ((protectedPaths.includes(currentPath) || currentPath.startsWith('/setup-role')) && !currentUser) {
       localStorage.setItem('assemble_redirect', currentPath);
@@ -946,8 +997,6 @@ export function App() {
         return null;
       case '/dashboard':
       case '/my-events': {
-        const currentActiveRole = userRole || currentUser?.role || 'attendee';
-
         if (currentActiveRole === 'organizer') {
           return (
             <OrganizerDashboardView
@@ -1001,6 +1050,7 @@ export function App() {
               sponsorshipRequests={sponsorshipRequests}
               sponsorshipCodes={sponsorshipCodes}
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
+              onSimulateSponsorReject={handleSimulateSponsorReject}
               onRequestSponsorship={handleRequestSponsorship}
               setActiveView={handleActiveViewChange}
               onSelectEvent={handleSelectEvent}
@@ -1077,16 +1127,44 @@ export function App() {
             <EventDetailsView
               event={selectedEvent}
               onBack={() => navigate('/discover')}
+              onBackToDashboard={() => handleActiveViewChange('dashboard')}
               onRegister={handleRegisterForEvent}
               isSaved={savedEventIds.includes(selectedEvent.id)}
               onToggleSave={() => handleToggleSaveEvent(selectedEvent.id)}
               currentUser={currentUser}
+              userRole={userRole}
               tickets={tickets}
+              communities={communities}
+              onAnalyzeCommunity={handleAnalyzeCommunity}
+              onRequestSponsorship={handleRequestSponsorship}
             />
           );
         }
         setTimeout(() => navigate('/discover'), 0);
         return null;
+      case '/community-analysis':
+        return (
+          <CommunityAnalysisView
+            community={analyzedCommunity}
+            event={analyzedEvent || selectedEvent}
+            allEvents={events}
+            sponsorshipRequests={sponsorshipRequests}
+            currentUser={currentUser}
+            onBack={() => {
+              if (selectedEvent) {
+                navigate('/event-details');
+              } else if (currentActiveRole === 'sponsor') {
+                handleActiveViewChange('dashboard');
+              } else {
+                navigate('/discover');
+              }
+            }}
+            onSponsorEvent={(evt) => {
+              setSelectedEvent(evt);
+              navigate('/event-details');
+            }}
+          />
+        );
       case '/venues-marketplace':
         return (
           <VenueMarketplaceView

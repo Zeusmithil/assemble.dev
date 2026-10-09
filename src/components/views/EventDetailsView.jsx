@@ -4,10 +4,12 @@ import { resolveCommunityForEvent } from '../../utils/communityAnalysis';
 export const EventDetailsView = ({
   event,
   onBack,
+  onBackToDashboard,
   onRegister,
   isSaved,
   onToggleSave,
   currentUser,
+  userRole,
   tickets = [],
   communities = [],
   onAnalyzeCommunity,
@@ -20,22 +22,10 @@ export const EventDetailsView = ({
 
   const resolvedCommunity = resolveCommunityForEvent(event, communities);
   const isSponsorRole =
+    userRole === 'sponsor' ||
     currentUser?.role === 'sponsor' ||
     currentUser?.roles?.includes('sponsor') ||
     currentUser?.activeRole === 'sponsor';
-
-  // Sponsorship Opportunities & Packages Fallbacks
-  const sponsorshipOpportunities = event.sponsorshipOpportunities || [
-    { id: 'so-def-1', requirement: 'Main Venue & Keynote Stage', amount: Math.round((event.budget || 30000) * 0.4), fundedAmount: 0, status: 'Open', description: 'Co-branding across main stage screens and venue signage.' },
-    { id: 'so-def-2', requirement: 'Attendee Welcome Swag & Badges', amount: Math.round((event.budget || 30000) * 0.2), fundedAmount: 0, status: 'Open', description: 'Co-branded badges, notebooks, and attendee materials.' },
-    { id: 'so-def-3', requirement: 'VIP Networking Lounge & Catering', amount: Math.round((event.budget || 30000) * 0.25), fundedAmount: 0, status: 'Open', description: 'Exclusive executive lounge branding and barista service.' }
-  ];
-
-  const sponsorshipPackages = event.sponsorshipPackages || [
-    { id: 'pkg-def-1', tier: 'Title Partner', amount: Math.round((event.budget || 30000) * 0.5), spotsAvailable: 1, spotsTaken: 0, perks: ['Opening Keynote 5-Min Address', 'Main Stage Naming Rights', '8 All-Access VIP Passes', 'Logo on All Media'] },
-    { id: 'pkg-def-2', tier: 'Gold Sponsor', amount: Math.round((event.budget || 30000) * 0.3), spotsAvailable: 2, spotsTaken: 0, perks: ['Track Stage Naming', '4 All-Access Passes', 'Expo Booth Space', 'Social Media Features'] },
-    { id: 'pkg-def-3', tier: 'Silver Sponsor', amount: Math.round((event.budget || 30000) * 0.15), spotsAvailable: 4, spotsTaken: 1, perks: ['Logo on Conference Website & Program', '2 Passes', 'Attendee Swag Inclusion'] }
-  ];
 
   const handleForAnalysis = () => {
     if (onAnalyzeCommunity) {
@@ -102,27 +92,25 @@ export const EventDetailsView = ({
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
       {/* Back Button & Breadcrumbs */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer"
-        >
-          <span>← Back to Discovery</span>
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          {isSponsorRole ? (
+            <button
+              onClick={onBackToDashboard || onBack}
+              className="flex items-center gap-1.5 font-geist text-xs font-bold text-[#0f4c81] hover:text-[#002244] transition-colors cursor-pointer"
+            >
+              <span>← Back to Sponsor Dashboard</span>
+            </button>
+          ) : (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors cursor-pointer"
+            >
+              <span>← Back to Discovery</span>
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Prominent For Analysis Button */}
-          <button
-            onClick={handleForAnalysis}
-            className="px-4 py-2 bg-gradient-to-r from-[#00355f] to-[#0f4c81] hover:from-[#002244] hover:to-[#00355f] text-white rounded-full font-geist font-bold text-xs shadow-md border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-            title="Open Community Credibility & Sponsorship Due-Diligence Report"
-          >
-            <span className="material-symbols-outlined text-sm text-cyan-300">insights</span>
-            <span>For Analysis</span>
-            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full font-mono uppercase">
-              {resolvedCommunity?.name || 'Community'}
-            </span>
-          </button>
-
           <button
             onClick={onToggleSave}
             className={`px-4 py-2 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
@@ -241,29 +229,6 @@ export const EventDetailsView = ({
               }`}
             >
               Venue & Map
-            </button>
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`px-5 py-2.5 rounded-xl transition-all ${
-                activeTab === 'budget'
-                  ? 'bg-white text-black shadow-xs font-bold'
-                  : 'text-gray-500 hover:text-black'
-              }`}
-            >
-              Budget & Expenses
-            </button>
-            <button
-              onClick={() => setActiveTab('sponsorship')}
-              className={`px-5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'sponsorship'
-                  ? 'bg-white text-[#00355f] shadow-xs font-bold'
-                  : 'text-gray-500 hover:text-black'
-              }`}
-            >
-              <span>💼 Sponsorship Packages</span>
-              <span className="px-1.5 py-0.5 bg-blue-100 text-[#0f4c81] text-[10px] rounded-full font-mono font-bold">
-                {sponsorshipOpportunities.length}
-              </span>
             </button>
           </div>
 
@@ -386,286 +351,6 @@ export const EventDetailsView = ({
                       <p className="font-geist text-xs font-bold text-black">📍 {event.location}</p>
                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">GPS Location Verified</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'budget' && (
-              <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 text-left">
-                <div className="flex justify-between items-center flex-wrap gap-3">
-                  <div>
-                    <h3 className="font-geist text-lg font-bold text-black">Event Budget & Amount Spent Tracker</h3>
-                    <p className="font-inter text-xs text-gray-500 mt-0.5">Track allocated funds vs actual expenditure for {event.title}.</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    (event.budget || 0) === 0 ? 'bg-gray-100 text-gray-600' :
-                    ((event.expenses || []).reduce((a, b) => a + (b.spent || 0), 0) <= (event.budget || 0))
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200'
-                  }`}>
-                    {(event.budget || 0) === 0 ? 'Budget Unassigned' :
-                     ((event.expenses || []).reduce((a, b) => a + (b.spent || 0), 0) <= (event.budget || 0))
-                       ? '✓ Within Allocated Budget'
-                       : '⚠️ Over Budget'}
-                  </span>
-                </div>
-
-                {/* Summary Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Allocated Budget</span>
-                    <span className="font-geist text-2xl font-bold text-black">
-                      ${(event.budget || 0).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-gray-500 block">Total budget for event</span>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Amount Spent</span>
-                    <span className="font-geist text-2xl font-bold text-[#0f4c81]">
-                      ${((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-gray-500 block">Sum of logged expenses</span>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Remaining Balance</span>
-                    <span className={`font-geist text-2xl font-bold ${
-                      (event.budget || 0) - ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) >= 0
-                        ? 'text-emerald-600'
-                        : 'text-rose-600'
-                    }`}>
-                      ${((event.budget || 0) - ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0))).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-gray-500 block">Available funds left</span>
-                  </div>
-                </div>
-
-                {/* Utilization Progress Bar */}
-                {(event.budget || 0) > 0 && (
-                  <div className="space-y-1.5 p-4 bg-blue-50/40 border border-blue-100 rounded-2xl">
-                    <div className="flex justify-between text-xs font-bold text-black">
-                      <span>Budget Utilization</span>
-                      <span>
-                        {Math.min(100, Math.round((((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget) * 100))}% Used
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all rounded-full ${
-                          ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) > event.budget
-                            ? 'bg-rose-500'
-                            : ((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget > 0.85
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                        }`}
-                        style={{
-                          width: `${Math.min(100, (((event.expenses || []).reduce((acc, exp) => acc + (exp.spent || 0), 0)) / event.budget) * 100)}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Expenses Table */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="font-geist font-bold text-sm text-black">Itemized Expenditure Breakdown</h4>
-                  {event.expenses && event.expenses.length > 0 ? (
-                    <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-3xs">
-                      <table className="w-full text-left text-xs font-inter">
-                        <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
-                          <tr>
-                            <th className="p-3.5">Expense Item</th>
-                            <th className="p-3.5">Category</th>
-                            <th className="p-3.5">Allocated</th>
-                            <th className="p-3.5">Amount Spent</th>
-                            <th className="p-3.5">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {event.expenses.map((exp) => (
-                            <tr key={exp.id} className="hover:bg-gray-50/80 transition-colors">
-                              <td className="p-3.5 font-bold text-black">{exp.title}</td>
-                              <td className="p-3.5">
-                                <span className="px-2.5 py-0.5 bg-gray-100 text-gray-700 font-bold rounded text-[10px]">
-                                  {exp.category}
-                                </span>
-                              </td>
-                              <td className="p-3.5 font-medium text-gray-500">${(exp.allocated || 0).toLocaleString()}</td>
-                              <td className="p-3.5 font-bold text-black">${(exp.spent || 0).toLocaleString()}</td>
-                              <td className="p-3.5">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  exp.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                }`}>
-                                  {exp.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-2xl border border-gray-100 p-6 space-y-1">
-                      <p className="font-geist text-sm font-bold text-black">No expense records logged yet</p>
-                      <p className="font-inter text-xs text-gray-500">The organizer can log itemized expenses from the Organizer Dashboard.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'sponsorship' && (
-              <div className="space-y-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 text-left">
-                {/* Header */}
-                <div className="flex justify-between items-start flex-wrap gap-4 border-b border-gray-100 pb-4">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#0f4c81] px-2.5 py-1 rounded-md">
-                      Sponsor Portal
-                    </span>
-                    <h3 className="font-geist text-xl font-bold text-[#00355f] mt-1.5">
-                      Sponsorship Requirements & Packages
-                    </h3>
-                    <p className="font-inter text-xs text-gray-500 mt-0.5">
-                      Partner with {event.organizer} / {resolvedCommunity?.name}. Target audience: {event.expectedAttendees || 500}+ participants.
-                    </p>
-                  </div>
-
-                  {/* Prominent For Analysis Button */}
-                  <button
-                    onClick={handleForAnalysis}
-                    className="px-5 py-2.5 bg-gradient-to-r from-[#00355f] to-[#0f4c81] hover:from-[#002244] hover:to-[#00355f] text-white rounded-2xl font-geist font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-sm text-cyan-300">insights</span>
-                    <span>For Analysis</span>
-                    <span>→</span>
-                  </button>
-                </div>
-
-                {/* Due-Diligence Callout Card */}
-                <div className="p-5 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 rounded-2xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#0f4c81] text-white flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-xl">policy</span>
-                    </div>
-                    <div>
-                      <h4 className="font-geist font-bold text-xs text-[#00355f]">
-                        Evaluating Community Credibility Before Sponsoring?
-                      </h4>
-                      <p className="font-inter text-[11px] text-gray-600 mt-0.5">
-                        Inspect {resolvedCommunity?.name}'s past events, attendee turnouts, and verified sponsorship track record.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleForAnalysis}
-                    className="px-4 py-2 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 shrink-0 flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-sm">analytics</span>
-                    <span>For Analysis</span>
-                  </button>
-                </div>
-
-                {/* Section A: Open Sponsorship Requirements / Opportunities */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-geist font-bold text-sm text-[#00355f]">
-                      Sponsorship Requirements & Open Grants
-                    </h4>
-                    <span className="text-xs font-inter text-gray-400">
-                      Total Event Budget: €{(event.budget || 25000).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {sponsorshipOpportunities.map((opp) => (
-                      <div
-                        key={opp.id}
-                        className={`p-5 rounded-2xl border transition-all space-y-3 ${
-                          opp.status === 'Funded'
-                            ? 'bg-gray-50/80 border-gray-200 opacity-80'
-                            : 'bg-white border-[#e1e3e4] hover:shadow-xs'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                              opp.status === 'Funded'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-blue-50 text-[#0f4c81]'
-                            }`}>
-                              {opp.status === 'Funded' ? '✓ Funded' : 'Open for Sponsorship'}
-                            </span>
-                            <h5 className="font-geist font-bold text-sm text-[#00355f] mt-1.5">{opp.requirement}</h5>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-gray-400 uppercase font-bold block">Grant Target</span>
-                            <span className="font-geist text-base font-black text-[#0f4c81]">
-                              €{opp.amount.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <p className="font-inter text-xs text-gray-600 leading-relaxed">
-                          {opp.description}
-                        </p>
-
-                        {opp.status === 'Funded' && opp.sponsor && (
-                          <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1 pt-1 border-t border-gray-100">
-                            <span className="material-symbols-outlined text-sm">verified</span>
-                            <span>Funded by <strong>{opp.sponsor}</strong></span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Section B: Available Sponsorship Packages */}
-                <div className="space-y-3 pt-4 border-t border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-geist font-bold text-sm text-[#00355f]">
-                      Available Sponsorship Packages
-                    </h4>
-                    <span className="text-xs text-gray-400">Exclusive partner tiers</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {sponsorshipPackages.map((pkg) => (
-                      <div
-                        key={pkg.id}
-                        className="bg-white border border-[#e1e3e4] rounded-2xl p-5 space-y-4 shadow-3xs flex flex-col justify-between"
-                      >
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-baseline">
-                            <h5 className="font-geist font-black text-sm text-[#00355f]">{pkg.tier}</h5>
-                            <span className="text-[10px] text-gray-400 font-bold">
-                              {pkg.spotsTaken}/{pkg.spotsAvailable} Taken
-                            </span>
-                          </div>
-                          <div className="font-geist text-2xl font-black text-[#0f4c81]">
-                            €{pkg.amount.toLocaleString()}
-                          </div>
-                          <ul className="space-y-1.5 pt-2 border-t border-gray-100 text-xs font-inter text-gray-600">
-                            {pkg.perks.map((perk, i) => (
-                              <li key={i} className="flex items-start gap-1.5">
-                                <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
-                                <span className="text-[11px] leading-tight">{perk}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <button
-                          onClick={handleForAnalysis}
-                          className="w-full py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-[#00355f] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          <span>Analyze Before Pledging</span>
-                          <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ export const SponsorDashboardView = ({
   sponsorshipRequests = [],
   sponsorshipCodes = [],
   onSimulateSponsorApprove,
+  onSimulateSponsorReject,
   onRequestSponsorship,
   setActiveView,
   onSelectEvent,
@@ -18,6 +19,7 @@ export const SponsorDashboardView = ({
   const [sponsorOfferReq, setSponsorOfferReq] = useState('Venue');
   const [sponsorOfferPitch, setSponsorOfferPitch] = useState('');
   const [offerSuccess, setOfferSuccess] = useState(false);
+  const [localRejectedIds, setLocalRejectedIds] = useState([]);
 
   // Sponsor budget metrics
   const totalBudget = currentUser?.sponsorProfile?.budgetAmount || 25000;
@@ -35,6 +37,33 @@ export const SponsorDashboardView = ({
   const handleApproveAndGenerate = (reqId) => {
     if (onSimulateSponsorApprove) {
       onSimulateSponsorApprove(reqId);
+    }
+  };
+
+  const handleReject = (reqId) => {
+    setLocalRejectedIds((prev) => [...prev, reqId]);
+    if (onSimulateSponsorReject) {
+      onSimulateSponsorReject(reqId);
+    }
+  };
+
+  const handleViewEventForRequest = (req) => {
+    const targetEvent = events.find(
+      (e) =>
+        e.id === req.eventId ||
+        e.id === req.id ||
+        (e.title && req.eventTitle && e.title.trim().toLowerCase() === req.eventTitle.trim().toLowerCase())
+    );
+    if (targetEvent && onSelectEvent) {
+      onSelectEvent(targetEvent);
+    } else if (events.length > 0 && onSelectEvent) {
+      const fallback = {
+        ...events[0],
+        id: req.eventId || events[0].id,
+        title: req.eventTitle || events[0].title,
+        description: req.pitch || events[0].description,
+      };
+      onSelectEvent(fallback);
     }
   };
 
@@ -282,49 +311,92 @@ export const SponsorDashboardView = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sponsorshipRequests.map((req) => (
-                <div key={req.id} className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                        req.status === 'approved' || req.status === 'verified'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-amber-50 text-amber-800'
-                      }`}>
-                        {req.status === 'approved' ? '✓ Approved' : 'Pending Evaluation'}
-                      </span>
-                      <h3 className="font-geist text-base font-bold text-[#00355f] mt-2">{req.eventTitle}</h3>
-                      <p className="font-inter text-xs text-gray-500">Requirement: <span className="font-bold text-[#0f4c81]">{req.requirement}</span></p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-gray-400 uppercase font-bold">Requested Grant</div>
-                      <div className="font-geist text-lg font-black text-[#00355f]">€{Number(req.amount).toLocaleString()}</div>
-                    </div>
-                  </div>
+              {sponsorshipRequests.map((req) => {
+                const reqKey = req.id || req.requestId;
+                const isApproved =
+                  req.status === 'approved' ||
+                  req.status === 'verified' ||
+                  req.status === 'Sponsorship Code Generated' ||
+                  Boolean(req.code);
+                const isRejected =
+                  req.status === 'rejected' ||
+                  req.status === 'Rejected' ||
+                  localRejectedIds.includes(reqKey);
 
-                  <p className="font-inter text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    "{req.pitch || 'We are seeking corporate sponsorship to support high-tier stage equipment and attendee welcome boxes.'}"
-                  </p>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <span className="text-[11px] font-mono text-gray-400">ID: {req.id}</span>
-                    {req.status === 'approved' || req.status === 'verified' ? (
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
-                        <span className="material-symbols-outlined text-sm">verified</span>
-                        <span>Code Issued: {req.generatedCode || 'TN2026-AI50'}</span>
+                return (
+                  <div key={reqKey} className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                          isApproved
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : isRejected
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        }`}>
+                          {isApproved ? '✓ Approved' : isRejected ? '✕ Rejected' : 'Pending Evaluation'}
+                        </span>
+                        <h3 className="font-geist text-base font-bold text-[#00355f] mt-2">{req.eventTitle}</h3>
+                        <p className="font-inter text-xs text-gray-500">Requirement: <span className="font-bold text-[#0f4c81]">{req.requirement}</span></p>
                       </div>
-                    ) : (
+                      <div className="text-right">
+                        <div className="text-[10px] text-gray-400 uppercase font-bold">Requested Grant</div>
+                        <div className="font-geist text-lg font-black text-[#00355f]">€{Number(req.amount).toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    <p className="font-inter text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      "{req.pitch || 'We are seeking corporate sponsorship to support high-tier stage equipment and attendee welcome boxes.'}"
+                    </p>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                      {/* View Event Button */}
                       <button
-                        onClick={() => handleApproveAndGenerate(req.id)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1"
+                        onClick={() => handleViewEventForRequest(req)}
+                        className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-[#00355f] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border border-gray-200"
+                        title="View full details for this event"
                       >
-                        <span className="material-symbols-outlined text-sm">check_circle</span>
-                        <span>Approve & Issue Code</span>
+                        <span className="material-symbols-outlined text-sm">visibility</span>
+                        <span>View Event</span>
                       </button>
-                    )}
+
+                      {/* Action Buttons: Reject & Approve */}
+                      <div className="flex items-center gap-2">
+                        {isApproved ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-700">
+                            <span className="material-symbols-outlined text-sm">verified</span>
+                            <span>Code Issued: {req.generatedCode || req.code || 'TN2026-AI50'}</span>
+                          </div>
+                        ) : isRejected ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
+                            <span className="material-symbols-outlined text-sm">cancel</span>
+                            <span>Proposal Rejected</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleReject(reqKey)}
+                              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95 flex items-center gap-1"
+                              title="Reject this sponsorship proposal"
+                            >
+                              <span className="material-symbols-outlined text-sm">close</span>
+                              <span>Reject</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveAndGenerate(reqKey)}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1"
+                              title="Approve and issue sponsorship grant code"
+                            >
+                              <span className="material-symbols-outlined text-sm">check_circle</span>
+                              <span>Approve & Issue Code</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
