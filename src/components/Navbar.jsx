@@ -26,6 +26,8 @@ export const Navbar = ({
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
   const activeRole = userRole || currentUser?.role || 'attendee';
+  const isAuthProcess = currentPath === '/login' || currentPath === '/signup' || currentPath?.startsWith('/setup-role');
+  const showBrowseEvents = Boolean(currentUser) && !isAuthProcess;
 
   const handleNavClick = (sectionId) => {
     setMobileMenuOpen(false);
@@ -113,14 +115,16 @@ export const Navbar = ({
             </button>
             )}
 
-            <button
-              onClick={() => navigate('/discover')}
-              className={`transition-colors hover:text-black cursor-pointer ${
-                currentPath === '/discover' ? 'text-[#00355f] font-bold' : ''
-              }`}
-            >
-              Browse Events
-            </button>
+            {showBrowseEvents && (
+              <button
+                onClick={() => navigate('/discover')}
+                className={`transition-colors hover:text-black cursor-pointer ${
+                  currentPath === '/discover' ? 'text-[#00355f] font-bold' : ''
+                }`}
+              >
+                Browse Events
+              </button>
+            )}
 
           </nav>
 
@@ -285,16 +289,18 @@ export const Navbar = ({
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
 
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              navigate('/discover');
-            }}
-            className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
-          >
-            <span>Browse Events</span>
-            <span className="material-symbols-outlined text-sm">chevron_right</span>
-          </button>
+          {showBrowseEvents && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigate('/discover');
+              }}
+              className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
+            >
+              <span>Browse Events</span>
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </button>
+          )}
 
 
           {currentUser ? (

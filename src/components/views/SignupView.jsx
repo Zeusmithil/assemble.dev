@@ -1,4 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+
+const VENUE_TYPES = [
+  'Auditorium',
+  'Conference Center',
+  'Banquet Hall',
+  'Rooftop Lounge',
+  'Co-working Hub',
+  'Amphitheater',
+  'Creative Studio',
+  'Other',
+];
+
+const DEFAULT_VENUE_FACILITIES = [
+  'High-Speed Wi-Fi',
+  'Acoustic Stage',
+  'A/V Sound System',
+  'VIP Green Room',
+  'Projector & Screen',
+  'Valet Parking',
+  'Catering Kitchen',
+  'Wheelchair Accessible',
+];
 
 const ROLES = [
   {
@@ -115,10 +137,68 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
   const [venueAddress, setVenueAddress] = useState('');
   const [venueCapacity, setVenueCapacity] = useState('300');
   const [venueType, setVenueType] = useState('Auditorium');
-  const [venueFacilities, setVenueFacilities] = useState('A/V Sound, High-speed Wi-Fi, Stage, VIP Lounge');
+  const [venueFacilities, setVenueFacilities] = useState([
+    'High-Speed Wi-Fi',
+    'Acoustic Stage',
+    'A/V Sound System',
+    'VIP Green Room',
+  ]);
+  const [newFacilityInput, setNewFacilityInput] = useState('');
   const [venueDesc, setVenueDesc] = useState('');
   const [venuePricing, setVenuePricing] = useState('150');
   const [venueImages, setVenueImages] = useState([]);
+
+  // Venue verification fields
+  const [venueSpaceType, setVenueSpaceType] = useState(''); // 'corporate' | 'independent'
+  const [venueCompanyEmail, setVenueCompanyEmail] = useState('');
+  const [venueWebsite, setVenueWebsite] = useState('');
+  const [venueLegalName, setVenueLegalName] = useState('');
+  const [venueContactPhone, setVenueContactPhone] = useState('');
+  const [venuePhoneOtp, setVenuePhoneOtp] = useState('');
+  const [venueOtpSent, setVenueOtpSent] = useState(false);
+  const [venueOtpVerified, setVenueOtpVerified] = useState(false);
+  const [venueOwnershipDoc, setVenueOwnershipDoc] = useState(null);
+  const [venueFaceScan, setVenueFaceScan] = useState(null); // base64 capture
+  const [venueFaceScanState, setVenueFaceScanState] = useState('idle'); // 'idle'|'capturing'|'done'
+  const [venuePastEvents, setVenuePastEvents] = useState([
+    { eventName: '', date: '', attendees: '' },
+  ]);
+  const venueVideoRef = useRef(null);
+  const venueStreamRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (venueStreamRef.current) {
+        venueStreamRef.current.getTracks().forEach((t) => t.stop());
+        venueStreamRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleRoleChangeBack = () => {
+    if (venueStreamRef.current) {
+      venueStreamRef.current.getTracks().forEach((t) => t.stop());
+      venueStreamRef.current = null;
+    }
+    setVenueFaceScanState('idle');
+    setStep(1);
+  };
+
+  const handleToggleFacility = (fac) => {
+    if (venueFacilities.includes(fac)) {
+      setVenueFacilities(venueFacilities.filter((f) => f !== fac));
+    } else {
+      setVenueFacilities([...venueFacilities, fac]);
+    }
+  };
+
+  const handleAddCustomFacility = (e) => {
+    if (e) e.preventDefault();
+    if (newFacilityInput.trim() && !venueFacilities.includes(newFacilityInput.trim())) {
+      setVenueFacilities([...venueFacilities, newFacilityInput.trim()]);
+      setNewFacilityInput('');
+    }
+  };
 
   const handleVenueImageUpload = (e) => {
     const files = e.target.files;
@@ -169,6 +249,56 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
+    }
+
+    // Role-specific validation for venue
+    if (selectedRole === 'venue') {
+      if (!venueSpaceType) {
+        setError('Please select whether your space is a corporate venue or an independent space.');
+        return;
+      }
+      if (!venueName.trim()) {
+        setError('Please enter the venue name.');
+        return;
+      }
+      if (!venueAddress.trim()) {
+        setError('Please provide the physical venue address.');
+        return;
+      }
+      if (!venueCapacity || Number(venueCapacity) <= 0) {
+        setError('Please provide a valid attendee capacity.');
+        return;
+      }
+      if (venueSpaceType === 'corporate') {
+        const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','protonmail.com'];
+        const emailDomain = venueCompanyEmail.split('@')[1]?.toLowerCase();
+        if (!venueCompanyEmail.includes('@') || freeDomains.includes(emailDomain)) {
+          setError('Please provide a valid business/company email (no free email providers).');
+          return;
+        }
+        if (!venueWebsite.trim()) {
+          setError('Please provide your official company website.');
+          return;
+        }
+      }
+      if (venueSpaceType === 'independent') {
+        if (!venueLegalName.trim()) {
+          setError('Please enter your legal name for identity verification.');
+          return;
+        }
+        if (!venueOtpVerified) {
+          setError('Please verify your phone number with the OTP before submitting.');
+          return;
+        }
+        if (!venueOwnershipDoc) {
+          setError('Please upload an ownership/access document (rental agreement, utility bill, etc.).');
+          return;
+        }
+      }
+      if (venueFaceScanState !== 'done') {
+        setError('Please complete the face scan before submitting.');
+        return;
+      }
     }
 
     // Check duplicate email
@@ -266,35 +396,63 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
         supportedEventTypes,
       };
     } else if (selectedRole === 'venue') {
+      if (venueStreamRef.current) {
+        venueStreamRef.current.getTracks().forEach((t) => t.stop());
+        venueStreamRef.current = null;
+      }
+
       newUser.venueProfile = {
-        venueName,
-        address: venueAddress,
+        venueName: venueName.trim(),
+        name: venueName.trim(),
+        address: venueAddress.trim(),
+        location: venueAddress.trim(),
+        city: location,
         capacity: Number(venueCapacity) || 300,
         type: venueType,
-        facilities: venueFacilities.split(',').map((f) => f.trim()),
-        description: venueDesc,
+        vibe: venueType,
+        facilities: Array.isArray(venueFacilities) ? venueFacilities : [],
+        amenities: Array.isArray(venueFacilities) ? venueFacilities : [],
+        description: venueDesc.trim(),
         pricePerHour: Number(venuePricing) || 150,
         images: venueImages,
+        image: venueImages[0] || '',
+        available: true,
+        spaceType: venueSpaceType,
+        companyEmail: venueCompanyEmail.trim(),
+        website: venueWebsite.trim(),
+        legalName: venueLegalName.trim(),
+        contactPhone: venueContactPhone.trim() || phone.trim(),
+        faceScan: venueFaceScan,
+        pastEvents: venuePastEvents.filter((e) => e.eventName.trim()),
+        verificationStatus: 'pending',
       };
 
       // Add to global venues list
       const currentVenues = JSON.parse(localStorage.getItem('assemble_venues') || '[]');
       currentVenues.unshift({
         id: `ven-${Date.now()}`,
-        name: venueName,
+        name: venueName.trim(),
         city: location,
-        location: venueAddress,
+        location: venueAddress.trim(),
         capacity: Number(venueCapacity) || 300,
         vibe: venueType,
         pricePerHour: Number(venuePricing) || 150,
-        description: venueDesc,
-        amenities: venueFacilities.split(',').map((f) => f.trim()),
+        description: venueDesc.trim(),
+        amenities: Array.isArray(venueFacilities) ? venueFacilities : [],
         image: venueImages[0] || '',
         images: venueImages,
         providerEmail: email,
         providerName: fullName,
         rating: 5.0,
         reviews: 1,
+        spaceType: venueSpaceType,
+        companyEmail: venueCompanyEmail.trim(),
+        website: venueWebsite.trim(),
+        legalName: venueLegalName.trim(),
+        contactPhone: venueContactPhone.trim() || phone.trim(),
+        faceScan: venueFaceScan,
+        pastEvents: venuePastEvents.filter((e) => e.eventName.trim()),
+        verificationStatus: 'pending',
       });
       localStorage.setItem('assemble_venues', JSON.stringify(currentVenues));
     } else if (selectedRole === 'organizer') {
@@ -494,7 +652,7 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
               </div>
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={handleRoleChangeBack}
                 className="text-xs font-bold text-gray-500 hover:text-black flex items-center gap-1 cursor-pointer"
               >
                 <span>← Change Role</span>
@@ -943,141 +1101,460 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
 
             {/* VENUE PROVIDER FIELDS */}
             {selectedRole === 'venue' && (
-              <div className="space-y-4 pt-3 border-t border-gray-100">
+              <div className="space-y-5 pt-3 border-t border-gray-100">
                 <h3 className="font-geist text-xs font-bold uppercase tracking-wider text-gray-400">
-                  2. Venue Space Information
+                  2. Venue Space & Verification
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={venueName}
-                      onChange={(e) => setVenueName(e.target.value)}
-                      placeholder="e.g. Sir Mutha Concert Hall"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Type</label>
-                    <select
-                      value={venueType}
-                      onChange={(e) => setVenueType(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold"
-                    >
-                      <option value="Auditorium">Auditorium</option>
-                      <option value="Conference Loft">Conference Loft</option>
-                      <option value="Modern Industrial">Modern Industrial</option>
-                      <option value="Open Air / Amphitheater">Open Air / Amphitheater</option>
-                      <option value="Executive Boardroom">Executive Boardroom</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Address</label>
-                  <input
-                    type="text"
-                    required
-                    value={venueAddress}
-                    onChange={(e) => setVenueAddress(e.target.value)}
-                    placeholder="e.g. 7 Lady McNichols Rd, Chetpet"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Guest Capacity</label>
-                    <input
-                      type="number"
-                      required
-                      value={venueCapacity}
-                      onChange={(e) => setVenueCapacity(e.target.value)}
-                      placeholder="e.g. 500"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Rate ($ / Hour)</label>
-                    <input
-                      type="number"
-                      required
-                      value={venuePricing}
-                      onChange={(e) => setVenuePricing(e.target.value)}
-                      placeholder="e.g. 180"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-
+                {/* ── STEP 1: Space Type Selector ── */}
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                      Venue Images (Upload from Device)
-                    </label>
-                    {venueImages.length > 0 && (
-                      <span className="text-[11px] font-semibold text-emerald-600">
-                        ✓ {venueImages.length} photo{venueImages.length > 1 ? 's' : ''} uploaded
-                      </span>
-                    )}
-                  </div>
-
-                  <label className="border-2 border-dashed border-gray-300 hover:border-[#0f4c81] bg-white/60 hover:bg-blue-50/50 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all group">
-                    <span className="material-symbols-outlined text-2xl text-gray-400 group-hover:text-[#0f4c81] transition-colors mb-1">
-                      add_photo_alternate
-                    </span>
-                    <span className="text-xs font-bold text-[#00355f] group-hover:text-[#0f4c81]">
-                      Click or drag venue photos from your device
-                    </span>
-                    <span className="text-[10px] text-gray-500 mt-0.5">
-                      JPG, PNG, WebP supported (select single or multiple files)
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleVenueImageUpload}
-                      className="hidden"
-                    />
+                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                    What best describes your venue? *
                   </label>
-
-                  {/* MANDATORY NOTICE IF NO IMAGE UPLOADED */}
-                  {venueImages.length === 0 ? (
-                    <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-[11px] font-medium leading-relaxed">
-                      ⚠️ <strong>No venue images uploaded.</strong> The notice: <em>"No venue images available. Organizers may need to arrange an in-person viewing before booking."</em> will be shown on your public listing.
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2.5 pt-1">
-                      {venueImages.map((img, i) => (
-                        <div key={i} className="relative w-20 h-16 rounded-xl overflow-hidden border border-gray-200 group shadow-xs">
-                          <img src={img} alt="preview" className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => setVenueImages(venueImages.filter((_, idx) => idx !== i))}
-                            className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors shadow-xs"
-                            title="Remove image"
-                          >
-                            ✕
-                          </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { value: 'corporate', icon: 'domain', label: 'Corporate / Company Space', sub: 'Hotel, event center, co-working space with an official entity' },
+                      { value: 'independent', icon: 'storefront', label: 'Independent Space', sub: 'Hall, auditorium, community center, private property' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setVenueSpaceType(opt.value)}
+                        className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                          venueSpaceType === opt.value
+                            ? 'border-[#0f4c81] bg-blue-50'
+                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`material-symbols-outlined text-lg ${ venueSpaceType === opt.value ? 'text-[#0f4c81]' : 'text-gray-400' }`}>{opt.icon}</span>
+                          <span className={`font-geist font-bold text-xs ${ venueSpaceType === opt.value ? 'text-[#0f4c81]' : 'text-gray-700' }`}>{opt.label}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <p className="text-[10px] text-gray-500 leading-relaxed">{opt.sub}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Facilities / Amenities</label>
-                  <input
-                    type="text"
-                    value={venueFacilities}
-                    onChange={(e) => setVenueFacilities(e.target.value)}
-                    placeholder="e.g. Acoustic Stage, VIP Green Room, Valet Parking"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                  />
-                </div>
+                {/* ── STEP 2: Basic Info (shown when space type selected) ── */}
+                {venueSpaceType && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Name *</label>
+                        <input
+                          type="text"
+                          value={venueName}
+                          onChange={(e) => setVenueName(e.target.value)}
+                          placeholder="e.g. Sir Mutha Concert Hall"
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Type</label>
+                        <select
+                          value={venueType}
+                          onChange={(e) => setVenueType(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#00355f]"
+                        >
+                          {VENUE_TYPES.map((vt) => (
+                            <option key={vt} value={vt}>{vt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Physical Address *</label>
+                      <input
+                        type="text"
+                        value={venueAddress}
+                        onChange={(e) => setVenueAddress(e.target.value)}
+                        placeholder="e.g. 7 Lady McNichols Rd, Chetpet, Chennai"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Guest Capacity *</label>
+                        <input
+                          type="number"
+                          value={venueCapacity}
+                          onChange={(e) => setVenueCapacity(e.target.value)}
+                          placeholder="350"
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Hourly Booking Rate ($ / hr)</label>
+                        <input
+                          type="number"
+                          value={venuePricing}
+                          onChange={(e) => setVenuePricing(e.target.value)}
+                          placeholder="150"
+                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Description</label>
+                      <textarea
+                        rows={3}
+                        value={venueDesc}
+                        onChange={(e) => setVenueDesc(e.target.value)}
+                        placeholder="Describe your acoustics, seating layout, parking, and stage capabilities..."
+                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter resize-none focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                      />
+                    </div>
+
+                    {/* Facilities */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Facilities & Amenities</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {DEFAULT_VENUE_FACILITIES.map((fac) => {
+                          const isSelected = venueFacilities.includes(fac);
+                          return (
+                            <button
+                              key={fac}
+                              type="button"
+                              onClick={() => handleToggleFacility(fac)}
+                              className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[#0f4c81] text-white border-[#0f4c81]'
+                                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                              }`}
+                            >
+                              {isSelected ? `✓ ${fac}` : `+ ${fac}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={newFacilityInput}
+                          onChange={(e) => setNewFacilityInput(e.target.value)}
+                          placeholder="Add custom facility..."
+                          className="flex-grow px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomFacility(e);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomFacility}
+                          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl text-xs font-bold cursor-pointer"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Venue Photos */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                          Venue Photos
+                        </label>
+                        {venueImages.length > 0 && (
+                          <span className="text-[11px] font-semibold text-emerald-600">
+                            ✓ {venueImages.length} photo{venueImages.length > 1 ? 's' : ''} uploaded
+                          </span>
+                        )}
+                      </div>
+
+                      <label className="border-2 border-dashed border-gray-300 hover:border-[#0f4c81] bg-white/60 hover:bg-blue-50/50 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all group">
+                        <span className="material-symbols-outlined text-2xl text-gray-400 group-hover:text-[#0f4c81] transition-colors mb-1">
+                          add_photo_alternate
+                        </span>
+                        <span className="text-xs font-bold text-[#00355f] group-hover:text-[#0f4c81]">
+                          Upload venue photos from your device
+                        </span>
+                        <span className="text-[10px] text-gray-500 mt-0.5">
+                          JPG, PNG, WebP (single or multiple)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleVenueImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {venueImages.length === 0 ? (
+                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-[11px] font-medium leading-relaxed">
+                          ⚠️ <strong>No venue images uploaded.</strong> Organizers may need to arrange an in-person viewing before booking.
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2.5 pt-1">
+                          {venueImages.map((img, i) => (
+                            <div key={i} className="relative w-20 h-16 rounded-xl overflow-hidden border border-gray-200 group shadow-xs">
+                              <img src={img} alt="preview" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setVenueImages(venueImages.filter((_, idx) => idx !== i))}
+                                className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                                title="Remove photo"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── STEP 3: Verification — conditional by space type ── */}
+                    <div className="p-4 bg-blue-50/80 border border-blue-100 rounded-2xl space-y-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="material-symbols-outlined text-[#0f4c81] text-base">verified_user</span>
+                        <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider">
+                          {venueSpaceType === 'corporate' ? 'Corporate Verification' : 'Identity & Ownership Verification'}
+                        </span>
+                      </div>
+
+                      {venueSpaceType === 'corporate' && (
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company / Business Email *</label>
+                            <input
+                              type="email"
+                              value={venueCompanyEmail}
+                              onChange={(e) => setVenueCompanyEmail(e.target.value)}
+                              placeholder="bookings@grandvenuehall.com"
+                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                            />
+                            <p className="text-[10px] text-gray-400">Free email providers (Gmail, Yahoo, etc.) are not accepted.</p>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Official Company Website *</label>
+                            <input
+                              type="url"
+                              value={venueWebsite}
+                              onChange={(e) => setVenueWebsite(e.target.value)}
+                              placeholder="https://grandvenuehall.com"
+                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {venueSpaceType === 'independent' && (
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Legal Name (Owner / Manager) *</label>
+                            <input
+                              type="text"
+                              value={venueLegalName}
+                              onChange={(e) => setVenueLegalName(e.target.value)}
+                              placeholder="Your full legal name as on your ID"
+                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                            />
+                            <p className="text-[10px] text-gray-400">Your face scan will be linked to this name for identity verification.</p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number + OTP *</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="tel"
+                                value={venueContactPhone || phone}
+                                onChange={(e) => setVenueContactPhone(e.target.value)}
+                                placeholder="+91 98765 43210"
+                                disabled={venueOtpVerified}
+                                className="flex-grow px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                              />
+                              {!venueOtpVerified && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const targetPhone = venueContactPhone.trim() || phone.trim();
+                                    if (targetPhone.length > 5) setVenueOtpSent(true);
+                                  }}
+                                  className="px-4 py-2 bg-[#0f4c81] text-white rounded-xl text-xs font-bold cursor-pointer shrink-0"
+                                >
+                                  {venueOtpSent ? 'Resend' : 'Send OTP'}
+                                </button>
+                              )}
+                            </div>
+                            {venueOtpSent && !venueOtpVerified && (
+                              <div className="flex gap-2 pt-1">
+                                <input
+                                  type="text"
+                                  value={venuePhoneOtp}
+                                  onChange={(e) => setVenuePhoneOtp(e.target.value)}
+                                  placeholder="Enter 6-digit OTP"
+                                  maxLength={6}
+                                  className="flex-grow px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (venuePhoneOtp.length === 6) setVenueOtpVerified(true);
+                                  }}
+                                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0"
+                                >
+                                  Verify
+                                </button>
+                              </div>
+                            )}
+                            {venueOtpVerified && (
+                              <p className="text-[11px] text-emerald-600 font-semibold">✓ Phone number verified</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Ownership / Access Document *</label>
+                            <label className="border-2 border-dashed border-gray-300 hover:border-[#0f4c81] bg-white rounded-2xl p-3 flex items-center gap-3 cursor-pointer transition-all group">
+                              <span className="material-symbols-outlined text-xl text-gray-400 group-hover:text-[#0f4c81]">upload_file</span>
+                              <div>
+                                <span className="text-xs font-bold text-[#00355f] group-hover:text-[#0f4c81] block">
+                                  {venueOwnershipDoc ? `✓ ${venueOwnershipDoc.name}` : 'Upload rental agreement, utility bill, or property paper'}
+                                </span>
+                                <span className="text-[10px] text-gray-400">PDF, JPG, PNG accepted</span>
+                              </div>
+                              <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                onChange={(e) => setVenueOwnershipDoc(e.target.files[0] || null)}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Face Scan — both tiers */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Face Scan *</label>
+                        <p className="text-[10px] text-gray-500">We capture a single photo to tie your identity to this venue registration. Your face is recorded for trust and accountability.</p>
+                        <div className="rounded-2xl overflow-hidden bg-gray-900 w-full aspect-video relative flex items-center justify-center">
+                          {venueFaceScanState === 'idle' && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                                  venueStreamRef.current = stream;
+                                  if (venueVideoRef.current) venueVideoRef.current.srcObject = stream;
+                                  setVenueFaceScanState('capturing');
+                                } catch {
+                                  setError('Camera access denied. Please allow camera access to proceed.');
+                                }
+                              }}
+                              className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl text-xs font-bold cursor-pointer flex items-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-sm">photo_camera</span>
+                              Open Camera
+                            </button>
+                          )}
+                          {venueFaceScanState === 'capturing' && (
+                            <>
+                              <video ref={venueVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const video = venueVideoRef.current;
+                                  if (!video) return;
+                                  const canvas = document.createElement('canvas');
+                                  canvas.width = video.videoWidth;
+                                  canvas.height = video.videoHeight;
+                                  canvas.getContext('2d').drawImage(video, 0, 0);
+                                  setVenueFaceScan(canvas.toDataURL('image/jpeg'));
+                                  venueStreamRef.current?.getTracks().forEach((t) => t.stop());
+                                  setVenueFaceScanState('done');
+                                }}
+                                className="absolute bottom-3 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-white text-[#00355f] rounded-2xl text-xs font-black cursor-pointer shadow-lg flex items-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-sm">center_focus_strong</span>
+                                Capture Photo
+                              </button>
+                            </>
+                          )}
+                          {venueFaceScanState === 'done' && venueFaceScan && (
+                            <>
+                              <img src={venueFaceScan} alt="Face scan" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-emerald-900/40 flex flex-col items-center justify-center gap-2">
+                                <span className="text-emerald-300 font-bold text-sm">✓ Face Captured</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setVenueFaceScan(null);
+                                    setVenueFaceScanState('idle');
+                                  }}
+                                  className="text-[10px] text-white/70 underline cursor-pointer"
+                                >
+                                  Retake
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── STEP 4: Past Event History (both tiers) ── */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                          Previous Events Hosted <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setVenuePastEvents([...venuePastEvents, { eventName: '', date: '', attendees: '' }])}
+                          className="text-[10px] text-[#0f4c81] font-bold cursor-pointer hover:underline flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-xs">add</span> Add Event
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-gray-400">Self-reported history helps organizers trust your venue. Entries will be marked 🟡 Self-reported until verified.</p>
+                      <div className="space-y-2">
+                        {venuePastEvents.map((ev, idx) => (
+                          <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-3 relative">
+                            <input
+                              type="text"
+                              placeholder="Event name"
+                              value={ev.eventName}
+                              onChange={(e) => setVenuePastEvents(venuePastEvents.map((v, i) => i === idx ? { ...v, eventName: e.target.value } : v))}
+                              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-inter"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Month & Year (e.g. Feb 2026)"
+                              value={ev.date}
+                              onChange={(e) => setVenuePastEvents(venuePastEvents.map((v, i) => i === idx ? { ...v, date: e.target.value } : v))}
+                              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-inter"
+                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                placeholder="Attendees"
+                                value={ev.attendees}
+                                onChange={(e) => setVenuePastEvents(venuePastEvents.map((v, i) => i === idx ? { ...v, attendees: e.target.value } : v))}
+                                className="flex-grow px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-inter"
+                              />
+                              {venuePastEvents.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setVenuePastEvents(venuePastEvents.filter((_, i) => i !== idx))}
+                                  className="text-red-500 hover:text-red-700 text-xs px-2 cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
