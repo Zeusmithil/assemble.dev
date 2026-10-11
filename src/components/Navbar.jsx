@@ -122,42 +122,6 @@ export const Navbar = ({
               Browse Events
             </button>
 
-            {currentUser && activeRole !== 'attendee' && (
-              <>
-                <button
-                  onClick={() => navigate('/speakers-marketplace')}
-                  className={`transition-colors hover:text-black cursor-pointer ${
-                    currentPath === '/speakers-marketplace' ? 'text-[#00355f] font-bold' : ''
-                  }`}
-                >
-                  Speakers
-                </button>
-
-                <button
-                  onClick={() => navigate('/venues-marketplace')}
-                  className={`transition-colors hover:text-black cursor-pointer ${
-                    currentPath === '/venues-marketplace' ? 'text-[#00355f] font-bold' : ''
-                  }`}
-                >
-                  Venues
-                </button>
-              </>
-            )}
-
-            {currentUser && (
-            <button
-              onClick={() => navigate('/profile')}
-              className={`px-3.5 py-1.5 rounded-full border transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${
-                currentPath === '/profile'
-                  ? 'bg-black text-white border-black shadow-2xs'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-200'
-              }`}
-              title="Profile & Roles"
-            >
-              <span className="material-symbols-outlined text-sm">account_circle</span>
-              <span>Profile</span>
-            </button>
-            )}
           </nav>
 
         {/* Right Actions & Multi-Role Switcher */}
@@ -213,16 +177,30 @@ export const Navbar = ({
                 )}
               </div>
 
-              {/* Create Event CTA for Organizer */}
-              {activeRole === 'organizer' && (
-                <button
-                  onClick={() => navigate('/create-event')}
-                  className="font-geist text-xs bg-black text-white hover:bg-gray-800 transition-all px-4 py-2 rounded-full font-bold shadow-2xs hidden sm:flex items-center gap-1 active:scale-95 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  <span>Create Event</span>
-                </button>
-              )}
+
+              {/* User Profile Avatar at the right */}
+              <button
+                onClick={() => navigate('/profile')}
+                className={`rounded-full transition-all cursor-pointer p-0.5 shrink-0 ${
+                  currentPath === '/profile'
+                    ? 'ring-2 ring-[#0f4c81] ring-offset-2'
+                    : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
+                }`}
+                title={`My Profile (${currentUser.name || 'User'})`}
+                aria-label="User Profile"
+              >
+                {currentUser.avatar || currentUser.photo ? (
+                  <img
+                    src={currentUser.avatar || currentUser.photo}
+                    alt={currentUser.name || 'User Profile'}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00355f] to-[#0f4c81] text-white flex items-center justify-center text-xs font-bold font-geist shadow-2xs border border-white">
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                )}
+              </button>
 
               <button
                 onClick={onLogout}
@@ -318,31 +296,6 @@ export const Navbar = ({
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
 
-          {currentUser && activeRole !== 'attendee' && (
-            <>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/speakers-marketplace');
-                }}
-                className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
-              >
-                <span>Speakers Marketplace</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/venues-marketplace');
-                }}
-                className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
-              >
-                <span>Venues Marketplace</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-            </>
-          )}
 
           {currentUser ? (
             <>
@@ -353,9 +306,19 @@ export const Navbar = ({
                 }}
                 className="py-2 text-xs font-bold text-gray-700 flex items-center justify-between border-b border-gray-100"
               >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">account_circle</span>
-                  <span>Profile</span>
+                <div className="flex items-center gap-2.5">
+                  {currentUser.avatar || currentUser.photo ? (
+                    <img
+                      src={currentUser.avatar || currentUser.photo}
+                      alt={currentUser.name || 'User Profile'}
+                      className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00355f] to-[#0f4c81] text-white flex items-center justify-center text-[10px] font-bold font-geist">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
+                  <span>{currentUser.name || 'Profile'}</span>
                 </div>
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>

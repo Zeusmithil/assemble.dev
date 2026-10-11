@@ -362,6 +362,18 @@ export function App() {
     setSponsorshipRequests([request, ...sponsorshipRequests]);
   };
 
+  const handleRequestVenueBooking = (newBooking) => {
+    const updated = [newBooking, ...venueBookings];
+    setVenueBookings(updated);
+    localStorage.setItem('assemble_venue_bookings', JSON.stringify(updated));
+  };
+
+  const handleInviteSpeaker = (newInvite) => {
+    const updated = [newInvite, ...speakingInvites];
+    setSpeakingInvites(updated);
+    localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
+  };
+
   const handleSimulateSponsorApprove = (requestId) => {
     const req = sponsorshipRequests.find(r => r.requestId === requestId || r.id === requestId);
     if (!req) return;
@@ -1020,6 +1032,10 @@ export function App() {
               onUpdateTicket={handleUpdateTicket}
               onUpdateEventExpenses={handleUpdateEventExpenses}
               onRoleChange={handleRoleChange}
+              venueBookings={venueBookings}
+              onRequestVenueBooking={handleRequestVenueBooking}
+              speakingInvites={speakingInvites}
+              onInviteSpeaker={handleInviteSpeaker}
             />
           );
         }
@@ -1169,23 +1185,23 @@ export function App() {
       case '/venues-marketplace':
         return (
           <VenueMarketplaceView
+            events={events}
+            venueBookings={venueBookings}
             onBack={() => handleActiveViewChange('dashboard')}
-            onRequestVenueBooking={(newBooking) => {
-              const updated = [newBooking, ...venueBookings];
-              setVenueBookings(updated);
-              localStorage.setItem('assemble_venue_bookings', JSON.stringify(updated));
-            }}
+            onRequestVenueBooking={handleRequestVenueBooking}
+            currentUser={currentUser}
+            isEmbedded={false}
           />
         );
       case '/speakers-marketplace':
         return (
           <SpeakerMarketplaceView
+            events={events}
+            speakingInvites={speakingInvites}
             onBack={() => handleActiveViewChange('dashboard')}
-            onInviteSpeaker={(newInvite) => {
-              const updated = [newInvite, ...speakingInvites];
-              setSpeakingInvites(updated);
-              localStorage.setItem('assemble_speaking_invites', JSON.stringify(updated));
-            }}
+            onInviteSpeaker={handleInviteSpeaker}
+            currentUser={currentUser}
+            isEmbedded={false}
           />
         );
       case '/my-communities':

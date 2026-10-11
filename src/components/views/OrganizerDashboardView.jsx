@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { GoodiesMerchSection } from './GoodiesMerchSection';
 import { SponsorshipSection } from './SponsorshipSection';
+import { VenueMarketplaceView } from './VenueMarketplaceView';
+import { SpeakerMarketplaceView } from './SpeakerMarketplaceView';
 
 export const OrganizerDashboardView = ({
   events,
@@ -22,13 +24,20 @@ export const OrganizerDashboardView = ({
   currentUser,
   communities,
   onUpdateTicket,
-  onUpdateEventExpenses
+  onUpdateEventExpenses,
+  venueBookings = [],
+  onRequestVenueBooking,
+  speakingInvites = [],
+  onInviteSpeaker,
+  onRoleChange
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [ticketInput, setTicketInput] = useState('');
   const [checkInResult, setCheckInResult] = useState(null);
   const [selectedAnalyticsEvent, setSelectedAnalyticsEvent] = useState(null);
   const [dashboardTab, setDashboardTab] = useState('attendees');
+  const [checkInSearchTerm, setCheckInSearchTerm] = useState('');
+  const [checkInFilter, setCheckInFilter] = useState('all'); // 'all', 'pending', 'checked'
 
   // Event Budget & Expense Management States
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
@@ -198,63 +207,110 @@ export const OrganizerDashboardView = ({
   const totalRegistrations = managedEvents.reduce((acc, e) => acc + (e.registeredCount || 0), 0);
   const totalCheckedIn = managedEvents.reduce((acc, e) => acc + (e.checkedInCount || 0), 0);
 
-  const handleScanTicket = (e) => {
+  const handleScanTicket = (e, targetEventId = null) => {
     e.preventDefault();
     if (!ticketInput.trim()) return;
 
-    const success = onCheckInTicket(ticketInput.trim());
+    const queryId = ticketInput.trim().toLowerCase();
     const matchedTicket = tickets.find(
-      (t) => t.ticketId.toLowerCase() === ticketInput.trim().toLowerCase()
+      (t) => t.ticketId.toLowerCase() === queryId
     );
 
-    if (success && matchedTicket) {
+    if (!matchedTicket) {
       setCheckInResult({
-        success: true,
-        message: `✓ Ticket Verified! ${matchedTicket.userName} checked in successfully for ${matchedTicket.eventTitle}.`,
+        success: false,
+        message: '✕ Ticket Not Found. Please check the ticket code and try again.',
+      });
+      return;
+    }
+
+    if (targetEventId && matchedTicket.eventId !== targetEventId) {
+      setCheckInResult({
+        success: false,
+        message: `✕ Wrong Event! Ticket ${matchedTicket.ticketId} is registered for "${matchedTicket.eventTitle}".`,
+      });
+      return;
+    }
+
+    if (matchedTicket.status === 'checked-in') {
+      setCheckInResult({
+        success: false,
+        message: `⚠️ Already Admitted! ${matchedTicket.userName} (${matchedTicket.ticketId}) was already checked in.`,
         ticket: matchedTicket,
       });
+      return;
+    }
+
+    const success = onCheckInTicket(matchedTicket.ticketId);
+    if (success) {
+      setCheckInResult({
+        success: true,
+        message: `✓ Admitted! ${matchedTicket.userName} checked in successfully for ${matchedTicket.eventTitle}.`,
+        ticket: matchedTicket,
+      });
+      setTicketInput('');
     } else {
       setCheckInResult({
         success: false,
-        message: '✕ Ticket Not Found or Already Checked In.',
+        message: '✕ Could not complete check in. Please try again.',
+      });
+    }
+  };
+
+  const handleDirectCheckIn = (ticket) => {
+    if (ticket.status === 'checked-in') return;
+    const success = onCheckInTicket(ticket.ticketId);
+    if (success) {
+      setCheckInResult({
+        success: true,
+        message: `✓ Admitted! ${ticket.userName} (${ticket.ticketId}) checked in successfully.`,
+        ticket,
       });
     }
   };
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
-      {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-6">
-        <div>
-          <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider">
-            Organizer Portal
-          </span>
-          <h1 className="font-geist text-2xl md:text-3xl font-bold text-[#00355f] mt-0.5">
-            Event Management Console
-            
-          </h1>
+      {/* Blue Hero Header with Glassmorphism matching other roles */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] p-8 md:p-10 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
+              <span>🎯</span>
+              <span>Organizer Portal</span>
+            </div>
+            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
+              Event Management Console
+            </h1>
+            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
+              Coordinate live event schedules, track attendee registrations, manage budgets, procure venues, and invite keynote speakers.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={onOpenCreateEvent}
+              className="px-5 py-2.5 bg-white text-[#00355f] hover:bg-blue-50 rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm font-bold">add</span>
+              <span>Create New Event</span>
+            </button>
+
+            {onRoleChange && (
+              <button
+                onClick={() => onRoleChange('attendee')}
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+              >
+                <span className="material-symbols-outlined text-sm">explore</span>
+                <span>Switch to Attendee Mode</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setActiveTab('checkin');
-              setSelectedAnalyticsEvent(null);
-            }}
-            className="px-4 py-2.5 bg-white border border-[#c2c7d1] hover:bg-[#f3f4f5] text-[#00355f] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base text-[#0f4c81]">qr_code_scanner</span>
-            <span>Live Door Check-In</span>
-          </button>
-
-          <button
-            onClick={onOpenCreateEvent}
-            className="px-4 py-2.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">add</span>
-            <span>Create New Event</span>
-          </button>
-        </div>
+        {/* Glow accents */}
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Sidebar / Tabs Row */}
@@ -305,24 +361,41 @@ export const OrganizerDashboardView = ({
         </button>
 
         <button
-          onClick={() => setActiveView('venues-marketplace')}
-          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
+          onClick={() => {
+            setActiveTab('venues');
+            setSelectedAnalyticsEvent(null);
+          }}
+          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'venues'
+              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+              : 'text-[#5f5e5e] hover:text-[#00355f]'
+          }`}
         >
-          Venue Marketplace
+          <span className="material-symbols-outlined text-base font-bold">domain</span>
+          <span>Venue Marketplace</span>
         </button>
 
         <button
-          onClick={() => setActiveView('speakers-marketplace')}
-          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
+          onClick={() => {
+            setActiveTab('speakers');
+            setSelectedAnalyticsEvent(null);
+          }}
+          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'speakers'
+              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+              : 'text-[#5f5e5e] hover:text-[#00355f]'
+          }`}
         >
-          Speakers Marketplace
+          <span className="material-symbols-outlined text-base font-bold">record_voice_over</span>
+          <span>Speakers Marketplace</span>
         </button>
 
         <button
           onClick={() => setActiveView('my-communities')}
-          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer"
+          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer flex items-center gap-1.5"
         >
-          My Communities
+          <span className="material-symbols-outlined text-base font-bold">groups</span>
+          <span>My Communities</span>
         </button>
       </div>
 
@@ -414,14 +487,30 @@ export const OrganizerDashboardView = ({
                             </td>
                             <td className="p-4 text-right space-x-2">
                               <button
-                                onClick={() => setSelectedAnalyticsEvent(evt)}
-                                className="px-3 py-1.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-lg font-bold cursor-pointer"
+                                onClick={() => {
+                                  setSelectedAnalyticsEvent(evt);
+                                  setDashboardTab('checkin');
+                                  setCheckInResult(null);
+                                  setTicketInput('');
+                                }}
+                                className="px-2.5 py-1.5 bg-[#e2f7e2] text-[#1a853e] hover:bg-[#1a853e] hover:text-white rounded-lg font-bold inline-flex items-center gap-1 cursor-pointer transition-all shadow-3xs text-xs"
+                                title="Open Live Door Check-In for this event"
+                              >
+                                <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+                                <span>Check-In</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedAnalyticsEvent(evt);
+                                  setDashboardTab('attendees');
+                                }}
+                                className="px-3 py-1.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-lg font-bold cursor-pointer text-xs"
                               >
                                 Analytics
                               </button>
                               <button
                                 onClick={() => onSelectEvent(evt)}
-                                className="px-3 py-1.5 border border-[#c2c7d1] hover:bg-[#e7e8e9] rounded-lg font-bold text-[#00355f] cursor-pointer"
+                                className="px-3 py-1.5 border border-[#c2c7d1] hover:bg-[#e7e8e9] rounded-lg font-bold text-[#00355f] cursor-pointer text-xs"
                               >
                                 View
                               </button>
@@ -611,6 +700,23 @@ export const OrganizerDashboardView = ({
                   >
                     Community Applicants ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community')).length})
                   </button>
+                  <button
+                    onClick={() => {
+                      setDashboardTab('checkin');
+                      setCheckInResult(null);
+                    }}
+                    className={`pb-2 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                      dashboardTab === 'checkin'
+                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
+                        : 'text-[#5f5e5e] hover:text-[#00355f]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+                    <span>
+                      Live Door Check-In ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && t.status === 'checked-in').length}/{tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length})
+                    </span>
+                  </button>
+
                   <button
                     onClick={() => setDashboardTab('budget')}
                     className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
@@ -1013,6 +1119,277 @@ export const OrganizerDashboardView = ({
                     </div>
                   </div>
                 )}
+
+                {/* Event-Scoped Live Door Check-In Tab */}
+                {dashboardTab === 'checkin' && (() => {
+                  const eventTickets = tickets.filter(t => t.eventId === selectedAnalyticsEvent.id);
+                  const checkedInTickets = eventTickets.filter(t => t.status === 'checked-in');
+                  const pendingTickets = eventTickets.filter(t => t.status !== 'checked-in');
+                  const checkInRate = eventTickets.length > 0
+                    ? Math.round((checkedInTickets.length / eventTickets.length) * 100)
+                    : 0;
+
+                  const filteredRoster = eventTickets.filter((t) => {
+                    if (checkInFilter === 'pending' && t.status === 'checked-in') return false;
+                    if (checkInFilter === 'checked' && t.status !== 'checked-in') return false;
+                    if (checkInSearchTerm.trim()) {
+                      const query = checkInSearchTerm.toLowerCase();
+                      const matchesName = t.userName?.toLowerCase().includes(query);
+                      const matchesEmail = t.userEmail?.toLowerCase().includes(query);
+                      const matchesId = t.ticketId?.toLowerCase().includes(query);
+                      if (!matchesName && !matchesEmail && !matchesId) return false;
+                    }
+                    return true;
+                  });
+
+                  return (
+                    <div className="space-y-6 text-left animate-fadeIn">
+                      {/* Check-In Telemetry Cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-white border border-[#e1e3e4] rounded-2xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Registered</span>
+                          <span className="font-geist text-2xl font-black text-[#00355f]">{eventTickets.length}</span>
+                          <span className="text-[10px] text-gray-500 block">Event Attendee Pool</span>
+                        </div>
+
+                        <div className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Checked In</span>
+                          <span className="font-geist text-2xl font-black text-emerald-700">{checkedInTickets.length}</span>
+                          <span className="text-[10px] text-emerald-600 block">Admitted at Door</span>
+                        </div>
+
+                        <div className="p-4 bg-amber-50/60 border border-amber-100 rounded-2xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Pending Arrival</span>
+                          <span className="font-geist text-2xl font-black text-amber-700">{pendingTickets.length}</span>
+                          <span className="text-[10px] text-amber-600 block">Awaiting Check-In</span>
+                        </div>
+
+                        <div className="p-4 bg-blue-50/60 border border-blue-100 rounded-2xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[10px] font-bold text-[#0f4c81] uppercase tracking-wider block">Check-In Rate</span>
+                          <span className="font-geist text-2xl font-black text-[#00355f]">{checkInRate}%</span>
+                          <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-1">
+                            <div className="bg-[#1a853e] h-full transition-all duration-500" style={{ width: `${checkInRate}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ticket Scanner & Validator Card */}
+                      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-4 shadow-2xs">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-gray-100 pb-3">
+                          <div>
+                            <h4 className="font-geist font-bold text-base text-[#00355f] flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[#0f4c81]">qr_code_scanner</span>
+                              <span>Scan or Validate Door Ticket</span>
+                            </h4>
+                            <p className="font-inter text-xs text-[#5f5e5e]">
+                              Enter or scan attendee Ticket ID specifically for <strong>{selectedAnalyticsEvent.title}</strong>.
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold text-[#0f4c81] bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full w-fit">
+                            Live Scanner Active
+                          </span>
+                        </div>
+
+                        <form onSubmit={(e) => handleScanTicket(e, selectedAnalyticsEvent.id)} className="space-y-3">
+                          <div className="flex gap-2">
+                            <div className="relative flex-grow">
+                              <span className="material-symbols-outlined absolute left-3.5 top-3 text-gray-400 text-lg">
+                                pin
+                              </span>
+                              <input
+                                type="text"
+                                value={ticketInput}
+                                onChange={(e) => setTicketInput(e.target.value)}
+                                placeholder="Scan or enter Ticket ID (e.g. EH-89241)"
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-geist font-bold text-[#00355f] outline-none focus:border-[#0f4c81] focus:bg-white transition-all"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              className="px-5 py-2.5 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
+                            >
+                              <span className="material-symbols-outlined text-sm">check_circle</span>
+                              <span>Verify & Check In</span>
+                            </button>
+                          </div>
+
+                          {/* Quick test pills from pending attendees */}
+                          {pendingTickets.length > 0 && (
+                            <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
+                              <span className="text-[11px] text-gray-400">Sample pending tickets:</span>
+                              {pendingTickets.slice(0, 4).map((t) => (
+                                <button
+                                  key={t.ticketId}
+                                  type="button"
+                                  onClick={() => setTicketInput(t.ticketId)}
+                                  className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[#00355f] font-mono text-[10px] font-bold rounded cursor-pointer transition-colors"
+                                >
+                                  {t.ticketId} ({t.userName?.split(' ')[0]})
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </form>
+
+                        {/* Scanner Result Alert */}
+                        {checkInResult && (
+                          <div
+                            className={`p-4 rounded-xl text-xs font-bold text-center border animate-fadeIn ${
+                              checkInResult.success
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : 'bg-rose-50 text-rose-800 border-rose-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="material-symbols-outlined text-base">
+                                {checkInResult.success ? 'verified' : 'error'}
+                              </span>
+                              <span>{checkInResult.message}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Attendee Door Roster with 1-Click Check In */}
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                          <div>
+                            <h4 className="font-geist font-bold text-sm text-[#00355f]">
+                              Door Attendance Roster ({filteredRoster.length})
+                            </h4>
+                            <p className="font-inter text-xs text-[#5f5e5e]">
+                              Search or tap Check In to admit guests directly without entering codes.
+                            </p>
+                          </div>
+
+                          {/* Search + Filter Controls */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="relative">
+                              <span className="material-symbols-outlined absolute left-2.5 top-2 text-gray-400 text-sm">
+                                search
+                              </span>
+                              <input
+                                type="text"
+                                value={checkInSearchTerm}
+                                onChange={(e) => setCheckInSearchTerm(e.target.value)}
+                                placeholder="Search attendee name or ID..."
+                                className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#0f4c81] w-48"
+                              />
+                            </div>
+
+                            <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-gray-50 text-xs">
+                              <button
+                                onClick={() => setCheckInFilter('all')}
+                                className={`px-2.5 py-1 font-bold cursor-pointer ${
+                                  checkInFilter === 'all' ? 'bg-[#0f4c81] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                All ({eventTickets.length})
+                              </button>
+                              <button
+                                onClick={() => setCheckInFilter('pending')}
+                                className={`px-2.5 py-1 font-bold cursor-pointer ${
+                                  checkInFilter === 'pending' ? 'bg-[#0f4c81] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                Pending ({pendingTickets.length})
+                              </button>
+                              <button
+                                onClick={() => setCheckInFilter('checked')}
+                                className={`px-2.5 py-1 font-bold cursor-pointer ${
+                                  checkInFilter === 'checked' ? 'bg-[#0f4c81] text-white' : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                Admitted ({checkedInTickets.length})
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Roster Table */}
+                        <div className="bg-white border border-[#e1e3e4] rounded-xl overflow-hidden shadow-2xs">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs font-inter">
+                              <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
+                                <tr>
+                                  <th className="p-3">Attendee Name</th>
+                                  <th className="p-3">Ticket ID</th>
+                                  <th className="p-3">Ticket Tier</th>
+                                  <th className="p-3">Phone</th>
+                                  <th className="p-3">Door Status</th>
+                                  <th className="p-3 text-right">Door Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#edeeef]">
+                                {filteredRoster.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="6" className="p-6 text-center text-gray-400 italic">
+                                      No attendees match the current filter or search criteria.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  filteredRoster.map((t) => {
+                                    const isChecked = t.status === 'checked-in';
+                                    return (
+                                      <tr key={t.ticketId} className="hover:bg-gray-50 transition-colors">
+                                        <td className="p-3 font-semibold text-[#00355f]">
+                                          <div>{t.userName}</div>
+                                          <div className="text-[10px] text-gray-400 font-normal">{t.userEmail}</div>
+                                        </td>
+                                        <td className="p-3">
+                                          <span className="font-mono text-[11px] font-bold text-[#0f4c81] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                            {t.ticketId}
+                                          </span>
+                                        </td>
+                                        <td className="p-3 text-gray-600">
+                                          {t.ticketTierName || (t.isFree ? 'Free Admission' : 'Standard')}
+                                        </td>
+                                        <td className="p-3 text-gray-500">
+                                          {t.phone ? (
+                                            <a href={`tel:${t.phone}`} className="hover:text-[#0f4c81] hover:underline">
+                                              {t.phone}
+                                            </a>
+                                          ) : '—'}
+                                        </td>
+                                        <td className="p-3">
+                                          <span
+                                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                              isChecked
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                            }`}
+                                          >
+                                            {isChecked ? '✓ Admitted' : 'Pending'}
+                                          </span>
+                                        </td>
+                                        <td className="p-3 text-right">
+                                          {isChecked ? (
+                                            <span className="text-[11px] font-bold text-emerald-700 inline-flex items-center gap-1">
+                                              <span className="material-symbols-outlined text-sm">done_all</span>
+                                              <span>Admitted</span>
+                                            </span>
+                                          ) : (
+                                            <button
+                                              onClick={() => handleDirectCheckIn(t)}
+                                              className="px-3 py-1 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-lg text-xs font-bold transition-all shadow-3xs cursor-pointer active:scale-95 inline-flex items-center gap-1"
+                                            >
+                                              <span className="material-symbols-outlined text-xs">login</span>
+                                              <span>Check In</span>
+                                            </button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1178,71 +1555,47 @@ export const OrganizerDashboardView = ({
         </div>
       )}
 
-      {/* Live Door Check-In Scanner Tool */}
-      {activeTab === 'checkin' && (
-        <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 max-w-xl mx-auto shadow-sm">
+      {/* Event Selection Prompt if Check-In accessed directly */}
+      {activeTab === 'checkin' && !selectedAnalyticsEvent && (
+        <div className="bg-white border border-[#e1e3e4] rounded-[2rem] p-6 md:p-8 space-y-6 max-w-2xl mx-auto shadow-sm text-left">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 bg-[#d2e4ff] text-[#0f4c81] rounded-2xl flex items-center justify-center mx-auto">
               <span className="material-symbols-outlined text-2xl">qr_code_scanner</span>
             </div>
-            <h2 className="font-geist text-2xl font-bold text-[#00355f]">Live Door Ticket Validator</h2>
+            <h2 className="font-geist text-2xl font-bold text-[#00355f]">Select Event for Door Check-In</h2>
             <p className="font-inter text-xs text-[#5f5e5e]">
-              Enter or scan attendee Ticket ID to verify validity and grant venue access.
+              Pick which event you are managing door admissions for to launch its live ticket validator.
             </p>
           </div>
 
-          <form onSubmit={handleScanTicket} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#00355f] uppercase tracking-wider block">
-                Enter Ticket ID or Code
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={ticketInput}
-                  onChange={(e) => setTicketInput(e.target.value)}
-                  placeholder="e.g. EH-89241 or EH-44102"
-                  className="flex-grow px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm font-geist font-bold text-[#00355f]"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-[#0f4c81] text-white font-bold rounded-xl text-xs hover:bg-[#00355f] cursor-pointer"
-                >
-                  Verify Ticket
+          <div className="grid grid-cols-1 gap-3">
+            {managedEvents.map((evt) => (
+              <div
+                key={evt.id}
+                onClick={() => {
+                  setSelectedAnalyticsEvent(evt);
+                  setDashboardTab('checkin');
+                  setActiveTab('overview');
+                }}
+                className="p-4 rounded-xl border border-gray-200 hover:border-[#0f4c81] hover:bg-blue-50/40 transition-all cursor-pointer flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <img src={evt.imageUrl} alt={evt.title} className="w-10 h-10 rounded-lg object-cover" />
+                  <div>
+                    <h4 className="font-geist font-bold text-sm text-[#00355f] group-hover:text-[#0f4c81]">
+                      {evt.title}
+                    </h4>
+                    <p className="text-[11px] text-gray-500">
+                      📅 {evt.startDate} • 👥 {evt.registeredCount} Registered
+                    </p>
+                  </div>
+                </div>
+                <button className="px-3.5 py-1.5 bg-[#0f4c81] text-white rounded-lg text-xs font-bold">
+                  Open Scanner →
                 </button>
               </div>
-            </div>
-
-            <div className="text-center pt-2">
-              <span className="text-[11px] text-[#727780]">Sample valid IDs for test: </span>
-              <button
-                type="button"
-                onClick={() => setTicketInput('EH-89241')}
-                className="text-[11px] font-bold text-[#0f4c81] underline mx-1 cursor-pointer"
-              >
-                EH-89241
-              </button>
-              <button
-                type="button"
-                onClick={() => setTicketInput('EH-44102')}
-                className="text-[11px] font-bold text-[#0f4c81] underline mx-1 cursor-pointer"
-              >
-                EH-44102
-              </button>
-            </div>
-          </form>
-
-          {checkInResult && (
-            <div
-              className={`p-4 rounded-xl text-xs font-bold text-center border ${
-                checkInResult.success
-                  ? 'bg-[#e2f7e2] text-[#1a853e] border-[#b4e7b4]'
-                  : 'bg-[#ffe3e3] text-[#d32f2f] border-[#ffb4b4]'
-              }`}
-            >
-              {checkInResult.message}
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       )}
 
@@ -1264,6 +1617,26 @@ export const OrganizerDashboardView = ({
           onRequestSponsorship={onRequestSponsorship}
           onSimulateSponsorApprove={onSimulateSponsorApprove}
           currentUser={currentUser}
+        />
+      )}
+
+      {activeTab === 'venues' && (
+        <VenueMarketplaceView
+          events={events}
+          venueBookings={venueBookings}
+          onRequestVenueBooking={onRequestVenueBooking}
+          currentUser={currentUser}
+          isEmbedded={true}
+        />
+      )}
+
+      {activeTab === 'speakers' && (
+        <SpeakerMarketplaceView
+          events={events}
+          speakingInvites={speakingInvites}
+          onInviteSpeaker={onInviteSpeaker}
+          currentUser={currentUser}
+          isEmbedded={true}
         />
       )}
     </div>
