@@ -127,7 +127,7 @@ export const SpeakerMarketplaceView = ({
         id: `inv-${Date.now()}`,
         speakerId: invitedSpeaker.id,
         speakerName: invitedSpeaker.name,
-        speakerEmail: invitedSpeaker.email || 'speaker@assemble.dev',
+        speakerEmail: invitedSpeaker.email || 'speaker@connect.dev',
         eventTitle: inviteEventTitle,
         message: inviteMessage,
         status: 'pending',

@@ -530,7 +530,7 @@ export const RoleSetupView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[760px] mx-auto py-8 animate-fadeIn text-left">
-      <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-blue-900/10 space-y-6">
+      <div className="bg-white/95 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-black/40 space-y-6">
         {/* Dynamic Header */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
@@ -1295,7 +1295,7 @@ export const RoleSetupView = ({
                     required
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="e.g. TechPulse Community or Event Horizon Team"
+                    placeholder="e.g. TechPulse Community or Connect Team"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
                   />
                 </div>

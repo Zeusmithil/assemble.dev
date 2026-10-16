@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isSponsorshipApproved, isSponsorshipPending, isSponsorshipRejected } from '../../utils/sponsorship';
 
 export const SponsorDashboardView = ({
   currentUser,
@@ -23,11 +24,11 @@ export const SponsorDashboardView = ({
 
   // Sponsor budget metrics
   const totalBudget = currentUser?.sponsorProfile?.budgetAmount || 25000;
-  const approvedRequests = sponsorshipRequests.filter((r) => r.status === 'approved' || r.status === 'active' || r.status === 'verified');
+  const approvedRequests = sponsorshipRequests.filter(isSponsorshipApproved);
   const allocatedBudget = approvedRequests.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   const availableBudget = Math.max(0, totalBudget - allocatedBudget);
 
-  const pendingRequests = sponsorshipRequests.filter((r) => r.status === 'requested' || r.status === 'pending');
+  const pendingRequests = sponsorshipRequests.filter(isSponsorshipPending);
 
   const filteredEvents = events.filter((e) => {
     if (selectedCategory === 'All') return true;
@@ -306,15 +307,8 @@ export const SponsorDashboardView = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {sponsorshipRequests.map((req) => {
                 const reqKey = req.id || req.requestId;
-                const isApproved =
-                  req.status === 'approved' ||
-                  req.status === 'verified' ||
-                  req.status === 'Sponsorship Code Generated' ||
-                  Boolean(req.code);
-                const isRejected =
-                  req.status === 'rejected' ||
-                  req.status === 'Rejected' ||
-                  localRejectedIds.includes(reqKey);
+                const isApproved = isSponsorshipApproved(req) || Boolean(req.code);
+                const isRejected = isSponsorshipRejected(req) || localRejectedIds.includes(reqKey);
 
                 return (
                   <div key={reqKey} className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
@@ -409,9 +403,9 @@ export const SponsorDashboardView = ({
                 { code: 'TN2026-AI50', sponsor: 'TechNova Solutions', amount: '€5,000', cat: 'Keynote & AI Track', status: 'Active' },
                 { code: 'TN2026-75K', sponsor: 'TechNova Solutions', amount: '€7,500', cat: 'Main Stage & Venue', status: 'Active' },
                 { code: 'BX2026-30K', sponsor: 'BrandX Media', amount: '€3,000', cat: 'Swag & Goodies', status: 'Active' },
-                ...approvedRequests.map(r => ({
-                  code: r.generatedCode || `SP-${r.id.toUpperCase()}`,
-                  sponsor: currentUser?.name || 'My Company',
+                ...approvedRequests.map((r, idx) => ({
+                  code: r.generatedCode || r.code || `SP-${String(r.id || r.requestId || idx + 1).toUpperCase()}`,
+                  sponsor: r.sponsorName || currentUser?.sponsorProfile?.companyName || currentUser?.name || 'My Company',
                   amount: `€${Number(r.amount).toLocaleString()}`,
                   cat: r.requirement || 'General Sponsorship',
                   status: 'Active'
@@ -452,7 +446,7 @@ export const SponsorDashboardView = ({
           <h3 className="font-geist text-base font-bold text-[#00355f]">Cross-Role Capabilities</h3>
         </div>
         <p className="font-inter text-xs text-gray-600 max-w-2xl leading-relaxed">
-          As a Corporate Sponsor, your Event Horizon account allows you to attend events with VIP passes, organize your own company conferences, or present keynotes.
+          As a Corporate Sponsor, your Connect account allows you to attend events with VIP passes, organize your own company conferences, or present keynotes.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <button

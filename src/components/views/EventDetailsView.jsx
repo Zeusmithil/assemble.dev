@@ -44,7 +44,8 @@ export const EventDetailsView = ({
   );
 
   // Volunteer & Community Application States
-  const [willVolunteer, setWillVolunteer] = useState(false);
+  // People who signed up to volunteer start with the volunteer option ticked
+  const [willVolunteer, setWillVolunteer] = useState(Boolean(currentUser?.volunteerIntent && event?.volunteersNeeded > 0));
   const [willJoinCommunity, setWillJoinCommunity] = useState(false);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [formData, setFormData] = useState({

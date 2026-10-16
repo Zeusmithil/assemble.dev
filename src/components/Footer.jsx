@@ -1,56 +1,62 @@
 import React from 'react';
+import { ROLE_JOURNEY, rgbString } from './landing/journey';
 
-export const Footer = ({ setActiveView }) => {
+const FooterLink = ({ children, onClick }) => (
+  <button type="button" onClick={onClick} className="text-white/55 hover:text-white text-left transition-colors cursor-pointer">
+    {children}
+  </button>
+);
+
+export const Footer = ({ setActiveView, onJoin }) => {
+  const year = new Date().getFullYear();
   return (
-    <footer className="w-full py-10 px-4 md:px-10 max-w-[1280px] mx-auto mt-auto">
-      <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-10 shadow-xs flex flex-col md:flex-row justify-between items-start gap-8">
-        <div className="flex flex-col gap-3">
-          <div className="font-geist text-xl font-black uppercase text-black flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">E</span>
-            <span>Event Horizon</span>
+    <footer className="relative z-10 w-full px-4 md:px-8 pb-8 pt-10 max-w-[1280px] mx-auto mt-auto">
+      <div className="theme-dark rounded-[32px] border border-white/[0.08] bg-gradient-to-b from-ink-800 to-ink-900 p-8 md:p-12 shadow-[0_40px_80px_-40px_rgb(0_0_0/0.6)]">
+        <div className="flex flex-col lg:flex-row justify-between gap-12">
+          <div className="max-w-sm">
+            <div className="font-geist text-lg font-semibold text-white flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-full bg-paper text-ink-950 flex items-center justify-center text-sm font-bold">C</span>
+              Connect
+            </div>
+            <p className="text-[14px] text-white/55 mt-4 leading-relaxed">
+              One ecosystem for attendees, organizers, speakers, volunteers, sponsors and venue partners.
+            </p>
+            <div className="flex gap-1.5 mt-6" aria-hidden="true">
+              {ROLE_JOURNEY.map((r) => (
+                <span key={r.id} className="h-1 w-8 rounded-full" style={{ background: rgbString(r.rgb, 0.8) }} />
+              ))}
+            </div>
           </div>
-          <p className="font-inter text-xs text-gray-500 max-w-sm leading-relaxed">
-            © 2026 Event Horizon. Discover events or bring your own to life — from planning to execution.
-          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 text-[14px]">
+            <div className="flex flex-col gap-3">
+              <span className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] mb-1">Platform</span>
+              <FooterLink onClick={() => setActiveView('discover')}>Browse events</FooterLink>
+              <FooterLink onClick={() => setActiveView('create-event')}>Organize an event</FooterLink>
+              <FooterLink onClick={() => setActiveView('venues-marketplace')}>Venue marketplace</FooterLink>
+              <FooterLink onClick={() => setActiveView('speakers-marketplace')}>Speaker network</FooterLink>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <span className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] mb-1">Join as</span>
+              {ROLE_JOURNEY.map((r) => (
+                <FooterLink key={r.id} onClick={() => onJoin(r.signupRole)}>
+                  {r.label}
+                </FooterLink>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <span className="text-[11px] font-semibold text-white/35 uppercase tracking-[0.18em] mb-1">Company</span>
+              <FooterLink onClick={() => setActiveView('home')}>Home</FooterLink>
+              <FooterLink onClick={() => setActiveView('about')}>About</FooterLink>
+              <FooterLink onClick={() => setActiveView('how-it-works')}>How it works</FooterLink>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-xs font-inter">
-          <div className="flex flex-col gap-2.5">
-            <span className="font-geist text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ecosystem</span>
-            <button onClick={() => setActiveView('discover')} className="text-gray-600 hover:text-black text-left transition-colors">
-              Discover Events
-            </button>
-            <button onClick={() => setActiveView('create-event')} className="text-gray-600 hover:text-black text-left transition-colors">
-              Organize an Event
-            </button>
-            <button onClick={() => setActiveView('venues-marketplace')} className="text-gray-600 hover:text-black text-left transition-colors">
-              Venue Marketplace
-            </button>
-            <button onClick={() => setActiveView('speakers-marketplace')} className="text-gray-600 hover:text-black text-left transition-colors">
-              Speakers Network
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            <span className="font-geist text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Company</span>
-            <button onClick={() => setActiveView('about')} className="text-gray-600 hover:text-black text-left transition-colors">
-              About Us
-            </button>
-            <button onClick={() => setActiveView('how-it-works')} className="text-gray-600 hover:text-black text-left transition-colors">
-              How It Works
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2.5 col-span-2 md:col-span-1">
-            <span className="font-geist text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Support</span>
-            <a href="#help" onClick={(e) => { e.preventDefault(); alert("Help Center active 24/7."); }} className="text-gray-600 hover:text-black transition-colors">
-              Help Center
-            </a>
-            <a href="#terms" onClick={(e) => { e.preventDefault(); alert("Terms of Service"); }} className="text-gray-600 hover:text-black transition-colors">
-              Terms of Service
-            </a>
-          </div>
-        </div>
+        <div className="hairline my-8" />
+        <p className="text-[12px] text-white/40">© {year} Connect. Discover events or bring your own to life.</p>
       </div>
     </footer>
   );

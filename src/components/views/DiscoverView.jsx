@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ALL_CITIES, CITIES } from '../Navbar';
 
 const CATEGORIES = [
   'All',
@@ -30,6 +31,9 @@ export const DiscoverView = ({
       // Must be published or match search
       if (evt.status !== 'published') return false;
 
+      // City filter
+      if (selectedCity && selectedCity !== ALL_CITIES && evt.city?.toLowerCase() !== selectedCity.toLowerCase()) return false;
+
       // Category filter
       if (selectedCategory !== 'All' && evt.category !== selectedCategory) return false;
 
@@ -55,7 +59,7 @@ export const DiscoverView = ({
 
       return true;
     });
-  }, [events, selectedCategory, selectedFormat, priceFilter, searchTerm]);
+  }, [events, selectedCity, selectedCategory, selectedFormat, priceFilter, searchTerm]);
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8">
@@ -151,11 +155,9 @@ export const DiscoverView = ({
                 onChange={(e) => setSelectedCity(e.target.value)}
                 className="bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 text-black cursor-pointer font-bold outline-none"
               >
-                <option value="Chennai">Chennai</option>
-                <option value="San Francisco">San Francisco</option>
-                <option value="New York">New York</option>
-                <option value="London">London</option>
-                <option value="Bangalore">Bangalore</option>
+                {CITIES.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
               </select>
             </div>
           </div>

@@ -232,7 +232,7 @@ export const CommunityAnalysisView = ({
         <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-2.5 text-xs font-inter text-[#0f4c81]">
           <span className="material-symbols-outlined text-base font-bold shrink-0">info</span>
           <span>
-            <strong>Authentic Telemetry:</strong> All statistics displayed below are aggregated directly from Event Horizon verified event databases, checked-in tickets, and approved sponsorship allocations. No mock or fabricated statistics are used.
+            <strong>Authentic Telemetry:</strong> All statistics displayed below are aggregated directly from Connect verified event databases, checked-in tickets, and approved sponsorship allocations. No mock or fabricated statistics are used.
           </span>
         </div>
       </div>
@@ -685,7 +685,7 @@ export const CommunityAnalysisView = ({
                     })}
                   </div>
                   <div className="text-[11px] text-gray-400 text-center">
-                    Annual grant volume verified via Event Horizon corporate sponsorship codes.
+                    Annual grant volume verified via Connect corporate sponsorship codes.
                   </div>
                 </div>
               )}

@@ -1,3 +1,4 @@
+import { isSponsorshipApproved } from './sponsorship';
 /**
  * Community Analysis & Due-Diligence Logic for Sponsors
  * Connects events to communities and computes verified credibility statistics.
@@ -47,7 +48,7 @@ export const resolveCommunityForEvent = (event, communities = []) => {
     name: event.organizer || 'Event Organizing Committee',
     organizerName: event.organizer || 'Event Organizer',
     code: `${(event.organizer || 'COMM').slice(0, 4).toUpperCase()}2026`,
-    description: `${event.organizer || 'This organizer'} hosts curated events and gatherings on Event Horizon.`,
+    description: `${event.organizer || 'This organizer'} hosts curated events and gatherings on Connect.`,
     category: event.category || 'Conferences & Events',
     image: event.imageUrl || 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=800',
     createdDate: '2024-01-01',
@@ -156,14 +157,7 @@ export const computeCommunityStats = (community, allEvents = [], sponsorshipRequ
   // Check active sponsorship requests on platform
   const linkedEventIds = new Set(linkedActiveEvents.map((e) => e.id));
   const activeApprovedRequests = sponsorshipRequests.filter((r) => {
-    const isApproved =
-      r.status === 'Sponsorship Code Generated' ||
-      r.status === 'approved' ||
-      r.status === 'Approved' ||
-      r.status === 'active' ||
-      r.status === 'Active' ||
-      r.status === 'verified';
-    return isApproved && linkedEventIds.has(r.eventId);
+    return isSponsorshipApproved(r) && linkedEventIds.has(r.eventId);
   });
 
   const convertedActiveSponsorships = activeApprovedRequests.map((r) => ({

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { INITIAL_EVENTS, INITIAL_TICKETS, INITIAL_COMMUNITIES, INITIAL_VENUES, INITIAL_SPEAKERS } from './data/initialData';
 import { CommunityRoomView } from './components/views/CommunityRoomView';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-import { HomeView } from './components/views/HomeView';
 import { DiscoverView } from './components/views/DiscoverView';
 import { EventDetailsView } from './components/views/EventDetailsView';
 import { CommunityAnalysisView } from './components/views/CommunityAnalysisView';
@@ -25,6 +24,79 @@ import { BecomeSponsorView } from './components/views/BecomeSponsorView';
 import { RoleSetupPendingView } from './components/views/RoleSetupPendingView';
 import { RoleSetupView } from './components/views/RoleSetupView';
 import { getUserCapabilities, persistUserRecord, userHasRoleSetup } from './utils/roles';
+import { SPONSORSHIP_STATUS } from './utils/sponsorship';
+import { ROLE_JOURNEY } from './components/landing/journey';
+
+// The landing experience (3D canvas + animations) loads separately from the app shell
+const LandingView = lazy(() => import('./components/landing/LandingView'));
+
+
+const SIGNUP_ROLES = ['attendee', 'organizer', 'speaker', 'sponsor', 'venue', 'volunteer'];
+
+const INITIAL_GOODIES_ORDERS = [
+  {
+    orderId: 'MERCH-81204',
+    eventId: 'evt-1',
+    eventTitle: 'AI & Web3 Synergy Summit',
+    date: '2026-08-10',
+    items: [
+      {
+        id: 'item-1',
+        productName: 'Event T-Shirt',
+        price: 299,
+        quantity: 100,
+        sizes: { S: 10, M: 30, L: 40, XL: 15, XXL: 5 },
+        color: 'Black',
+        designUrl: '',
+        customText: 'AI Summit Chennai 2026',
+        customizationCost: 500,
+        deliveryCost: 200,
+        totalCost: 30600
+      }
+    ],
+    totalAmount: 30600,
+    status: 'production', // 'submitted', 'confirmed', 'production', 'quality', 'shipped', 'delivered'
+    deliveryDate: '2026-09-02'
+  }
+];
+
+const INITIAL_SPONSORSHIP_CODES = {
+  'TN2026-AI50': { sponsor: 'TechNova Solutions', amount: 50000, requirement: 'Venue', status: 'Active', code: 'TN2026-AI50' },
+  'TN2026-75K': { sponsor: 'TechNova Solutions', amount: 75000, requirement: 'Venue', status: 'Active', code: 'TN2026-75K' },
+  'BX2026-30K': { sponsor: 'BrandX Media', amount: 30000, requirement: 'Goodies', status: 'Active', code: 'BX2026-30K' },
+  'GG2026-10K': { sponsor: 'GigaTech Energy', amount: 10000, requirement: 'Speakers', status: 'Active', code: 'GG2026-10K' }
+};
+
+const INITIAL_SPONSORSHIP_REQUESTS = [
+  {
+    requestId: 'REQ-1092',
+    sponsorId: 'sp-1',
+    sponsorName: 'TechNova Solutions',
+    eventId: 'evt-1',
+    eventTitle: 'Design Systems Architecture Summit',
+    requirement: 'Venue',
+    amount: 75000,
+    status: SPONSORSHIP_STATUS.APPROVED,
+    code: 'TN2026-75K',
+    date: '2026-08-12',
+    appliedBy: 'Aravind Swaminathan',
+    appliedByEmail: 'organizer@connect.dev'
+  },
+  {
+    requestId: 'REQ-2201',
+    sponsorId: 'sp-2',
+    sponsorName: 'BrandX Media',
+    eventId: 'evt-1',
+    eventTitle: 'Design Systems Architecture Summit',
+    requirement: 'Goodies',
+    amount: 30000,
+    status: SPONSORSHIP_STATUS.REQUESTED,
+    code: '',
+    date: '2026-08-13',
+    appliedBy: 'Meera Sen',
+    appliedByEmail: 'meera@connect.dev'
+  }
+];
 
 export function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -74,7 +146,18 @@ export function App() {
       return INITIAL_COMMUNITIES;
     }
   });
-  const [activeCommunity, setActiveCommunity] = useState(null);
+  const [activeCommunity, setActiveCommunity] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('assemble_active_community')) || null;
+    } catch {
+      return null;
+    }
+  });
+  useEffect(() => {
+    if (activeCommunity) {
+      localStorage.setItem('assemble_active_community', JSON.stringify(activeCommunity));
+    }
+  }, [activeCommunity]);
   const [preSelectedCommunity, setPreSelectedCommunity] = useState(null);
 
   const [analyzedCommunity, setAnalyzedCommunity] = useState(() => {
@@ -161,6 +244,14 @@ export function App() {
     return newCommunity;
   };
 
+  const handleAddCommunity = (community) => {
+    setCommunities((prev) => {
+      const updated = [...prev, community];
+      localStorage.setItem('assemble_communities', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const addUserToCommunity = (community) => {
     if (!currentUser) return;
     const userCommunities = currentUser.communities || [];
@@ -225,7 +316,7 @@ export function App() {
       {
         id: 'inv-demo-1',
         speakerName: 'Dr. Elena Rostova',
-        speakerEmail: 'speaker@eventhorizon.dev',
+        speakerEmail: 'speaker@connect.dev',
         eventTitle: 'Design Systems Architecture Summit',
         message: 'We would love to invite you for a 45-minute keynote on scalable component tokens.',
         status: 'pending',
@@ -247,7 +338,7 @@ export function App() {
         estimatedTotal: 1800,
         status: 'pending',
         organizerName: 'Design Scale India',
-        organizerEmail: 'organizer@eventhorizon.dev'
+        organizerEmail: 'organizer@connect.dev'
       }
     ];
   });
@@ -267,33 +358,20 @@ export function App() {
   const [viewedTicket, setViewedTicket] = useState(null);
 
   // Goodies E-commerce states
-  const [goodiesCart, setGoodiesCart] = useState([]);
-  const [goodiesOrders, setGoodiesOrders] = useState([
-    {
-      orderId: 'MERCH-81204',
-      eventId: 'evt-1',
-      eventTitle: 'AI & Web3 Synergy Summit',
-      date: '2026-08-10',
-      items: [
-        {
-          id: 'item-1',
-          productName: 'Event T-Shirt',
-          price: 299,
-          quantity: 100,
-          sizes: { S: 10, M: 30, L: 40, XL: 15, XXL: 5 },
-          color: 'Black',
-          designUrl: '',
-          customText: 'AI Summit Chennai 2026',
-          customizationCost: 500,
-          deliveryCost: 200,
-          totalCost: 30600
-        }
-      ],
-      totalAmount: 30600,
-      status: 'production', // 'submitted', 'confirmed', 'production', 'quality', 'shipped', 'delivered'
-      deliveryDate: '2026-09-02'
-    }
-  ]);
+  const [goodiesCart, setGoodiesCart] = useState(() => {
+    const saved = localStorage.getItem('assemble_goodies_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [goodiesOrders, setGoodiesOrders] = useState(() => {
+    const saved = localStorage.getItem('assemble_goodies_orders');
+    return saved ? JSON.parse(saved) : INITIAL_GOODIES_ORDERS;
+  });
+  useEffect(() => {
+    localStorage.setItem('assemble_goodies_cart', JSON.stringify(goodiesCart));
+  }, [goodiesCart]);
+  useEffect(() => {
+    localStorage.setItem('assemble_goodies_orders', JSON.stringify(goodiesOrders));
+  }, [goodiesOrders]);
 
   const handleAddGoodiesToCart = (item) => {
     setGoodiesCart([...goodiesCart, item]);
@@ -320,46 +398,64 @@ export function App() {
   };
 
   // Sponsorship States
-  const [sponsorshipCodes, setSponsorshipCodes] = useState({
-    'TN2026-AI50': { sponsor: 'TechNova Solutions', amount: 50000, requirement: 'Venue', status: 'Active', code: 'TN2026-AI50' },
-    'TN2026-75K': { sponsor: 'TechNova Solutions', amount: 75000, requirement: 'Venue', status: 'Active', code: 'TN2026-75K' },
-    'BX2026-30K': { sponsor: 'BrandX Media', amount: 30000, requirement: 'Goodies', status: 'Active', code: 'BX2026-30K' },
-    'GG2026-10K': { sponsor: 'GigaTech Energy', amount: 10000, requirement: 'Speakers', status: 'Active', code: 'GG2026-10K' }
+  const [sponsorshipCodes, setSponsorshipCodes] = useState(() => {
+    const saved = localStorage.getItem('assemble_sponsorship_codes');
+    return saved ? JSON.parse(saved) : INITIAL_SPONSORSHIP_CODES;
   });
 
-  const [sponsorshipRequests, setSponsorshipRequests] = useState([
-    {
-      requestId: 'REQ-1092',
-      sponsorId: 'sp-1',
-      sponsorName: 'TechNova Solutions',
-      eventId: 'evt-1',
-      eventTitle: 'Design Systems Architecture Summit',
-      requirement: 'Venue',
-      amount: 75000,
-      status: 'Sponsorship Code Generated',
-      code: 'TN2026-75K',
-      date: '2026-08-12',
-      appliedBy: 'Aravind Swaminathan',
-      appliedByEmail: 'organizer@eventhorizon.dev'
-    },
-    {
-      requestId: 'REQ-2201',
-      sponsorId: 'sp-2',
-      sponsorName: 'BrandX Media',
-      eventId: 'evt-1',
-      eventTitle: 'Design Systems Architecture Summit',
-      requirement: 'Goodies',
-      amount: 30000,
-      status: 'Requested',
-      code: '',
-      date: '2026-08-13',
-      appliedBy: 'Meera Sen',
-      appliedByEmail: 'meera@eventhorizon.dev'
-    }
-  ]);
+  const [sponsorshipRequests, setSponsorshipRequests] = useState(() => {
+    const saved = localStorage.getItem('assemble_sponsorship_requests');
+    return saved ? JSON.parse(saved) : INITIAL_SPONSORSHIP_REQUESTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('assemble_sponsorship_codes', JSON.stringify(sponsorshipCodes));
+  }, [sponsorshipCodes]);
+  useEffect(() => {
+    localStorage.setItem('assemble_sponsorship_requests', JSON.stringify(sponsorshipRequests));
+  }, [sponsorshipRequests]);
+
 
   const handleRequestSponsorship = (request) => {
-    setSponsorshipRequests([request, ...sponsorshipRequests]);
+    setSponsorshipRequests((prev) => [
+      { status: SPONSORSHIP_STATUS.REQUESTED, ...request },
+      ...prev,
+    ]);
+  };
+
+  const generateSponsorshipCode = (sponsorName, amount) => {
+    const sponsorAbbr = (sponsorName || 'TN').split(' ')[0].substring(0, 2).toUpperCase();
+    const amountVal = amount >= 1000 ? `${Math.round(amount / 1000)}K` : amount;
+    return `${sponsorAbbr}2026-${amountVal}-${Math.floor(100 + Math.random() * 900)}`;
+  };
+
+  // A sponsor offering money directly to an event: approved immediately, code issued
+  const handleSponsorOffer = (eventId, requirement, amount, pitch) => {
+    const targetEvent = events.find((e) => e.id === eventId);
+    const sponsorName = currentUser?.sponsorProfile?.companyName || currentUser?.name || 'Sponsor';
+    const code = generateSponsorshipCode(sponsorName, amount);
+    setSponsorshipCodes((prev) => ({
+      ...prev,
+      [code]: { sponsor: sponsorName, amount, requirement, status: 'Active', code },
+    }));
+    setSponsorshipRequests((prev) => [
+      {
+        requestId: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+        sponsorName,
+        sponsorEmail: currentUser?.email || '',
+        eventId,
+        eventTitle: targetEvent?.title || 'Event',
+        requirement,
+        amount,
+        pitch,
+        status: SPONSORSHIP_STATUS.APPROVED,
+        code,
+        date: new Date().toISOString().split('T')[0],
+        appliedBy: sponsorName,
+        appliedByEmail: currentUser?.email || '',
+      },
+      ...prev,
+    ]);
   };
 
   const handleRequestVenueBooking = (newBooking) => {
@@ -378,9 +474,7 @@ export function App() {
     const req = sponsorshipRequests.find(r => r.requestId === requestId || r.id === requestId);
     if (!req) return;
 
-    const sponsorAbbr = (req.sponsorName || 'TN').split(' ')[0].substring(0, 2).toUpperCase();
-    const amountVal = req.amount >= 1000 ? `${Math.round(req.amount / 1000)}K` : req.amount;
-    const generatedCode = `${sponsorAbbr}2026-${amountVal}-${Math.floor(100 + Math.random() * 900)}`;
+    const generatedCode = generateSponsorshipCode(req.sponsorName, req.amount);
 
     // Add to valid codes database
     setSponsorshipCodes({
@@ -398,7 +492,7 @@ export function App() {
     setSponsorshipRequests(
       sponsorshipRequests.map(r =>
         (r.requestId === requestId || r.id === requestId)
-          ? { ...r, status: 'approved', code: generatedCode, generatedCode: generatedCode }
+          ? { ...r, status: SPONSORSHIP_STATUS.APPROVED, code: generatedCode, generatedCode: generatedCode }
           : r
       )
     );
@@ -408,17 +502,21 @@ export function App() {
     setSponsorshipRequests(
       sponsorshipRequests.map(r =>
         (r.requestId === requestId || r.id === requestId)
-          ? { ...r, status: 'rejected' }
+          ? { ...r, status: SPONSORSHIP_STATUS.REJECTED }
           : r
       )
     );
   };
 
   // Sync state with HTML5 History
-  const navigate = (path) => {
-    window.history.pushState({}, '', path);
+  const navigate = (path, { replace = false } = {}) => {
+    if (replace) {
+      window.history.replaceState({}, '', path);
+    } else {
+      window.history.pushState({}, '', path);
+    }
     setCurrentPath(path);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   useEffect(() => {
@@ -646,7 +744,7 @@ export function App() {
       eventId,
       eventTitle: targetEvent?.title || 'Conference Keynote',
       speakerName: currentUser?.name || 'Applicant Speaker',
-      speakerEmail: currentUser?.email || 'speaker@eventhorizon.dev',
+      speakerEmail: currentUser?.email || 'speaker@connect.dev',
       message: pitch,
       status: 'pending',
       date: new Date().toISOString().split('T')[0]
@@ -916,16 +1014,69 @@ export function App() {
     }
   };
 
+  // Landing-page role CTAs: new visitors go straight into that role's signup;
+  // signed-in users switch to (or set up) the role through the existing flow.
+  const handleRoleCta = (role) => {
+    if (!currentUser) {
+      navigate(`/signup/${role}`);
+      return;
+    }
+    if (role === 'volunteer') {
+      // Volunteering is applied for per event, from the event's registration form
+      navigate('/discover');
+      return;
+    }
+    handleRoleChange(role);
+  };
+
+  const handleRoleLogin = (role) => {
+    if (role && role !== 'attendee' && role !== 'volunteer') {
+      localStorage.setItem('assemble_intended_role', role);
+    } else {
+      localStorage.removeItem('assemble_intended_role');
+    }
+    if (role === 'volunteer') localStorage.setItem('assemble_redirect', '/discover');
+    navigate('/login');
+  };
+
+  const PROTECTED_PATHS = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/become-sponsor'];
+
+  // Returns where the current path should send the user instead, or null if it can render
+  const getRouteRedirect = () => {
+    const isProtected = PROTECTED_PATHS.includes(currentPath) || currentPath.startsWith('/setup-role');
+    if (isProtected && !currentUser) return '/login';
+    if (currentPath === '/community-room' && !activeCommunity) return '/my-communities';
+    if (currentPath === '/event-details' && !selectedEvent) return '/discover';
+    if (currentPath === '/create-event' && currentUser) {
+      const role = userRole || currentUser.role;
+      if (role !== 'organizer' && !userHasRoleSetup(currentUser, 'organizer')) return '/setup-role/organizer';
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const redirect = getRouteRedirect();
+    if (redirect) {
+      if (redirect === '/login') localStorage.setItem('assemble_redirect', currentPath);
+      navigate(redirect, { replace: true });
+      return;
+    }
+    // Organizer already set up but browsing as another role: switch to organizer for Create Event
+    if (currentPath === '/create-event' && currentUser && (userRole || currentUser.role) !== 'organizer') {
+      const capabilities = getUserCapabilities(currentUser);
+      const updatedUser = { ...currentUser, role: 'organizer', capabilities };
+      setCurrentUser(updatedUser);
+      setUserRole('organizer');
+      persistUserRecord(updatedUser);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPath, currentUser, activeCommunity, selectedEvent, userRole]);
+
   // Custom Router view rendering
   const renderView = () => {
     const currentActiveRole = userRole || currentUser?.role || 'attendee';
-    const protectedPaths = ['/dashboard', '/my-events', '/create-event', '/profile', '/community-room', '/my-communities', '/become-sponsor'];
-    if ((protectedPaths.includes(currentPath) || currentPath.startsWith('/setup-role')) && !currentUser) {
-      localStorage.setItem('assemble_redirect', currentPath);
-      // Defer navigation to prevent state updates during render
-      setTimeout(() => navigate('/login'), 0);
-      return null;
-    }
+    // Route guards redirect in an effect; render nothing for the guarded page meanwhile
+    if (getRouteRedirect()) return null;
 
     if (currentPath.startsWith('/setup-role/')) {
       const targetRole = currentPath.split('/')[2] || 'speaker';
@@ -939,22 +1090,50 @@ export function App() {
       );
     }
 
+    if (currentPath.startsWith('/signup/')) {
+      const requested = currentPath.split('/')[2];
+      const signupRole = SIGNUP_ROLES.includes(requested) ? requested : undefined;
+      return (
+        <SignupView
+          key={currentPath}
+          navigate={navigate}
+          onSignupSuccess={handleSignupSuccess}
+          communities={communities}
+          onAddCommunity={handleAddCommunity}
+          initialRole={signupRole === 'volunteer' ? 'attendee' : signupRole}
+          volunteerIntent={signupRole === 'volunteer'}
+        />
+      );
+    }
+
     switch (currentPath) {
       case '/':
         return (
-          <HomeView
-            events={events}
-            selectedCity={selectedCity}
-            setSelectedCity={setSelectedCity}
-            navigate={navigate}
-            onSelectEvent={handleSelectEvent}
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<div className="min-h-screen" />}>
+            <LandingView
+              events={events}
+              communities={communities}
+              venues={venues}
+              venueBookings={venueBookings}
+              currentUser={currentUser}
+              onExplore={() => navigate('/discover')}
+              onRoleCta={handleRoleCta}
+              onRoleLogin={handleRoleLogin}
+              onGetStarted={() => navigate(currentUser ? '/dashboard' : '/signup')}
+            />
+          </Suspense>
         );
       case '/login':
         return <LoginView navigate={navigate} onLoginSuccess={handleLoginSuccess} />;
       case '/signup':
-        return <SignupView navigate={navigate} onSignupSuccess={handleSignupSuccess} communities={communities} />;
+        return (
+          <SignupView
+            navigate={navigate}
+            onSignupSuccess={handleSignupSuccess}
+            communities={communities}
+            onAddCommunity={handleAddCommunity}
+          />
+        );
       case '/become-sponsor':
       case '/setup-role/speaker':
       case '/setup-role/sponsor':
@@ -994,7 +1173,7 @@ export function App() {
             <CommunityRoomView
               community={activeCommunity}
               events={events}
-              onBack={() => navigate('/profile')}
+              onBack={() => navigate('/my-communities')}
               onSelectEvent={handleSelectEvent}
               onPlanCommunityEvent={(comName) => {
                 setPreSelectedCommunity(comName);
@@ -1005,7 +1184,6 @@ export function App() {
             />
           );
         }
-        setTimeout(() => navigate('/profile'), 0);
         return null;
       case '/dashboard':
       case '/my-events': {
@@ -1067,7 +1245,7 @@ export function App() {
               sponsorshipCodes={sponsorshipCodes}
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
               onSimulateSponsorReject={handleSimulateSponsorReject}
-              onRequestSponsorship={handleRequestSponsorship}
+              onRequestSponsorship={handleSponsorOffer}
               setActiveView={handleActiveViewChange}
               onSelectEvent={handleSelectEvent}
               onRoleChange={handleRoleChange}
@@ -1157,7 +1335,6 @@ export function App() {
             />
           );
         }
-        setTimeout(() => navigate('/discover'), 0);
         return null;
       case '/community-analysis':
         return (
@@ -1214,10 +1391,10 @@ export function App() {
                   onClick={() => navigate('/dashboard')}
                   className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-black transition-colors mb-2 cursor-pointer"
                 >
-                  <span>← Back to Home</span>
+                  <span>← Back to Dashboard</span>
                 </button>
                 <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider block">
-                  Organizer Space
+                  Community Space
                 </span>
                 <h1 className="font-geist text-2xl md:text-3xl font-bold text-[#00355f] mt-0.5">
                   My Communities
@@ -1268,25 +1445,55 @@ export function App() {
         return <AboutView />;
       default:
         return (
-          <HomeView
-            events={events}
-            selectedCity={selectedCity}
-            setSelectedCity={setSelectedCity}
-            navigate={navigate}
-            onSelectEvent={handleSelectEvent}
-            currentUser={currentUser}
-          />
+          <Suspense fallback={<div className="min-h-screen" />}>
+            <LandingView
+              events={events}
+              communities={communities}
+              venues={venues}
+              venueBookings={venueBookings}
+              currentUser={currentUser}
+              onExplore={() => navigate('/discover')}
+              onRoleCta={handleRoleCta}
+              onRoleLogin={handleRoleLogin}
+              onGetStarted={() => navigate(currentUser ? '/dashboard' : '/signup')}
+            />
+          </Suspense>
         );
     }
   };
 
+  // The whole product uses the dark glass theme (see src/styles/dark-theme.css);
+  // keep the page canvas (visible on overscroll) dark as well.
+  useEffect(() => {
+    document.body.style.backgroundColor = '#07080c';
+    document.documentElement.style.colorScheme = 'dark';
+  }, []);
+
+  // Every page except the landing gets an ambient backdrop tinted by the relevant role:
+  // the role being signed up for on auth pages, otherwise the active role.
+  const isAuthPage = currentPath === '/login' || currentPath.startsWith('/signup') || currentPath.startsWith('/setup-role') || currentPath === '/become-sponsor';
+  const pathRole = currentPath === '/become-sponsor' ? 'sponsor' : currentPath.split('/')[2];
+  const tintRole = isAuthPage ? pathRole : userRole || currentUser?.role || 'attendee';
+  const ambientRgb = ROLE_JOURNEY.find((r) => r.id === tintRole)?.rgb || [185, 168, 242];
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8f9fa] text-[#191c1d] selection:bg-[#d2e4ff] selection:text-[#00355f]">
+    <div className="theme-dark min-h-screen flex flex-col bg-ink-950 text-white selection:bg-white/20 selection:text-white">
+      {currentPath !== '/' && (
+        <div className="fixed inset-0 z-0 pointer-events-none grain" aria-hidden="true">
+          <div
+            className="absolute inset-0 transition-[background] duration-700"
+            style={{
+              background: `radial-gradient(ellipse 60% 40% at 50% 0%, rgb(${ambientRgb.join(' ')} / ${isAuthPage ? 0.22 : 0.13}), transparent 70%), radial-gradient(ellipse 45% 35% at 90% 85%, rgb(${ambientRgb.join(' ')} / 0.07), transparent 70%), #07080c`,
+            }}
+          />
+        </div>
+      )}
       {/* Navigation Header */}
       <Navbar
         currentPath={currentPath}
         navigate={navigate}
         currentUser={currentUser}
+        transparentTop={currentPath === '/'}
         onLogout={handleLogout}
         selectedCity={selectedCity}
         setSelectedCity={setSelectedCity}
@@ -1295,12 +1502,12 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-grow pt-20">
+      <main className={`relative z-10 flex-grow ${currentPath === '/' ? '' : 'pt-20'}`}>
         {renderView()}
       </main>
 
       {/* Footer */}
-      <Footer setActiveView={handleActiveViewChange} />
+      <Footer setActiveView={handleActiveViewChange} onJoin={handleRoleCta} />
 
       {/* Digital Ticket Modal */}
       <TicketModal ticket={viewedTicket} onClose={() => setViewedTicket(null)} />

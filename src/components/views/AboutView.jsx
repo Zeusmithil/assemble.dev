@@ -1,50 +1,86 @@
 import React from 'react';
+import { ROLE_JOURNEY, rgbString } from '../landing/journey';
+import { Reveal, Icon } from '../landing/primitives';
 
-export const AboutView = () => {
-  return (
-    <div className="px-4 md:px-10 max-w-[1000px] mx-auto py-8 space-y-10 animate-fadeIn">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider">
-          Our Vision
-        </span>
-        <h1 className="font-geist text-3xl md:text-4xl font-bold text-[#00355f]">
-          Making Events Easier for Everyone
-        </h1>
-        <p className="font-inter text-sm md:text-base text-[#5f5e5e] max-w-xl mx-auto leading-relaxed">
-          Event Horizon was created to simplify the event ecosystem—connecting curious attendees with passionate organizers, inspiring venues, keynote speakers, and local vendors.
-        </p>
-      </div>
+const PRINCIPLES = [
+  {
+    icon: 'hub',
+    title: 'One connected ecosystem',
+    text: 'Discovery, ticketing, venues, speakers, volunteers and sponsorship live in one place instead of six disconnected tools.',
+  },
+  {
+    icon: 'auto_awesome',
+    title: 'Calm, considered design',
+    text: 'Clear hierarchy and generous space, so the work of running an event never feels like fighting the software.',
+  },
+  {
+    icon: 'qr_code_2',
+    title: 'Built for the day itself',
+    text: 'Digital passes and instant door check-in keep the moment of arrival as smooth as everything before it.',
+  },
+];
 
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-10 shadow-2xs space-y-6">
-        <h2 className="font-geist text-xl font-bold text-[#00355f]">The Event Horizon Principle</h2>
-        <p className="font-inter text-sm text-[#42474f] leading-relaxed">
-          Traditional event platforms suffer from visual clutter, confusing multi-step checkouts, and disconnected vendor communications. Event Horizon combines discovery, ticketing, venue sourcing, speaker management, catering, and live door check-ins into one elegant, fast, and minimal interface.
-        </p>
+export const AboutView = () => (
+  <div className="relative overflow-hidden">
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgb(185 168 242 / 0.16), transparent 70%)' }}
+      aria-hidden="true"
+    />
+    <div className="relative px-5 sm:px-8 max-w-[1100px] mx-auto py-16 sm:py-24 space-y-20">
+      <header className="text-center max-w-[760px] mx-auto">
+        <Reveal>
+          <p className="text-[12px] uppercase tracking-[0.22em] text-white/50">About Connect</p>
+        </Reveal>
+        <Reveal delay={0.06}>
+          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-white text-[40px] sm:text-[56px] leading-[1.05]">
+            Making events easier
+            <br />
+            <span className="font-display italic font-normal text-organizer">for everyone involved.</span>
+          </h1>
+        </Reveal>
+        <Reveal delay={0.12}>
+          <p className="mt-6 text-[17px] leading-relaxed text-white/65">
+            Connect was created to simplify the event ecosystem — bringing curious attendees, passionate organizers, inspiring
+            venues, speakers, volunteers and sponsors together around the moments they share.
+          </p>
+        </Reveal>
+      </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-[#edeeef]">
-          <div>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Minimalist Aesthetics</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] mt-1">
-              Clean spacing, mathematical typography hierarchy, and zero visual clutter.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Unified Marketplace</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] mt-1">
-              Venues, keynote speakers, coffee bars, and swag kits in one workspace.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Digital Ticket Passes</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] mt-1">
-              Dynamic QR code generation with instant door check-in validation.
-            </p>
-          </div>
+      <section aria-labelledby="principles-title">
+        <h2 id="principles-title" className="sr-only">Our principles</h2>
+        <div className="grid md:grid-cols-3 gap-5">
+          {PRINCIPLES.map((p, i) => (
+            <Reveal key={p.title} delay={i * 0.08} className="glass rounded-[28px] p-7">
+              <span className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/10 flex items-center justify-center text-white/85">
+                <Icon name={p.icon} className="!text-[20px]" />
+              </span>
+              <h3 className="font-geist text-lg font-semibold text-white mt-5">{p.title}</h3>
+              <p className="text-[14px] text-white/60 leading-relaxed mt-2">{p.text}</p>
+            </Reveal>
+          ))}
         </div>
-      </div>
+      </section>
+
+      <section aria-labelledby="roles-title" className="glass-strong rounded-[32px] p-8 sm:p-12">
+        <Reveal>
+          <h2 id="roles-title" className="font-geist text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            Six ways to take part
+          </h2>
+          <p className="text-[15px] text-white/60 mt-2 max-w-[560px]">
+            Everyone on Connect plays a part in making an event happen. Most people play more than one.
+          </p>
+        </Reveal>
+        <ul className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
+          {ROLE_JOURNEY.map((r, i) => (
+            <Reveal as="li" key={r.id} delay={i * 0.06}>
+              <span className="block h-1 w-10 rounded-full" style={{ background: rgbString(r.rgb) }} />
+              <p className="font-geist text-base font-semibold text-white mt-4">{r.label}</p>
+              <p className="text-[13px] text-white/55 mt-1.5 leading-relaxed">{r.benefits[0].text}</p>
+            </Reveal>
+          ))}
+        </ul>
+      </section>
     </div>
-  );
-};
+  </div>
+);

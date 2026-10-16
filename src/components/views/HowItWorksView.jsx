@@ -1,114 +1,85 @@
 import React from 'react';
+import { Reveal, Icon } from '../landing/primitives';
+import { rgbString } from '../landing/journey';
 
-export const HowItWorksView = ({ setActiveView }) => {
-  return (
-    <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-12 animate-fadeIn">
-      {/* Header */}
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider">
-          Platform Architecture
-        </span>
-        <h1 className="font-geist text-3xl md:text-4xl font-bold text-[#00355f]">
-          How Event Horizon Works
-        </h1>
-        <p className="font-inter text-sm text-[#5f5e5e] leading-relaxed">
-          Designed for seamless interaction between attendees and organizers. Simple enough for first-time attendees, powerful enough for multi-day summits.
-        </p>
-      </div>
+const TRACKS = [
+  {
+    id: 'attendees',
+    title: 'For attendees',
+    icon: 'confirmation_number',
+    rgb: [140, 202, 244],
+    cta: { label: 'Explore events', view: 'discover' },
+    steps: [
+      { title: 'Discover events', text: 'Explore workshops, summits, shows and masterclasses with city, format and price filters.' },
+      { title: 'Register instantly', text: 'Pick a ticket tier and receive a digital pass with the venue, schedule and agenda.' },
+      { title: 'Check in at the door', text: 'Show your QR pass for contactless check-in, then stay connected through communities.' },
+    ],
+  },
+  {
+    id: 'organizers',
+    title: 'For organizers',
+    icon: 'edit_calendar',
+    rgb: [185, 168, 242],
+    cta: { label: 'Create an event', view: 'create-event' },
+    steps: [
+      { title: 'Create & draft', text: 'Define the title, schedule, capacity and ticket pricing for your event.' },
+      { title: 'Book venues & speakers', text: 'Source venues and speakers from the marketplace, and request sponsorship.' },
+      { title: 'Publish live', text: 'Launch to the discovery feed and follow registrations and revenue as they arrive.' },
+      { title: 'Run the day', text: 'Use the built-in QR validator at the door and track attendance in real time.' },
+    ],
+  },
+];
 
-      {/* For Attendees Section */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-10 shadow-2xs space-y-8">
-        <div className="flex items-center gap-3 border-b border-[#edeeef] pb-4">
-          <span className="material-symbols-outlined text-2xl text-[#0f4c81]">confirmation_number</span>
-          <h2 className="font-geist text-2xl font-bold text-[#00355f]">For Attendees</h2>
-        </div>
+export const HowItWorksView = ({ setActiveView }) => (
+  <div className="relative overflow-hidden">
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgb(140 202 244 / 0.14), transparent 70%)' }}
+      aria-hidden="true"
+    />
+    <div className="relative px-5 sm:px-8 max-w-[1180px] mx-auto py-16 sm:py-24 space-y-16">
+      <header className="text-center max-w-[720px] mx-auto">
+        <Reveal>
+          <p className="text-[12px] uppercase tracking-[0.22em] text-white/50">How it works</p>
+        </Reveal>
+        <Reveal delay={0.06}>
+          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-white text-[40px] sm:text-[56px] leading-[1.05]">
+            Simple for a first event.
+            <br />
+            <span className="font-display italic font-normal text-attendee">Powerful for the hundredth.</span>
+          </h1>
+        </Reveal>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">01</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Discover Events</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Explore local workshops, design summits, acoustic shows, and masterclasses using location-aware filters.
-            </p>
+      {TRACKS.map((track) => (
+        <section key={track.id} aria-labelledby={`${track.id}-title`} className="glass-strong rounded-[32px] p-7 sm:p-10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 id={`${track.id}-title`} className="font-geist text-2xl font-semibold text-white flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: rgbString(track.rgb, 0.14), color: rgbString(track.rgb) }}>
+                <Icon name={track.icon} className="!text-[20px]" />
+              </span>
+              {track.title}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setActiveView(track.cta.view)}
+              className="rounded-full px-5 py-2.5 text-[13px] font-semibold text-ink-950 cursor-pointer transition-opacity hover:opacity-90"
+              style={{ background: rgbString(track.rgb) }}
+            >
+              {track.cta.label}
+            </button>
           </div>
-
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">02</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Instant Registration</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Register with a single click and receive a dynamic digital pass complete with location details and agenda.
-            </p>
-          </div>
-
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">03</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">QR Door Entry</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Present your QR ticket at the venue door for instant contactless check-in and access to swag kits.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center pt-2">
-          <button
-            onClick={() => setActiveView('discover')}
-            className="px-6 py-3 bg-[#0f4c81] text-white rounded-xl font-bold text-xs hover:bg-[#00355f] transition-all"
-          >
-            Explore Events Now
-          </button>
-        </div>
-      </div>
-
-      {/* For Organizers Section */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-10 shadow-2xs space-y-8">
-        <div className="flex items-center gap-3 border-b border-[#edeeef] pb-4">
-          <span className="material-symbols-outlined text-2xl text-[#0f4c81]">dashboard</span>
-          <h2 className="font-geist text-2xl font-bold text-[#00355f]">For Organizers & Creators</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">01</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Create & Draft</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Define event titles, schedules, expected attendee capacity, and ticket pricing.
-            </p>
-          </div>
-
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">02</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Book Venues & Vendors</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Source verified lofts, keynote speakers, coffee bars, and 4K videographers directly.
-            </p>
-          </div>
-
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">03</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Publish Live</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Launch your event to the global discovery feed with real-time revenue analytics.
-            </p>
-          </div>
-
-          <div className="p-5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] space-y-2">
-            <span className="font-geist text-2xl font-bold text-[#0f4c81]">04</span>
-            <h3 className="font-geist font-bold text-[#00355f] text-base">Execute & Check-In</h3>
-            <p className="font-inter text-xs text-[#5f5e5e] leading-relaxed">
-              Use the built-in QR ticket validator at the door to track real-time attendance stats.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center pt-2">
-          <button
-            onClick={() => setActiveView('create-event')}
-            className="px-6 py-3 bg-[#0f4c81] text-white rounded-xl font-bold text-xs hover:bg-[#00355f] transition-all"
-          >
-            Create an Event
-          </button>
-        </div>
-      </div>
+          <ol className={`mt-8 grid gap-4 ${track.steps.length === 4 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+            {track.steps.map((step, i) => (
+              <Reveal as="li" key={step.title} delay={i * 0.07} className="rounded-2xl bg-white/[0.035] border border-white/[0.07] p-5">
+                <span className="font-mono text-[12px]" style={{ color: rgbString(track.rgb) }}>0{i + 1}</span>
+                <h3 className="font-geist text-base font-semibold text-white mt-3">{step.title}</h3>
+                <p className="text-[13px] text-white/60 leading-relaxed mt-1.5">{step.text}</p>
+              </Reveal>
+            ))}
+          </ol>
+        </section>
+      ))}
     </div>
-  );
-};
+  </div>
+);

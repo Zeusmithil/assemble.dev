@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isSponsorshipApproved, isSponsorshipPending } from '../../utils/sponsorship';
 
 export const CommunityRoomView = ({
   community,
@@ -696,7 +697,7 @@ export const CommunityRoomView = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {[
               { name: 'Aravind Swaminathan', initials: 'AS', role: 'Organizer', desc: 'Host & Director', email: 'aravind@mavora.dev' },
-              { name: 'Meera Sen', initials: 'MS', role: 'Member', desc: 'Product Designer', email: 'meera@eventhorizon.dev' },
+              { name: 'Meera Sen', initials: 'MS', role: 'Member', desc: 'Product Designer', email: 'meera@connect.dev' },
               { name: 'Vikram Grover', initials: 'VG', role: 'Member', desc: 'Developer Relations', email: 'vikram@aura.io' },
               { name: 'Samantha Clark', initials: 'SC', role: 'Member', desc: 'Frontend Dev', email: 'samantha@clark.io' }
             ].map((member, i) => (
@@ -1612,7 +1613,7 @@ export const CommunityRoomView = ({
                 </tr>
                 <tr>
                   <td className="py-3 px-4 font-bold text-[#00355f]">Meera Sen</td>
-                  <td className="py-3 px-4">meera@eventhorizon.dev</td>
+                  <td className="py-3 px-4">meera@connect.dev</td>
                   <td className="py-3 px-4">AI Innovation Summit</td>
                   <td className="py-3 px-4">VIP Pass</td>
                   <td className="py-3 px-4">2026-08-14</td>
@@ -1646,13 +1647,13 @@ export const CommunityRoomView = ({
               </div>
               <div className="bg-[#e2f7e2] border border-[#b7e8b7] rounded-xl px-4 py-2 text-center">
                 <span className="font-geist text-lg font-bold text-[#1a853e] block">
-                  {sponsorshipRequests.filter(r => r.status === 'Sponsorship Code Generated' || r.status === 'Approved' || r.status === 'Active').length}
+                  {sponsorshipRequests.filter(isSponsorshipApproved).length}
                 </span>
                 <span className="text-[9px] text-[#1a853e] font-bold uppercase tracking-wider">Approved</span>
               </div>
               <div className="bg-[#fff3d6] border border-[#ffd54f] rounded-xl px-4 py-2 text-center">
                 <span className="font-geist text-lg font-bold text-[#b46d00] block">
-                  {sponsorshipRequests.filter(r => r.status === 'Requested').length}
+                  {sponsorshipRequests.filter(isSponsorshipPending).length}
                 </span>
                 <span className="text-[9px] text-[#b46d00] font-bold uppercase tracking-wider">Pending</span>
               </div>
@@ -1682,8 +1683,8 @@ export const CommunityRoomView = ({
                 </thead>
                 <tbody className="divide-y divide-[#edeeef]">
                   {sponsorshipRequests.map((req) => {
-                    const isApproved = req.status === 'Sponsorship Code Generated' || req.status === 'Approved' || req.status === 'Active';
-                    const isPending = req.status === 'Requested';
+                    const isApproved = isSponsorshipApproved(req);
+                    const isPending = isSponsorshipPending(req);
                     const isCurrentUser = currentUser && (req.appliedByEmail === currentUser.email || req.appliedBy === currentUser.name);
 
                     return (

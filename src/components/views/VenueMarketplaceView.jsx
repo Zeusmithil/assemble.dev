@@ -149,7 +149,7 @@ export const VenueMarketplaceView = ({
         estimatedTotal: (Number(bookingHours) || 6) * (selectedVenueForBooking.pricePerHour || 150),
         status: 'pending',
         organizerName: currentUser?.name || 'Current Organizer',
-        organizerEmail: currentUser?.email || 'organizer@eventhorizon.dev',
+        organizerEmail: currentUser?.email || 'organizer@connect.dev',
       };
       bookings.unshift(newBooking);
       localStorage.setItem('assemble_venue_bookings', JSON.stringify(bookings));

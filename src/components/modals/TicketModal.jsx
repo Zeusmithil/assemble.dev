@@ -41,7 +41,7 @@ export const TicketModal = ({ ticket, onClose }) => {
 
           {/* Dynamic QR Code Canvas Simulation */}
           <div className="pt-4 border-t border-dashed border-[#c2c7d1] flex flex-col items-center gap-2">
-            <div className="w-40 h-40 bg-white p-3 border border-[#e1e3e4] rounded-xl flex items-center justify-center shadow-xs">
+            <div className="keep-light w-40 h-40 bg-white p-3 border border-[#e1e3e4] rounded-xl flex items-center justify-center shadow-xs">
               <svg className="w-full h-full text-[#00355f]" viewBox="0 0 100 100" fill="currentColor">
                 {/* QR Code pattern graphic */}
                 <rect x="5" y="5" width="25" height="25" rx="3" fill="none" stroke="currentColor" strokeWidth="6" />

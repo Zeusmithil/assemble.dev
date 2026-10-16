@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { SPONSORSHIP_STATUS, isSponsorshipApproved, isSponsorshipPending } from '../../utils/sponsorship';
 
 const INITIAL_SPONSORS = [
   {
@@ -125,7 +126,7 @@ export const SponsorshipSection = ({
       requirement: selectedRequirement,
       amount: Number(requestedAmount),
       pitch: pitchMessage,
-      status: 'Requested',
+      status: SPONSORSHIP_STATUS.REQUESTED,
       code: '',
       date: new Date().toISOString().split('T')[0],
       appliedBy: currentUser?.name || 'Team Member',
@@ -263,7 +264,7 @@ export const SponsorshipSection = ({
                             <span className="text-gray-400">→</span>
                             <span className="italic truncate max-w-[120px]">{cr.eventTitle}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                              cr.status === 'Sponsorship Code Generated' || cr.status === 'Approved'
+                              isSponsorshipApproved(cr)
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-yellow-100 text-yellow-700'
                             }`}>
@@ -348,9 +349,9 @@ export const SponsorshipSection = ({
                         <td className="p-4 text-gray-500 truncate max-w-[150px]">{req.eventTitle}</td>
                         <td className="p-4">
                           <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${
-                            req.status === 'Sponsorship Code Generated' || req.status === 'Verified' || req.status === 'Active' || req.status === 'Approved'
+                            isSponsorshipApproved(req)
                               ? 'bg-[#e2f7e2] text-[#1a853e]'
-                              : req.status === 'Requested'
+                              : isSponsorshipPending(req)
                               ? 'bg-[#fff3d6] text-[#b46d00]'
                               : 'bg-[#e7e8e9] text-gray-500'
                           }`}>

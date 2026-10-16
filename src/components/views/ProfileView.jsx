@@ -74,12 +74,12 @@ export const ProfileView = ({
 
   const handleShare = (channel) => {
     if (channel === 'whatsapp') {
-      const text = `Join my community room "${roomName}" on Event Horizon! Use the unique Room Code: ${newRoomCode}`;
+      const text = `Join my community room "${roomName}" on Connect! Use the unique Room Code: ${newRoomCode}`;
       window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
       setShared('Shared successfully to WhatsApp.');
     } else if (channel === 'email') {
       const subject = `Join community room: ${roomName}`;
-      const body = `Hi,\n\nJoin my community room "${roomName}" on Event Horizon using the unique Room Code: ${newRoomCode}.\n\nBest regards!`;
+      const body = `Hi,\n\nJoin my community room "${roomName}" on Connect using the unique Room Code: ${newRoomCode}.\n\nBest regards!`;
       window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
       setShared('Email client opened successfully.');
     }

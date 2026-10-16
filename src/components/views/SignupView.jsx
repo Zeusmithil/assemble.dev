@@ -60,9 +60,17 @@ const ROLES = [
   },
 ];
 
-export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
-  const [step, setStep] = useState(1); // 1 = Role Selection, 2 = Role-specific Form, 3 = Organizer Community Setup
-  const [selectedRole, setSelectedRole] = useState('attendee');
+export const SignupView = ({
+  navigate,
+  onSignupSuccess,
+  communities = [],
+  onAddCommunity,
+  initialRole,
+  volunteerIntent = false,
+}) => {
+  // Arriving from a role CTA skips straight to that role's form
+  const [step, setStep] = useState(initialRole ? 2 : 1); // 1 = Role Selection, 2 = Role-specific Form, 3 = Organizer Community Setup
+  const [selectedRole, setSelectedRole] = useState(initialRole || 'attendee');
   const [error, setError] = useState('');
 
   // Common General Fields
@@ -305,16 +313,11 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
     const localUsers = JSON.parse(localStorage.getItem('assemble_users') || '[]');
     const defaultEmails = [
       'john.doe@example.com',
-      'attendee@eventhorizon.dev',
-      'organizer@eventhorizon.dev',
-      'speaker@eventhorizon.dev',
-      'sponsor@eventhorizon.dev',
-      'venue@eventhorizon.dev',
-      'attendee@assemble.dev',
-      'organizer@assemble.dev',
-      'speaker@assemble.dev',
-      'sponsor@assemble.dev',
-      'venue@assemble.dev'
+      'attendee@connect.dev',
+      'organizer@connect.dev',
+      'speaker@connect.dev',
+      'sponsor@connect.dev',
+      'venue@connect.dev',
     ];
     const emailExists = defaultEmails.includes(email.toLowerCase()) || localUsers.some((u) => u.email.toLowerCase() === email.toLowerCase());
 
@@ -348,6 +351,7 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
       demographics: demographics,
       communities: createdCommunity ? [createdCommunity.name] : [],
       capabilities: [selectedRole, 'attendee'],
+      ...(volunteerIntent ? { volunteerIntent: true } : {}),
     };
 
     // Role-specific payload packing
@@ -467,14 +471,15 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
 
     // Sign in user session
     onSignupSuccess(newUser);
-    alert(`Account created successfully as ${selectedRole.toUpperCase()}! Welcome to Event Horizon.`);
-    const redirectPath = localStorage.getItem('assemble_redirect') || '/dashboard';
+    alert(`Account created successfully as ${selectedRole.toUpperCase()}! Welcome to Connect.`);
+    const redirectPath = localStorage.getItem('assemble_redirect') || (volunteerIntent ? '/discover' : '/dashboard');
     localStorage.removeItem('assemble_redirect');
     navigate(redirectPath);
   };
 
   const handleOrganizerCommunitySubmit = (e) => {
     e.preventDefault();
+    setError('');
     if (communityChoice === 'create') {
       if (!commName.trim()) {
         setError('Please enter a community name.');
@@ -482,22 +487,23 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
       }
       const newCom = {
         name: commName,
-        description: commDesc || 'A dedicated community room on Event Horizon.',
+        description: commDesc || 'A dedicated community room on Connect.',
         logoUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=200',
         basicInfo: commCat,
         code: generatedCommCode || 'EH-AI2026',
         members: 1,
       };
 
-      const allComs = JSON.parse(localStorage.getItem('assemble_communities') || '[]');
-      allComs.push(newCom);
-      localStorage.setItem('assemble_communities', JSON.stringify(allComs));
+      if (onAddCommunity) onAddCommunity(newCom);
 
       finalizeSignup(newCom);
     } else if (communityChoice === 'join') {
-      const allComs = JSON.parse(localStorage.getItem('assemble_communities') || '[]');
-      const matched = allComs.find((c) => c.code?.toUpperCase() === commJoinCode.trim().toUpperCase());
-      finalizeSignup(matched || null);
+      const matched = communities.find((c) => c.code?.toUpperCase() === commJoinCode.trim().toUpperCase());
+      if (!matched) {
+        setError('Invalid community code. Check the code or choose another option.');
+        return;
+      }
+      finalizeSignup(matched);
     } else {
       finalizeSignup(null);
     }
@@ -505,7 +511,7 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center p-4 py-12 animate-fadeIn text-left">
-      <div className="bg-white/90 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full shadow-2xl shadow-blue-900/10 space-y-8">
+      <div className="bg-white/95 backdrop-blur-xl border border-white/60 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full shadow-2xl shadow-blue-900/10 space-y-8">
         {/* Brand Header */}
         <div className="flex items-center justify-between border-b border-[#edeeef] pb-4">
           <button
@@ -514,7 +520,8 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
               const redirectPath = localStorage.getItem('assemble_redirect');
               if (redirectPath) {
                 localStorage.removeItem('assemble_redirect');
-                navigate(redirectPath);
+                localStorage.removeItem('assemble_intended_role');
+                navigate('/');
               } else if (window.history.length > 1) {
                 window.history.back();
               } else {
@@ -528,8 +535,8 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold font-geist">E</span>
-            <span className="font-geist text-lg font-bold text-[#00355f]">Event Horizon</span>
+            <span className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold font-geist">C</span>
+            <span className="font-geist text-lg font-bold text-[#00355f]">Connect</span>
           </div>
           <span className="text-xs font-semibold text-gray-400">Step {step} of {selectedRole === 'organizer' ? '3' : '2'}</span>
         </div>
@@ -545,7 +552,7 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
           <div className="space-y-6">
             <div className="text-center space-y-1">
               <h2 className="font-geist text-2xl sm:text-3xl font-extrabold text-[#00355f]">
-                How do you want to use Event Horizon?
+                How do you want to use Connect?
               </h2>
               <p className="font-inter text-xs text-gray-500">
                 Select your primary role. You will still have full access to explore, attend, and participate across the entire platform.
@@ -658,6 +665,16 @@ export const SignupView = ({ navigate, onSignupSuccess, communities = [] }) => {
                 <span>← Change Role</span>
               </button>
             </div>
+
+            {volunteerIntent && selectedRole === 'attendee' && (
+              <div className="p-4 rounded-2xl border border-[#a3c9a8] bg-[#eef6ef] text-left">
+                <p className="font-geist text-sm font-bold text-[#2f5a36]">Joining to volunteer</p>
+                <p className="font-inter text-xs text-[#3e6545] mt-1 leading-relaxed">
+                  Volunteers join Connect with an attendee account. Once you are in, open any event and tick
+                  “Willing to Volunteer” when you register — the organizer reviews your application.
+                </p>
+              </div>
+            )}
 
             {/* General Info (Collected for all roles) */}
             <div className="space-y-4">
