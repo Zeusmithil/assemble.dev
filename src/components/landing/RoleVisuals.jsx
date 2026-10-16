@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Depth, TiltPanel, Avatar, Icon, EASE } from './primitives';
-import { ROLE_JOURNEY, rgbString } from './journey';
+import { ROLE_JOURNEY, rgbString, inkColor } from './journey';
 
 const roleRgb = (id) => ROLE_JOURNEY.find((r) => r.id === id).rgb;
 
@@ -27,7 +27,7 @@ const QrPattern = ({ seed, rgb, size = 64 }) => {
     });
   }, [seed]);
   return (
-    <div className="grid grid-cols-9 gap-[2px] p-1.5 rounded-lg bg-paper" style={{ width: size, height: size }} aria-hidden="true">
+    <div className="grid grid-cols-9 gap-[2px] p-1.5 rounded-lg keep-light bg-white" style={{ width: size, height: size }} aria-hidden="true">
       {cells.map((on, i) => (
         <span key={i} className="rounded-[1px]" style={{ background: on ? '#0b0d13' : 'transparent' }} />
       ))}
@@ -36,8 +36,8 @@ const QrPattern = ({ seed, rgb, size = 64 }) => {
 };
 
 const Chip = ({ rgb, icon, children, className = '' }) => (
-  <div className={`glass rounded-full pl-2 pr-3.5 py-1.5 flex items-center gap-2 text-[12px] text-white/85 ${className}`}>
-    <span className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: rgbString(rgb, 0.18), color: rgbString(rgb) }}>
+  <div className={`glass rounded-full pl-2 pr-3.5 py-1.5 flex items-center gap-2 text-[12px] text-fg/85 ${className}`}>
+    <span className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: rgbString(rgb, 0.18), color: inkColor(rgb) }}>
       <Icon name={icon} className="!text-[15px]" />
     </span>
     {children}
@@ -57,14 +57,14 @@ export const AttendeeVisual = ({ progress, events }) => {
     <div className={`glass-strong rounded-3xl overflow-hidden w-[300px] ${className}`} style={style}>
       <div className="h-36 relative">
         <img src={evt.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
-        <span className="absolute top-3 left-3 glass rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-white/90">
+        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/20 to-transparent" />
+        <span className="absolute top-3 left-3 glass rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-fg/90">
           {evt.category}
         </span>
       </div>
       <div className="p-4 space-y-2">
-        <p className="font-geist text-[15px] font-semibold text-white leading-snug line-clamp-2">{evt.title}</p>
-        <p className="text-[12px] text-white/55">
+        <p className="font-geist text-[15px] font-semibold text-fg leading-snug line-clamp-2">{evt.title}</p>
+        <p className="text-[12px] text-fg/55">
           {formatDate(evt.startDate)} · {evt.city}
         </p>
       </div>
@@ -87,15 +87,15 @@ export const AttendeeVisual = ({ progress, events }) => {
         <TiltPanel className="glass-strong glass-sheen rounded-3xl overflow-hidden w-[300px] sm:w-[320px]">
           <div className="h-40 relative">
             <img src={main.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/10 to-transparent" />
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: rgbString(rgb) }}>
+              <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: inkColor(rgb) }}>
                 {main.category} · {main.city}
               </p>
-              <p className="font-geist text-lg font-semibold text-white leading-snug mt-1">{main.title}</p>
-              <p className="text-[12px] text-white/55 mt-1">
+              <p className="font-geist text-lg font-semibold text-fg leading-snug mt-1">{main.title}</p>
+              <p className="text-[12px] text-fg/55 mt-1">
                 {formatDate(main.startDate)} · {main.time}
               </p>
             </div>
@@ -106,7 +106,7 @@ export const AttendeeVisual = ({ progress, events }) => {
                     <Avatar name={n} rgb={i % 2 ? [236, 238, 246] : rgb} size={26} />
                   </span>
                 ))}
-                <span className="ml-2.5 text-[12px] text-white/65">{main.registeredCount} going</span>
+                <span className="ml-2.5 text-[12px] text-fg/65">{main.registeredCount} going</span>
               </div>
               <span className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-ink-950" style={{ background: rgbString(rgb) }}>
                 Register
@@ -119,9 +119,9 @@ export const AttendeeVisual = ({ progress, events }) => {
         <div className="glass-strong rounded-2xl p-4 flex items-center gap-4 w-[250px]">
           <QrPattern seed={main.id} rgb={rgb} />
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-white/50">Your pass</p>
-            <p className="font-mono text-[13px] text-white mt-0.5">CN-24816</p>
-            <p className="text-[12px] mt-1.5 flex items-center gap-1" style={{ color: rgbString(rgb) }}>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-fg/50">Your pass</p>
+            <p className="font-mono text-[13px] text-fg mt-0.5">CN-24816</p>
+            <p className="text-[12px] mt-1.5 flex items-center gap-1" style={{ color: inkColor(rgb) }}>
               <Icon name="check_circle" className="!text-[15px]" /> Confirmed
             </p>
           </div>
@@ -153,10 +153,10 @@ export const OrganizerVisual = ({ progress, events }) => {
         <TiltPanel max={4} className="glass-strong glass-sheen rounded-[28px] p-5 sm:p-6 mx-auto w-full max-w-[520px]">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Event console</p>
-              <p className="font-geist text-base sm:text-lg font-semibold text-white mt-1 truncate">{evt.title}</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-fg/45">Event console</p>
+              <p className="font-geist text-base sm:text-lg font-semibold text-fg mt-1 truncate">{evt.title}</p>
             </div>
-            <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium border" style={{ color: rgbString(rgb), borderColor: rgbString(rgb, 0.35), background: rgbString(rgb, 0.1) }}>
+            <span className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium border" style={{ color: inkColor(rgb), borderColor: rgbString(rgb, 0.35), background: rgbString(rgb, 0.1) }}>
               Published
             </span>
           </div>
@@ -167,19 +167,19 @@ export const OrganizerVisual = ({ progress, events }) => {
               { label: 'Capacity', value: capacity },
               { label: 'Volunteers', value: evt.volunteersNeeded || 0 },
             ].map((m) => (
-              <div key={m.label} className="rounded-2xl bg-white/[0.04] border border-white/[0.06] px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">{m.label}</p>
-                <p className="font-geist text-lg font-semibold text-white mt-0.5">{m.value}</p>
+              <div key={m.label} className="rounded-2xl bg-fg/[0.04] border border-fg/[0.06] px-3 py-2.5">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-fg/45">{m.label}</p>
+                <p className="font-geist text-lg font-semibold text-fg mt-0.5">{m.value}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-4">
-            <div className="flex justify-between text-[11px] text-white/50 mb-1.5">
+            <div className="flex justify-between text-[11px] text-fg/50 mb-1.5">
               <span>Registrations</span>
               <span>{pct}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-fg/[0.07] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${rgbString(rgb, 0.6)}, ${rgbString(rgb)})` }}
@@ -192,17 +192,17 @@ export const OrganizerVisual = ({ progress, events }) => {
           </div>
 
           <div className="mt-5 space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Run of show</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-fg/45">Run of show</p>
             {schedule.map((s, i) => (
               <div key={s.time + s.title} className="flex items-center gap-3">
-                <span className="w-16 shrink-0 text-[11px] font-mono text-white/45">{s.time}</span>
+                <span className="w-16 shrink-0 text-[11px] font-mono text-fg/45">{s.time}</span>
                 <div className="flex-1 h-7 relative">
                   <motion.div
-                    className="absolute top-0 h-7 rounded-lg px-2.5 flex items-center text-[11px] text-white/85 truncate"
+                    className="absolute top-0 h-7 rounded-lg px-2.5 flex items-center text-[11px] text-fg/85 truncate"
                     style={{
                       left: `${(i * 9) % 30}%`,
-                      background: i % 2 ? 'rgb(255 255 255 / 0.06)' : rgbString(rgb, 0.16),
-                      border: `1px solid ${i % 2 ? 'rgb(255 255 255 / 0.07)' : rgbString(rgb, 0.25)}`,
+                      background: i % 2 ? 'rgb(var(--fg-rgb) / 0.06)' : rgbString(rgb, 0.16),
+                      border: `1px solid ${i % 2 ? 'rgb(var(--fg-rgb) / 0.07)' : rgbString(rgb, 0.25)}`,
                     }}
                     initial={{ width: reduced ? '62%' : '0%', opacity: reduced ? 1 : 0 }}
                     whileInView={{ width: `${48 + ((i * 13) % 26)}%`, opacity: 1 }}
@@ -220,10 +220,10 @@ export const OrganizerVisual = ({ progress, events }) => {
 
       <Depth progress={progress} depth={1.6} className="absolute -left-2 sm:-left-8 top-0 z-20 hidden sm:block">
         <div className="glass rounded-2xl px-4 py-3 w-[220px]">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 flex items-center gap-1.5">
-            <Icon name="apartment" className="!text-[14px]" style={{ color: rgbString(rgb) }} /> Venue confirmed
+          <p className="text-[10px] uppercase tracking-[0.14em] text-fg/45 flex items-center gap-1.5">
+            <Icon name="apartment" className="!text-[14px]" style={{ color: inkColor(rgb) }} /> Venue confirmed
           </p>
-          <p className="text-[13px] text-white mt-1 leading-snug line-clamp-2">{evt.venueDetails?.name || evt.location}</p>
+          <p className="text-[13px] text-fg mt-1 leading-snug line-clamp-2">{evt.venueDetails?.name || evt.location}</p>
         </div>
       </Depth>
 
@@ -232,9 +232,9 @@ export const OrganizerVisual = ({ progress, events }) => {
           <div className="glass-strong rounded-2xl p-3 pr-4 flex items-center gap-3 w-[250px]">
             <img src={speaker.photo} alt="" className="w-11 h-11 rounded-xl object-cover" loading="lazy" />
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">Speaker accepted</p>
-              <p className="text-[13px] text-white font-medium truncate">{speaker.name}</p>
-              <p className="text-[11px] text-white/50 truncate">{speaker.designation}</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-fg/45">Speaker accepted</p>
+              <p className="text-[13px] text-fg font-medium truncate">{speaker.name}</p>
+              <p className="text-[11px] text-fg/50 truncate">{speaker.designation}</p>
             </div>
           </div>
         </Depth>
@@ -262,23 +262,23 @@ export const VenueVisual = ({ progress, venues = [], venueBookings = [] }) => {
         <TiltPanel max={5} className="glass-strong glass-sheen rounded-[28px] overflow-hidden">
           <div className="h-44 sm:h-52 relative">
             <img src={venue.image} alt="" className="w-full h-full object-cover" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
-            <span className="absolute top-4 left-4 glass rounded-full px-3 py-1 text-[11px] text-white/90 flex items-center gap-1.5">
-              <Icon name="verified" className="!text-[14px]" style={{ color: rgbString(rgb) }} /> Verified space
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/20 to-transparent" />
+            <span className="absolute top-4 left-4 glass rounded-full px-3 py-1 text-[11px] text-fg/90 flex items-center gap-1.5">
+              <Icon name="verified" className="!text-[14px]" style={{ color: inkColor(rgb) }} /> Verified space
             </span>
           </div>
           <div className="p-5 sm:p-6 -mt-10 relative">
-            <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: rgbString(rgb) }}>
+            <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: inkColor(rgb) }}>
               {venue.vibe} · {venue.city}
             </p>
-            <p className="font-geist text-xl font-semibold text-white mt-1">{venue.name}</p>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-[12px] text-white/60">
+            <p className="font-geist text-xl font-semibold text-fg mt-1">{venue.name}</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-[12px] text-fg/60">
               <span className="flex items-center gap-1.5"><Icon name="groups" className="!text-[15px]" /> Up to {venue.capacity}</span>
-              <span className="flex items-center gap-1.5"><Icon name="star" className="!text-[15px]" style={{ color: rgbString(rgb) }} /> {venue.rating}</span>
+              <span className="flex items-center gap-1.5"><Icon name="star" className="!text-[15px]" style={{ color: inkColor(rgb) }} /> {venue.rating}</span>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-4">
               {(venue.amenities || []).slice(0, 3).map((a) => (
-                <span key={a} className="rounded-full px-2.5 py-1 text-[11px] text-white/75 bg-white/[0.05] border border-white/[0.07]">{a}</span>
+                <span key={a} className="rounded-full px-2.5 py-1 text-[11px] text-fg/75 bg-fg/[0.05] border border-fg/[0.07]">{a}</span>
               ))}
             </div>
           </div>
@@ -294,16 +294,16 @@ export const VenueVisual = ({ progress, venues = [], venueBookings = [] }) => {
             viewport={{ once: true }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.3 }}
           >
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 flex items-center gap-1.5">
-              <Icon name="inbox" className="!text-[14px]" style={{ color: rgbString(rgb) }} /> New booking request
+            <p className="text-[10px] uppercase tracking-[0.14em] text-fg/45 flex items-center gap-1.5">
+              <Icon name="inbox" className="!text-[14px]" style={{ color: inkColor(rgb) }} /> New booking request
             </p>
-            <p className="text-[14px] text-white font-medium mt-1.5 leading-snug">{booking.eventName}</p>
-            <p className="text-[12px] text-white/50 mt-0.5">
+            <p className="text-[14px] text-fg font-medium mt-1.5 leading-snug">{booking.eventName}</p>
+            <p className="text-[12px] text-fg/50 mt-0.5">
               {booking.organizerName} · {booking.expectedAttendees} guests
             </p>
             <div className="grid grid-cols-2 gap-2 mt-3.5">
               <span className="rounded-full py-2 text-center text-[12px] font-semibold text-ink-950" style={{ background: rgbString(rgb) }}>Accept</span>
-              <span className="rounded-full py-2 text-center text-[12px] text-white/75 border border-white/15">Decline</span>
+              <span className="rounded-full py-2 text-center text-[12px] text-fg/75 border border-fg/15">Decline</span>
             </div>
           </motion.div>
         </Depth>
@@ -311,7 +311,7 @@ export const VenueVisual = ({ progress, venues = [], venueBookings = [] }) => {
 
       <Depth progress={progress} depth={1.3} className="absolute left-0 bottom-6 sm:bottom-10 z-20 hidden sm:block">
         <div className="glass rounded-2xl p-4 w-[220px]" aria-hidden="true">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">Availability</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-fg/45">Availability</p>
           <div className="grid grid-cols-7 gap-1 mt-3">
             {Array.from({ length: 28 }, (_, d) => d + 1).map((d) => (
               <span
@@ -321,8 +321,8 @@ export const VenueVisual = ({ progress, venues = [], venueBookings = [] }) => {
                   d === requested
                     ? { background: rgbString(rgb), color: '#0b0d13' }
                     : booked.has(d)
-                    ? { background: rgbString(rgb, 0.22), color: rgbString(rgb) }
-                    : { background: 'rgb(255 255 255 / 0.04)', color: 'rgb(255 255 255 / 0.4)' }
+                    ? { background: rgbString(rgb, 0.22), color: inkColor(rgb) }
+                    : { background: 'rgb(var(--fg-rgb) / 0.04)', color: 'rgb(var(--fg-rgb) / 0.4)' }
                 }
               >
                 {d}
@@ -368,9 +368,9 @@ export const SpeakerVisual = ({ progress, events }) => {
               viewport={{ once: true }}
               transition={{ duration: 0.9, ease: EASE, delay: 0.1 + i * 0.08 }}
             >
-              <p className="font-mono text-[11px]" style={{ color: rgbString(rgb) }}>{s.time}</p>
-              <p className="text-[13px] text-white mt-1.5 leading-snug line-clamp-2">{s.title}</p>
-              {s.speaker && <p className="text-[11px] text-white/45 mt-1.5 truncate">{s.speaker}</p>}
+              <p className="font-mono text-[11px]" style={{ color: inkColor(rgb) }}>{s.time}</p>
+              <p className="text-[13px] text-fg mt-1.5 leading-snug line-clamp-2">{s.title}</p>
+              {s.speaker && <p className="text-[11px] text-fg/45 mt-1.5 truncate">{s.speaker}</p>}
             </motion.div>
           </Depth>
         ))}
@@ -383,18 +383,18 @@ export const SpeakerVisual = ({ progress, events }) => {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <img src={speaker.photo} alt="" className="w-16 h-16 rounded-2xl object-cover" loading="lazy" />
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-ink-900" style={{ background: rgbString(rgb) }} />
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-bg" style={{ background: rgbString(rgb) }} />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.16em] flex items-center gap-1.5" style={{ color: rgbString(rgb) }}>
+                <p className="text-[10px] uppercase tracking-[0.16em] flex items-center gap-1.5" style={{ color: inkColor(rgb) }}>
                   <span className="relative flex w-1.5 h-1.5">
                     {!reduced && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: rgbString(rgb) }} />}
                     <span className="relative w-1.5 h-1.5 rounded-full" style={{ background: rgbString(rgb) }} />
                   </span>
                   Now speaking
                 </p>
-                <p className="font-geist text-base font-semibold text-white mt-1 truncate">{speaker.name}</p>
-                <p className="text-[12px] text-white/50 truncate">
+                <p className="font-geist text-base font-semibold text-fg mt-1 truncate">{speaker.name}</p>
+                <p className="text-[12px] text-fg/50 truncate">
                   {speaker.designation} · {speaker.company}
                 </p>
               </div>
@@ -402,7 +402,7 @@ export const SpeakerVisual = ({ progress, events }) => {
             <div className="hairline my-4" />
             <div className="flex flex-wrap gap-1.5">
               {(speaker.expertise || []).slice(0, 3).map((x) => (
-                <span key={x} className="rounded-full px-2.5 py-1 text-[11px] text-white/75 bg-white/[0.05] border border-white/[0.07]">
+                <span key={x} className="rounded-full px-2.5 py-1 text-[11px] text-fg/75 bg-fg/[0.05] border border-fg/[0.07]">
                   {x}
                 </span>
               ))}
@@ -440,18 +440,18 @@ export const VolunteerVisual = ({ progress }) => {
         <TiltPanel max={5} className="glass-strong glass-sheen rounded-[28px] p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Crew board</p>
-              <p className="font-geist text-base font-semibold text-white mt-1">Event day · Team A</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-fg/45">Crew board</p>
+              <p className="font-geist text-base font-semibold text-fg mt-1">Event day · Team A</p>
             </div>
-            <span className="text-[12px] text-white/60 flex items-center gap-1.5">
-              <Icon name="groups" className="!text-[16px]" style={{ color: rgbString(rgb) }} /> 6 volunteers
+            <span className="text-[12px] text-fg/60 flex items-center gap-1.5">
+              <Icon name="groups" className="!text-[16px]" style={{ color: inkColor(rgb) }} /> 6 volunteers
             </span>
           </div>
           <div className="mt-5 space-y-2.5">
             {tasks.map((t, i) => (
               <motion.div
                 key={t.role}
-                className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] px-3.5 py-3"
+                className="flex items-center gap-3 rounded-2xl bg-fg/[0.04] border border-fg/[0.06] px-3.5 py-3"
                 initial={{ opacity: 0, x: reduced ? 0 : -16 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -459,7 +459,7 @@ export const VolunteerVisual = ({ progress }) => {
               >
                 <motion.span
                   className="w-5 h-5 rounded-md flex items-center justify-center border shrink-0"
-                  initial={{ background: 'rgb(255 255 255 / 0)', borderColor: 'rgb(255 255 255 / 0.25)' }}
+                  initial={{ background: 'rgba(0, 0, 0, 0)', borderColor: 'rgba(128, 132, 145, 0.45)' }}
                   whileInView={i < 2 ? { background: rgbString(rgb), borderColor: rgbString(rgb) } : {}}
                   viewport={{ once: true }}
                   transition={{ delay: 0.9 + i * 0.25, duration: 0.4 }}
@@ -467,8 +467,8 @@ export const VolunteerVisual = ({ progress }) => {
                   {i < 2 && <Icon name="check" className="!text-[14px] text-ink-950" />}
                 </motion.span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-white truncate">{t.role}</p>
-                  <p className="text-[11px] text-white/45 font-mono">{t.time}</p>
+                  <p className="text-[13px] text-fg truncate">{t.role}</p>
+                  <p className="text-[11px] text-fg/45 font-mono">{t.time}</p>
                 </div>
                 <div className="flex">
                   {t.crew.map((n, k) => (
@@ -485,8 +485,8 @@ export const VolunteerVisual = ({ progress }) => {
 
       <Depth progress={progress} depth={1.8} className="absolute right-0 bottom-0 z-20">
         <div className="glass-strong rounded-2xl p-4 w-[210px]">
-          <div className="relative h-24 rounded-xl border border-white/10 bg-black/30 overflow-hidden flex items-center justify-center">
-            <Icon name="qr_code_2" className="!text-[56px] text-white/70" />
+          <div className="relative h-24 rounded-xl border border-fg/10 bg-fg/[0.06] overflow-hidden flex items-center justify-center">
+            <Icon name="qr_code_2" className="!text-[56px] text-fg/70" />
             {!reduced && (
               <motion.span
                 className="absolute inset-x-3 h-[2px] rounded-full"
@@ -496,10 +496,10 @@ export const VolunteerVisual = ({ progress }) => {
               />
             )}
           </div>
-          <p className="text-[12px] mt-3 flex items-center gap-1.5" style={{ color: rgbString(rgb) }}>
+          <p className="text-[12px] mt-3 flex items-center gap-1.5" style={{ color: inkColor(rgb) }}>
             <Icon name="check_circle" className="!text-[15px]" /> Checked in
           </p>
-          <p className="text-[11px] text-white/50 font-mono mt-0.5">CN-48213 · Door 2</p>
+          <p className="text-[11px] text-fg/50 font-mono mt-0.5">CN-48213 · Door 2</p>
         </div>
       </Depth>
     </div>
@@ -527,23 +527,23 @@ export const SponsorVisual = ({ progress, events, communities }) => {
           className="glass-strong glass-sheen rounded-[28px] p-6 w-[300px] sm:w-[330px]"
           style={{ boxShadow: `inset 0 1px 0 ${rgbString(rgb, 0.35)}, 0 30px 80px -30px rgb(0 0 0 / 0.8), 0 0 0 1px ${rgbString(rgb, 0.22)}` }}
         >
-          <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: rgbString(rgb) }}>
+          <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: inkColor(rgb) }}>
             Partnership opportunity
           </p>
-          <p className="font-geist text-lg font-semibold text-white mt-1.5 leading-snug">{evt.title}</p>
+          <p className="font-geist text-lg font-semibold text-fg mt-1.5 leading-snug">{evt.title}</p>
           {pkg && (
             <>
               <div className="flex items-center justify-between mt-4">
-                <span className="font-display italic text-2xl" style={{ color: rgbString(rgb) }}>{pkg.tier}</span>
-                <span className="text-[12px] text-white/55">
+                <span className="font-display italic text-2xl" style={{ color: inkColor(rgb) }}>{pkg.tier}</span>
+                <span className="text-[12px] text-fg/55">
                   {Math.max(0, pkg.spotsAvailable - pkg.spotsTaken)} of {pkg.spotsAvailable} open
                 </span>
               </div>
               <div className="hairline my-4" />
               <ul className="space-y-2">
                 {pkg.perks.slice(0, 3).map((perk) => (
-                  <li key={perk} className="flex items-center gap-2 text-[13px] text-white/75">
-                    <Icon name="check" className="!text-[15px]" style={{ color: rgbString(rgb) }} />
+                  <li key={perk} className="flex items-center gap-2 text-[13px] text-fg/75">
+                    <Icon name="check" className="!text-[15px]" style={{ color: inkColor(rgb) }} />
                     {perk}
                   </li>
                 ))}
@@ -560,10 +560,10 @@ export const SponsorVisual = ({ progress, events, communities }) => {
         <Depth progress={progress} depth={1.6} className="absolute right-0 bottom-0 sm:bottom-6 z-20">
           <div className="glass-strong rounded-[24px] p-5 w-[260px] sm:w-[280px]">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-white/45">Community reach</p>
-              <span className="text-[11px]" style={{ color: rgbString(rgb) }}>{community.memberGrowthRate}</span>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-fg/45">Community reach</p>
+              <span className="text-[11px]" style={{ color: inkColor(rgb) }}>{community.memberGrowthRate}</span>
             </div>
-            <p className="text-[13px] text-white mt-1 truncate">{community.name}</p>
+            <p className="text-[13px] text-fg mt-1 truncate">{community.name}</p>
             <div className="flex items-end gap-1.5 h-20 mt-4" aria-hidden="true">
               {bars.map((h, i) => (
                 <motion.span
@@ -579,12 +579,12 @@ export const SponsorVisual = ({ progress, events, communities }) => {
             </div>
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div>
-                <p className="font-geist text-lg font-semibold text-white">{community.memberCount?.toLocaleString()}</p>
-                <p className="text-[11px] text-white/45">Members</p>
+                <p className="font-geist text-lg font-semibold text-fg">{community.memberCount?.toLocaleString()}</p>
+                <p className="text-[11px] text-fg/45">Members</p>
               </div>
               <div>
-                <p className="font-geist text-lg font-semibold text-white">{repeat}%</p>
-                <p className="text-[11px] text-white/45">Repeat attendees</p>
+                <p className="font-geist text-lg font-semibold text-fg">{repeat}%</p>
+                <p className="text-[11px] text-fg/45">Repeat attendees</p>
               </div>
             </div>
           </div>

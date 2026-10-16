@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion, useScroll } from 'motion/react';
 import { EcosystemCanvas } from './EcosystemCanvas';
-import { ROLE_JOURNEY, SCENES, HERO_SCENE, rgbString } from './journey';
+import { ROLE_JOURNEY, SCENES, HERO_SCENE, rgbString, inkColor } from './journey';
 import { ROLE_VISUALS } from './RoleVisuals';
 import { Reveal, Icon, EASE } from './primitives';
 
@@ -84,8 +84,8 @@ const PrimaryButton = ({ children, onClick, rgb, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`group inline-flex items-center gap-2.5 rounded-full pl-6 pr-5 py-3.5 font-geist text-[14px] font-semibold text-ink-950 transition-all duration-300 hover:gap-3.5 hover:shadow-[0_10px_40px_-10px_var(--btn-glow)] active:scale-[0.98] cursor-pointer ${className}`}
-    style={{ background: rgb ? rgbString(rgb) : '#f3f4f7', '--btn-glow': rgb ? rgbString(rgb, 0.7) : 'rgb(255 255 255 / 0.5)' }}
+    className={`group inline-flex items-center gap-2.5 rounded-full pl-6 pr-5 py-3.5 font-geist text-[14px] font-semibold ${rgb ? 'text-ink-950' : 'text-bg'} transition-all duration-300 hover:gap-3.5 hover:shadow-[0_10px_40px_-10px_var(--btn-glow)] active:scale-[0.98] cursor-pointer ${className}`}
+    style={{ background: rgb ? rgbString(rgb) : 'rgb(var(--fg-rgb))', '--btn-glow': rgb ? rgbString(rgb, 0.7) : 'rgb(var(--fg-rgb) / 0.35)' }}
   >
     {children}
     <Icon name="arrow_forward" className="!text-[18px] transition-transform duration-300 group-hover:translate-x-0.5" />
@@ -96,7 +96,7 @@ const GhostButton = ({ children, onClick, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-geist text-[14px] font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-300 cursor-pointer ${className}`}
+    className={`glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 font-geist text-[14px] font-medium text-fg/90 hover:text-fg hover:bg-fg/10 transition-colors duration-300 cursor-pointer ${className}`}
   >
     {children}
   </button>
@@ -128,20 +128,20 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
       <div className="max-w-[1240px] mx-auto px-5 sm:px-8 w-full grid lg:grid-cols-12 gap-10 items-center">
         <div className="lg:col-span-7 relative">
           <motion.p
-            className="inline-flex items-center gap-2 glass rounded-full pl-2 pr-4 py-1.5 text-[12px] text-white/75"
+            className="inline-flex items-center gap-2 glass rounded-full pl-2 pr-4 py-1.5 text-[12px] text-fg/75"
             initial={{ opacity: 0, y: reduced ? 0 : 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
           >
             <span className="flex -space-x-1" aria-hidden="true">
               {ROLE_JOURNEY.map((r) => (
-                <span key={r.id} className="w-3 h-3 rounded-full ring-2 ring-ink-950" style={{ background: rgbString(r.rgb) }} />
+                <span key={r.id} className="w-3 h-3 rounded-full ring-2 ring-bg" style={{ background: rgbString(r.rgb) }} />
               ))}
             </span>
             One platform for everyone who makes events happen
           </motion.p>
 
-          <h1 id="hero-title" className="mt-7 font-geist font-semibold tracking-[-0.035em] text-white text-[42px] leading-[1.02] sm:text-[60px] xl:text-[68px]">
+          <h1 id="hero-title" className="mt-7 font-geist font-semibold tracking-[-0.035em] text-fg text-[42px] leading-[1.02] sm:text-[60px] xl:text-[68px]">
             <span className="block overflow-hidden pb-1">
               <motion.span className="block" {...line(0.1)}>Where events, people</motion.span>
             </span>
@@ -150,7 +150,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
             </span>
             <span className="block overflow-hidden pb-3">
               <motion.span
-                className="block font-display italic font-normal tracking-[-0.01em] text-[1.18em] leading-[0.95] bg-gradient-to-r from-attendee via-organizer to-sponsor bg-clip-text text-transparent pr-3"
+                className="block font-display italic font-normal tracking-[-0.01em] text-[1.18em] leading-[0.95] bg-gradient-to-r from-attendee-ink via-organizer-ink to-sponsor-ink bg-clip-text text-transparent pr-3"
                 {...line(0.3)}
               >
                 connect.
@@ -159,7 +159,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
           </h1>
 
           <motion.p
-            className="mt-6 max-w-[540px] text-[16px] sm:text-[18px] leading-relaxed text-white/65"
+            className="mt-6 max-w-[540px] text-[16px] sm:text-[18px] leading-relaxed text-fg/65"
             initial={{ opacity: 0, y: reduced ? 0 : 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: EASE, delay: reduced ? 0 : 0.45 }}
@@ -190,8 +190,8 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
             {stats.map((s) => (
               <div key={s.label}>
                 <dt className="sr-only">{s.label}</dt>
-                <dd className="font-geist text-2xl font-semibold text-white">{s.value}</dd>
-                <dd className="text-[12px] text-white/50 mt-0.5" aria-hidden="true">{s.label}</dd>
+                <dd className="font-geist text-2xl font-semibold text-fg">{s.value}</dd>
+                <dd className="text-[12px] text-fg/50 mt-0.5" aria-hidden="true">{s.label}</dd>
               </div>
             ))}
           </motion.dl>
@@ -203,7 +203,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
                 key={r.id}
                 type="button"
                 onClick={() => onJumpTo(r.id)}
-                className="glass rounded-full px-3.5 py-2 text-[13px] text-white/85 flex items-center gap-2 cursor-pointer"
+                className="glass rounded-full px-3.5 py-2 text-[13px] text-fg/85 flex items-center gap-2 cursor-pointer"
               >
                 <span className="w-2 h-2 rounded-full" style={{ background: rgbString(r.rgb) }} />
                 {r.label}
@@ -223,7 +223,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
                 key={r.id}
                 type="button"
                 onClick={() => onJumpTo(r.id)}
-                className="absolute -translate-x-1/2 -translate-y-1/2 glass glass-sheen rounded-2xl pl-3 pr-4 py-2.5 flex items-center gap-3 text-left cursor-pointer hover:bg-white/10 transition-colors"
+                className="absolute -translate-x-1/2 -translate-y-1/2 glass glass-sheen rounded-2xl pl-3 pr-4 py-2.5 flex items-center gap-3 text-left cursor-pointer hover:bg-fg/10 transition-colors"
                 style={{ left: `${x}%`, top: `${y}%` }}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={
@@ -237,12 +237,12 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
                   y: { duration: 6 + i, repeat: Infinity, ease: 'easeInOut' },
                 }}
               >
-                <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: rgbString(r.rgb, 0.16), color: rgbString(r.rgb) }}>
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: rgbString(r.rgb, 0.16), color: inkColor(r.rgb) }}>
                   <Icon name={r.benefits[0].icon} className="!text-[19px]" />
                 </span>
                 <span>
-                  <span className="block text-[13px] font-medium text-white">{r.label}</span>
-                  <span className="block text-[11px] text-white/50">{r.kicker}</span>
+                  <span className="block text-[13px] font-medium text-fg">{r.label}</span>
+                  <span className="block text-[11px] text-fg/50">{r.kicker}</span>
                 </span>
               </motion.button>
             );
@@ -253,7 +253,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
       <motion.button
         type="button"
         onClick={onDiscoverRoles}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-white/45 hover:text-white/80 transition-colors cursor-pointer"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-fg/45 hover:text-fg/80 transition-colors cursor-pointer"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4, duration: 1 }}
@@ -286,34 +286,34 @@ const RoleSection = React.forwardRef(({ role, index, layout, events, communities
   const text = (
     <div className={centered ? 'relative max-w-[760px] mx-auto text-center' : 'max-w-[520px]'}>
       <Reveal>
-        <p className={`flex items-center gap-3 text-[12px] uppercase tracking-[0.22em] ${centered ? 'justify-center' : ''}`} style={{ color: rgbString(rgb) }}>
+        <p className={`flex items-center gap-3 text-[12px] uppercase tracking-[0.22em] ${centered ? 'justify-center' : ''}`} style={{ color: inkColor(rgb) }}>
           <span className="font-mono">0{index + 1}</span>
           <span className="w-8 h-px" style={{ background: rgbString(rgb, 0.5) }} />
           {role.kicker} · {role.label}
         </p>
       </Reveal>
       <Reveal delay={0.06}>
-        <h2 id={`${role.id}-title`} className="mt-5 font-geist font-semibold tracking-[-0.03em] text-white text-[38px] leading-[1.05] sm:text-[52px]">
+        <h2 id={`${role.id}-title`} className="mt-5 font-geist font-semibold tracking-[-0.03em] text-fg text-[38px] leading-[1.05] sm:text-[52px]">
           {role.title[0]}
           <br />
-          <span className="font-display italic font-normal tracking-[-0.01em]" style={{ color: rgbString(rgb) }}>
+          <span className="font-display italic font-normal tracking-[-0.01em]" style={{ color: inkColor(rgb) }}>
             {role.title[1]}
           </span>
         </h2>
       </Reveal>
       <Reveal delay={0.12}>
-        <p className={`mt-5 text-[16px] leading-relaxed text-white/65 ${centered ? 'max-w-[620px] mx-auto' : ''}`}>{role.description}</p>
+        <p className={`mt-5 text-[16px] leading-relaxed text-fg/65 ${centered ? 'max-w-[620px] mx-auto' : ''}`}>{role.description}</p>
       </Reveal>
 
       <ul className={`mt-8 grid gap-x-6 gap-y-5 text-left ${centered ? 'sm:grid-cols-3 max-w-[760px] mx-auto' : 'sm:grid-cols-2'}`}>
         {role.benefits.map((b, i) => (
           <Reveal as="li" key={b.title} delay={0.16 + i * 0.06} y={14} className="flex gap-3">
-            <span className="mt-0.5 w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border" style={{ background: rgbString(rgb, 0.1), borderColor: rgbString(rgb, 0.2), color: rgbString(rgb) }}>
+            <span className="mt-0.5 w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border" style={{ background: rgbString(rgb, 0.1), borderColor: rgbString(rgb, 0.2), color: inkColor(rgb) }}>
               <Icon name={b.icon} className="!text-[18px]" />
             </span>
             <span>
-              <span className="block text-[14px] font-medium text-white">{b.title}</span>
-              <span className="block text-[13px] text-white/55 leading-snug mt-0.5">{b.text}</span>
+              <span className="block text-[14px] font-medium text-fg">{b.title}</span>
+              <span className="block text-[13px] text-fg/55 leading-snug mt-0.5">{b.text}</span>
             </span>
           </Reveal>
         ))}
@@ -324,7 +324,7 @@ const RoleSection = React.forwardRef(({ role, index, layout, events, communities
           {role.cta}
         </PrimaryButton>
         {!isLoggedIn && (
-          <button type="button" onClick={() => onLogin(role.signupRole)} className="text-[13px] text-white/55 hover:text-white transition-colors cursor-pointer">
+          <button type="button" onClick={() => onLogin(role.signupRole)} className="text-[13px] text-fg/55 hover:text-fg transition-colors cursor-pointer">
             Already on Connect? <span className="underline underline-offset-4 decoration-white/30">Log in</span>
           </button>
         )}
@@ -366,7 +366,7 @@ const Closing = React.forwardRef(({ isLoggedIn, onGetStarted, onExplore, onJumpT
   <section ref={ref} id="get-started" aria-labelledby="closing-title" className="relative min-h-[100svh] flex items-center py-28">
     <div
       className="absolute inset-0 pointer-events-none"
-      style={{ background: 'radial-gradient(ellipse 50% 45% at 50% 50%, rgb(7 8 12 / 0.75), transparent 75%)' }}
+      style={{ background: 'radial-gradient(ellipse 50% 45% at 50% 50%, rgb(var(--bg-rgb) / 0.75), transparent 75%)' }}
       aria-hidden="true"
     />
     <div className="relative max-w-[860px] mx-auto px-5 sm:px-8 text-center">
@@ -377,7 +377,7 @@ const Closing = React.forwardRef(({ isLoggedIn, onGetStarted, onExplore, onJumpT
               key={r.id}
               type="button"
               onClick={() => onJumpTo(r.id)}
-              className="glass rounded-full px-3.5 py-1.5 text-[12px] text-white/75 hover:text-white flex items-center gap-2 cursor-pointer transition-colors"
+              className="glass rounded-full px-3.5 py-1.5 text-[12px] text-fg/75 hover:text-fg flex items-center gap-2 cursor-pointer transition-colors"
             >
               <span className="w-2 h-2 rounded-full" style={{ background: rgbString(r.rgb) }} />
               {r.label}
@@ -386,18 +386,18 @@ const Closing = React.forwardRef(({ isLoggedIn, onGetStarted, onExplore, onJumpT
         </div>
       </Reveal>
       <Reveal delay={0.08}>
-        <h2 id="closing-title" className="mt-9 font-geist font-semibold tracking-[-0.035em] text-white text-[42px] leading-[1.04] sm:text-[64px]">
+        <h2 id="closing-title" className="mt-9 font-geist font-semibold tracking-[-0.035em] text-fg text-[42px] leading-[1.04] sm:text-[64px]">
           Every role.
           <br />
           One{' '}
-          <span className="font-display italic font-normal tracking-[-0.01em] bg-gradient-to-r from-attendee via-speaker to-sponsor bg-clip-text text-transparent pr-2">
+          <span className="font-display italic font-normal tracking-[-0.01em] bg-gradient-to-r from-attendee-ink via-speaker-ink to-sponsor-ink bg-clip-text text-transparent pr-2">
             connected
           </span>{' '}
           ecosystem.
         </h2>
       </Reveal>
       <Reveal delay={0.16}>
-        <p className="mt-6 text-[16px] sm:text-[18px] leading-relaxed text-white/65 max-w-[620px] mx-auto">
+        <p className="mt-6 text-[16px] sm:text-[18px] leading-relaxed text-fg/65 max-w-[620px] mx-auto">
           Attendees fill the room, organizers build it, venues give it a home, speakers give it meaning, volunteers keep it
           running and sponsors make it possible. On Connect, they all meet.
         </p>
@@ -428,7 +428,7 @@ const JourneyRail = ({ active, onJumpTo }) => {
             aria-current={isActive ? 'true' : undefined}
           >
             <span
-              className={`text-[11px] tracking-wide transition-all duration-300 ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 text-white/60'}`}
+              className={`text-[11px] tracking-wide transition-all duration-300 ${isActive ? 'opacity-100 text-fg' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 text-fg/60'}`}
             >
               {item.label}
             </span>
@@ -437,7 +437,7 @@ const JourneyRail = ({ active, onJumpTo }) => {
               style={{
                 width: isActive ? 10 : 6,
                 height: isActive ? 10 : 6,
-                background: isActive ? rgbString(item.rgb) : 'rgb(255 255 255 / 0.3)',
+                background: isActive ? rgbString(item.rgb) : 'rgb(var(--fg-rgb) / 0.3)',
                 boxShadow: isActive ? `0 0 14px ${rgbString(item.rgb, 0.8)}` : 'none',
               }}
             />
@@ -459,7 +459,7 @@ const LAYOUTS = {
   sponsor: 'visual-left',
 };
 
-export const LandingView = ({ events, communities, venues, venueBookings, currentUser, onExplore, onRoleCta, onRoleLogin, onGetStarted }) => {
+export const LandingView = ({ events, communities, venues, venueBookings, currentUser, theme = 'light', onExplore, onRoleCta, onRoleLogin, onGetStarted }) => {
   const reduced = useReducedMotion();
   const sectionRefs = useRef([]);
   const atmosphereRef = useRef(null);
@@ -507,13 +507,13 @@ export const LandingView = ({ events, communities, venues, venueBookings, curren
           className="absolute inset-0 transition-[background] duration-700"
           style={{
             background:
-              'radial-gradient(ellipse 70% 55% at 70% 35%, rgb(var(--accent) / 0.16), transparent 70%), radial-gradient(ellipse 60% 50% at 15% 85%, rgb(var(--accent) / 0.08), transparent 70%), linear-gradient(180deg, #07080c 0%, #0a0c12 50%, #07080c 100%)',
+              'radial-gradient(ellipse 70% 55% at 70% 35%, rgb(var(--accent) / var(--accent-strength)), transparent 70%), radial-gradient(ellipse 60% 50% at 15% 85%, rgb(var(--accent) / calc(var(--accent-strength) / 2)), transparent 70%), rgb(var(--bg-rgb))',
           }}
         />
-        <div className="absolute inset-0 opacity-45 lg:opacity-90">
-          <EcosystemCanvas getProgress={getProgress} reducedMotion={!!reduced} onAccentChange={handleAccent} />
+        <div className={`absolute inset-0 ${theme === 'light' ? 'opacity-30 lg:opacity-85' : 'opacity-45 lg:opacity-90'}`}>
+          <EcosystemCanvas getProgress={getProgress} reducedMotion={!!reduced} onAccentChange={handleAccent} theme={theme} />
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
       </div>
 
       <div className="relative z-10">

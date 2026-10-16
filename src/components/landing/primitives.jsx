@@ -81,7 +81,7 @@ export const Avatar = ({ name, rgb, size = 28, ring = true }) => {
         height: size,
         fontSize: size * 0.36,
         background: `rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`,
-        boxShadow: ring ? '0 0 0 2px #0b0d13' : 'none',
+        boxShadow: ring ? '0 0 0 2px rgb(var(--bg-rgb))' : 'none',
       }}
       aria-hidden="true"
     >

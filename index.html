@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#07080c" />
+    <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#07080c" media="(prefers-color-scheme: dark)" />
     <title>Connect - Multi-Role Event Platform</title>
     <meta name="description" content="Connect - Discover events, curate experiences, and work with speakers, venues, sponsors, and communities." />
     
@@ -15,7 +16,13 @@
     <!-- Material Symbols Outlined -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#f8f9fa] text-[#191c1d] antialiased min-h-screen">
+  <body class="antialiased min-h-screen" style="background-color: #f7f6f3">
+    <script>
+      // Paint the remembered theme's background before the app loads, to avoid a flash
+      try {
+        if (localStorage.getItem('connect_theme') === 'dark') document.body.style.backgroundColor = '#07080c';
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

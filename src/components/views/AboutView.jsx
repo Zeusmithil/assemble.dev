@@ -30,17 +30,17 @@ export const AboutView = () => (
     <div className="relative px-5 sm:px-8 max-w-[1100px] mx-auto py-16 sm:py-24 space-y-20">
       <header className="text-center max-w-[760px] mx-auto">
         <Reveal>
-          <p className="text-[12px] uppercase tracking-[0.22em] text-white/50">About Connect</p>
+          <p className="text-[12px] uppercase tracking-[0.22em] text-fg/50">About Connect</p>
         </Reveal>
         <Reveal delay={0.06}>
-          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-white text-[40px] sm:text-[56px] leading-[1.05]">
+          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-fg text-[40px] sm:text-[56px] leading-[1.05]">
             Making events easier
             <br />
-            <span className="font-display italic font-normal text-organizer">for everyone involved.</span>
+            <span className="font-display italic font-normal text-organizer-ink">for everyone involved.</span>
           </h1>
         </Reveal>
         <Reveal delay={0.12}>
-          <p className="mt-6 text-[17px] leading-relaxed text-white/65">
+          <p className="mt-6 text-[17px] leading-relaxed text-fg/65">
             Connect was created to simplify the event ecosystem — bringing curious attendees, passionate organizers, inspiring
             venues, speakers, volunteers and sponsors together around the moments they share.
           </p>
@@ -52,11 +52,11 @@ export const AboutView = () => (
         <div className="grid md:grid-cols-3 gap-5">
           {PRINCIPLES.map((p, i) => (
             <Reveal key={p.title} delay={i * 0.08} className="glass rounded-[28px] p-7">
-              <span className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/10 flex items-center justify-center text-white/85">
+              <span className="w-10 h-10 rounded-xl bg-fg/[0.07] border border-fg/10 flex items-center justify-center text-fg/85">
                 <Icon name={p.icon} className="!text-[20px]" />
               </span>
-              <h3 className="font-geist text-lg font-semibold text-white mt-5">{p.title}</h3>
-              <p className="text-[14px] text-white/60 leading-relaxed mt-2">{p.text}</p>
+              <h3 className="font-geist text-lg font-semibold text-fg mt-5">{p.title}</h3>
+              <p className="text-[14px] text-fg/60 leading-relaxed mt-2">{p.text}</p>
             </Reveal>
           ))}
         </div>
@@ -64,10 +64,10 @@ export const AboutView = () => (
 
       <section aria-labelledby="roles-title" className="glass-strong rounded-[32px] p-8 sm:p-12">
         <Reveal>
-          <h2 id="roles-title" className="font-geist text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+          <h2 id="roles-title" className="font-geist text-2xl sm:text-3xl font-semibold text-fg tracking-tight">
             Six ways to take part
           </h2>
-          <p className="text-[15px] text-white/60 mt-2 max-w-[560px]">
+          <p className="text-[15px] text-fg/60 mt-2 max-w-[560px]">
             Everyone on Connect plays a part in making an event happen. Most people play more than one.
           </p>
         </Reveal>
@@ -75,8 +75,8 @@ export const AboutView = () => (
           {ROLE_JOURNEY.map((r, i) => (
             <Reveal as="li" key={r.id} delay={i * 0.06}>
               <span className="block h-1 w-10 rounded-full" style={{ background: rgbString(r.rgb) }} />
-              <p className="font-geist text-base font-semibold text-white mt-4">{r.label}</p>
-              <p className="text-[13px] text-white/55 mt-1.5 leading-relaxed">{r.benefits[0].text}</p>
+              <p className="font-geist text-base font-semibold text-fg mt-4">{r.label}</p>
+              <p className="text-[13px] text-fg/55 mt-1.5 leading-relaxed">{r.benefits[0].text}</p>
             </Reveal>
           ))}
         </ul>

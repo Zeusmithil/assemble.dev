@@ -12,27 +12,27 @@ const ROLE_CONFIGS = {
   venue: { label: 'Venue Provider', icon: 'apartment' },
 };
 
-// Navbar class set for the dark glass theme
+// Navbar classes, built on the theme tokens so they work in light and dark
 const T = {
-  header: 'bg-ink-950/55 border-white/[0.07]',
+  header: 'bg-bg/75 border-fg/[0.07]',
   headerTop: 'bg-transparent border-transparent',
-  brand: 'text-white',
-  mark: 'bg-paper text-ink-950',
-  link: 'text-white/65 hover:text-white',
-  linkActive: 'text-white',
-  pill: 'border-white/12 bg-white/[0.06] text-white/85 hover:bg-white/10 hover:text-white',
-  menu: 'glass-strong text-white',
-  menuLabel: 'text-white/40',
-  menuItem: 'text-white/75 hover:bg-white/[0.06] hover:text-white',
-  menuItemActive: 'text-white bg-white/[0.08] font-semibold',
-  ghost: 'text-white/85 hover:text-white hover:bg-white/10',
-  primary: 'bg-paper text-ink-950 hover:bg-paper/90',
-  logout: 'text-white/70 border-white/15 hover:bg-white/10 hover:text-white',
-  burger: 'text-white hover:bg-white/10',
-  drawer: 'bg-ink-950/95 border-white/[0.07] text-white',
-  drawerDivider: 'border-white/[0.07]',
-  select: 'bg-white/[0.06] border-white/15 text-white',
-  setup: 'text-[#a3c9a8]',
+  brand: 'text-fg',
+  mark: 'bg-fg text-bg',
+  link: 'text-fg/65 hover:text-fg',
+  linkActive: 'text-fg',
+  pill: 'border-fg/12 bg-fg/[0.06] text-fg/85 hover:bg-fg/10 hover:text-fg',
+  menu: 'glass-strong text-fg',
+  menuLabel: 'text-fg/40',
+  menuItem: 'text-fg/75 hover:bg-fg/[0.06] hover:text-fg',
+  menuItemActive: 'text-fg bg-fg/[0.08] font-semibold',
+  ghost: 'text-fg/85 hover:text-fg hover:bg-fg/10',
+  primary: 'bg-fg text-bg hover:bg-fg/90',
+  logout: 'text-fg/70 border-fg/15 hover:bg-fg/10 hover:text-fg',
+  burger: 'text-fg hover:bg-fg/10',
+  drawer: 'bg-bg/95 border-fg/[0.07] text-fg',
+  drawerDivider: 'border-fg/[0.07]',
+  select: 'bg-fg/[0.06] border-fg/15 text-fg',
+  setup: 'text-volunteer-ink',
 };
 
 // Scrolls to a section on the landing page, waiting for it to mount if we just navigated there
@@ -55,6 +55,8 @@ export const Navbar = ({
   navigate,
   currentUser,
   transparentTop = false,
+  theme = 'light',
+  onToggleTheme,
   onLogout,
   selectedCity,
   setSelectedCity,
@@ -210,6 +212,28 @@ export const Navbar = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2.5 shrink-0">
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className={`relative w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${t.pill}`}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            >
+              <span
+                className={`material-symbols-outlined absolute text-[18px] transition-all duration-500 ${theme === 'dark' ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`}
+                aria-hidden="true"
+              >
+                dark_mode
+              </span>
+              <span
+                className={`material-symbols-outlined absolute text-[18px] transition-all duration-500 ${theme === 'dark' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'}`}
+                aria-hidden="true"
+              >
+                light_mode
+              </span>
+            </button>
+          )}
           {currentUser ? (
             <>
               <div ref={roleRef} className="relative">
@@ -272,9 +296,9 @@ export const Navbar = ({
                 aria-label="Your profile"
               >
                 {currentUser.avatar || currentUser.photo ? (
-                  <img src={currentUser.avatar || currentUser.photo} alt="" className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                  <img src={currentUser.avatar || currentUser.photo} alt="" className="w-8 h-8 rounded-full object-cover border border-fg/20" />
                 ) : (
-                  <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00355f] to-[#0f4c81] text-white flex items-center justify-center text-xs font-bold font-geist border border-white/20">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00355f] to-[#0f4c81] text-white flex items-center justify-center text-xs font-bold font-geist border border-fg/20">
                     {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                   </span>
                 )}

@@ -120,6 +120,26 @@ export function App() {
   });
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Light by default; dark applies src/styles/dark-theme.css across the app. Choice is remembered.
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('connect_theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('connect_theme', next);
+      } catch {
+        // Storage unavailable: the choice lasts for this visit only
+      }
+      return next;
+    });
+  };
+
   const [communities, setCommunities] = useState(() => {
     const saved = localStorage.getItem('assemble_communities');
     if (!saved) return INITIAL_COMMUNITIES;
@@ -1116,6 +1136,7 @@ export function App() {
               venues={venues}
               venueBookings={venueBookings}
               currentUser={currentUser}
+              theme={theme}
               onExplore={() => navigate('/discover')}
               onRoleCta={handleRoleCta}
               onRoleLogin={handleRoleLogin}
@@ -1452,6 +1473,7 @@ export function App() {
               venues={venues}
               venueBookings={venueBookings}
               currentUser={currentUser}
+              theme={theme}
               onExplore={() => navigate('/discover')}
               onRoleCta={handleRoleCta}
               onRoleLogin={handleRoleLogin}
@@ -1462,12 +1484,11 @@ export function App() {
     }
   };
 
-  // The whole product uses the dark glass theme (see src/styles/dark-theme.css);
-  // keep the page canvas (visible on overscroll) dark as well.
+  // Keep the page canvas (visible on overscroll) and native controls in step with the theme
   useEffect(() => {
-    document.body.style.backgroundColor = '#07080c';
-    document.documentElement.style.colorScheme = 'dark';
-  }, []);
+    document.body.style.backgroundColor = theme === 'dark' ? '#07080c' : '#f7f6f3';
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
 
   // Every page except the landing gets an ambient backdrop tinted by the relevant role:
   // the role being signed up for on auth pages, otherwise the active role.
@@ -1477,13 +1498,13 @@ export function App() {
   const ambientRgb = ROLE_JOURNEY.find((r) => r.id === tintRole)?.rgb || [185, 168, 242];
 
   return (
-    <div className="theme-dark min-h-screen flex flex-col bg-ink-950 text-white selection:bg-white/20 selection:text-white">
+    <div className={`theme-${theme} min-h-screen flex flex-col bg-bg text-fg selection:bg-fg/15 selection:text-fg`}>
       {currentPath !== '/' && (
         <div className="fixed inset-0 z-0 pointer-events-none grain" aria-hidden="true">
           <div
             className="absolute inset-0 transition-[background] duration-700"
             style={{
-              background: `radial-gradient(ellipse 60% 40% at 50% 0%, rgb(${ambientRgb.join(' ')} / ${isAuthPage ? 0.22 : 0.13}), transparent 70%), radial-gradient(ellipse 45% 35% at 90% 85%, rgb(${ambientRgb.join(' ')} / 0.07), transparent 70%), #07080c`,
+              background: `radial-gradient(ellipse 60% 40% at 50% 0%, rgb(${ambientRgb.join(' ')} / ${isAuthPage ? 0.22 : 0.13}), transparent 70%), radial-gradient(ellipse 45% 35% at 90% 85%, rgb(${ambientRgb.join(' ')} / 0.07), transparent 70%), rgb(var(--bg-rgb))`,
             }}
           />
         </div>
@@ -1494,6 +1515,8 @@ export function App() {
         navigate={navigate}
         currentUser={currentUser}
         transparentTop={currentPath === '/'}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onLogout={handleLogout}
         selectedCity={selectedCity}
         setSelectedCity={setSelectedCity}

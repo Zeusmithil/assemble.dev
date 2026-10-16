@@ -1,6 +1,6 @@
 import React from 'react';
 import { Reveal, Icon } from '../landing/primitives';
-import { rgbString } from '../landing/journey';
+import { rgbString, inkColor } from '../landing/journey';
 
 const TRACKS = [
   {
@@ -40,13 +40,13 @@ export const HowItWorksView = ({ setActiveView }) => (
     <div className="relative px-5 sm:px-8 max-w-[1180px] mx-auto py-16 sm:py-24 space-y-16">
       <header className="text-center max-w-[720px] mx-auto">
         <Reveal>
-          <p className="text-[12px] uppercase tracking-[0.22em] text-white/50">How it works</p>
+          <p className="text-[12px] uppercase tracking-[0.22em] text-fg/50">How it works</p>
         </Reveal>
         <Reveal delay={0.06}>
-          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-white text-[40px] sm:text-[56px] leading-[1.05]">
+          <h1 className="mt-5 font-geist font-semibold tracking-[-0.03em] text-fg text-[40px] sm:text-[56px] leading-[1.05]">
             Simple for a first event.
             <br />
-            <span className="font-display italic font-normal text-attendee">Powerful for the hundredth.</span>
+            <span className="font-display italic font-normal text-attendee-ink">Powerful for the hundredth.</span>
           </h1>
         </Reveal>
       </header>
@@ -54,8 +54,8 @@ export const HowItWorksView = ({ setActiveView }) => (
       {TRACKS.map((track) => (
         <section key={track.id} aria-labelledby={`${track.id}-title`} className="glass-strong rounded-[32px] p-7 sm:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 id={`${track.id}-title`} className="font-geist text-2xl font-semibold text-white flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: rgbString(track.rgb, 0.14), color: rgbString(track.rgb) }}>
+            <h2 id={`${track.id}-title`} className="font-geist text-2xl font-semibold text-fg flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: rgbString(track.rgb, 0.14), color: inkColor(track.rgb) }}>
                 <Icon name={track.icon} className="!text-[20px]" />
               </span>
               {track.title}
@@ -71,10 +71,10 @@ export const HowItWorksView = ({ setActiveView }) => (
           </div>
           <ol className={`mt-8 grid gap-4 ${track.steps.length === 4 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
             {track.steps.map((step, i) => (
-              <Reveal as="li" key={step.title} delay={i * 0.07} className="rounded-2xl bg-white/[0.035] border border-white/[0.07] p-5">
-                <span className="font-mono text-[12px]" style={{ color: rgbString(track.rgb) }}>0{i + 1}</span>
-                <h3 className="font-geist text-base font-semibold text-white mt-3">{step.title}</h3>
-                <p className="text-[13px] text-white/60 leading-relaxed mt-1.5">{step.text}</p>
+              <Reveal as="li" key={step.title} delay={i * 0.07} className="rounded-2xl bg-fg/[0.035] border border-fg/[0.07] p-5">
+                <span className="font-mono text-[12px]" style={{ color: inkColor(track.rgb) }}>0{i + 1}</span>
+                <h3 className="font-geist text-base font-semibold text-fg mt-3">{step.title}</h3>
+                <p className="text-[13px] text-fg/60 leading-relaxed mt-1.5">{step.text}</p>
               </Reveal>
             ))}
           </ol>

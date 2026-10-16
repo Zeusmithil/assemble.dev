@@ -283,7 +283,7 @@ const LINK_DISTANCES = [0.2, 0.2, 0.17, 0.16, 0.2, 0.17, 0.16, 0.2];
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentChange }) => {
+export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentChange, theme = 'dark' }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -293,6 +293,10 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
     if (!ctx) return undefined;
 
     const isSmall = window.innerWidth < 768;
+    // Daylight: deeper colours drawn normally; night: pastel light added together so it glows
+    const light = theme === 'light';
+    const neutral = light ? [96, 102, 120] : [236, 238, 246];
+    const base = light ? [247, 246, 243] : [235, 238, 248];
     const lowPower = (navigator.hardwareConcurrency || 8) <= 4;
     const N = isSmall ? 420 : lowPower ? 620 : 900;
     const rnd = seeded(20261016);
@@ -308,18 +312,18 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
 
     // Per-point colour for every scene: role scenes use their colour with a few
     // neutral points; hero and final mix all the role colours.
-    const roleColours = ROLE_JOURNEY.map((r) => r.rgb);
+    const roleColours = ROLE_JOURNEY.map((r) => (light ? r.inkRgb : r.rgb));
     const colours = SCENES.map((scene, idx) => {
       const out = new Float32Array(N * 3);
       for (let i = 0; i < N; i++) {
         let c;
         if (idx === 0 || idx === SCENES.length - 1) {
           const rc = roleColours[i % roleColours.length];
-          const mix = idx === 0 ? 0.45 : 0.85;
-          c = [rc[0] * mix + 235 * (1 - mix), rc[1] * mix + 238 * (1 - mix), rc[2] * mix + 248 * (1 - mix)];
+          const mix = light ? (idx === 0 ? 0.7 : 0.95) : idx === 0 ? 0.45 : 0.85;
+          const tint = light ? neutral : base;
+          c = [rc[0] * mix + tint[0] * (1 - mix), rc[1] * mix + tint[1] * (1 - mix), rc[2] * mix + tint[2] * (1 - mix)];
         } else {
-          const neutral = i % 7 === 0;
-          c = neutral ? [236, 238, 246] : scene.rgb;
+          c = i % 7 === 0 ? neutral : light ? scene.inkRgb : scene.rgb;
         }
         out[i * 3] = c[0];
         out[i * 3 + 1] = c[1];
@@ -435,7 +439,7 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
 
       // Connecting lines: outgoing formation fades out, incoming fades in
       ctx.lineWidth = 0.6 * dpr;
@@ -445,7 +449,7 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
           const i = pairs[k];
           const j = pairs[k + 1];
           const depth = (proj[i * 3 + 2] + proj[j * 3 + 2]) * 0.5;
-          const la = alpha * 0.22 * Math.min(1, Math.max(0.15, depth - 0.55));
+          const la = alpha * (light ? 0.16 : 0.22) * Math.min(1, Math.max(0.15, depth - 0.55));
           ctx.strokeStyle = `rgba(${col[i * 3] | 0},${col[i * 3 + 1] | 0},${col[i * 3 + 2] | 0},${la})`;
           ctx.beginPath();
           ctx.moveTo(proj[i * 3], proj[i * 3 + 1]);
@@ -461,7 +465,9 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
         const i3 = i * 3;
         const depth = proj[i3 + 2];
         const r = sizes[i] * (0.55 + depth * 0.9) * dpr;
-        const alpha = Math.min(0.95, Math.max(0.12, (depth - 0.62) * 1.6));
+        const alpha = light
+          ? Math.min(0.75, Math.max(0.1, (depth - 0.62) * 1.3))
+          : Math.min(0.95, Math.max(0.12, (depth - 0.62) * 1.6));
         ctx.fillStyle = `rgba(${col[i3] | 0},${col[i3 + 1] | 0},${col[i3 + 2] | 0},${alpha})`;
         ctx.beginPath();
         ctx.arc(proj[i3], proj[i3 + 1], r, 0, TAU);
@@ -488,7 +494,7 @@ export const EcosystemCanvas = ({ getProgress, reducedMotion = false, onAccentCh
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', onPointer);
     };
-  }, [getProgress, reducedMotion, onAccentChange]);
+  }, [getProgress, reducedMotion, onAccentChange, theme]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />;
 };
