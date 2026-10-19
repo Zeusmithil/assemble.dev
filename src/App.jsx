@@ -1495,10 +1495,15 @@ export function App() {
   const isAuthPage = currentPath === '/login' || currentPath.startsWith('/signup') || currentPath.startsWith('/setup-role') || currentPath === '/become-sponsor';
   const pathRole = currentPath === '/become-sponsor' ? 'sponsor' : currentPath.split('/')[2];
   const tintRole = isAuthPage ? pathRole : userRole || currentUser?.role || 'attendee';
-  const ambientRgb = ROLE_JOURNEY.find((r) => r.id === tintRole)?.rgb || [185, 168, 242];
+  const tintJourney = ROLE_JOURNEY.find((r) => r.id === tintRole) || ROLE_JOURNEY.find((r) => r.id === 'organizer');
+  const ambientRgb = tintJourney.rgb;
 
   return (
-    <div className={`theme-${theme} min-h-screen flex flex-col bg-bg text-fg selection:bg-fg/15 selection:text-fg`}>
+    <div
+      className={`theme-${theme} min-h-screen flex flex-col bg-bg text-fg selection:bg-fg/15 selection:text-fg`}
+      // The active role's colour drives accents across the app (see styles/app-theme.css)
+      style={{ '--accent-rgb': ambientRgb.join(' '), '--accent-ink': `var(--${tintJourney.id}-ink)` }}
+    >
       {currentPath !== '/' && (
         <div className="fixed inset-0 z-0 pointer-events-none grain" aria-hidden="true">
           <div

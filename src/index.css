@@ -154,8 +154,9 @@
 
 .theme-light,
 .theme-dark {
-  background-color: var(--color-bg);
-  color: var(--color-fg);
+  /* Use the raw channels: --color-* tokens resolve at :root and would keep the light values */
+  background-color: rgb(var(--bg-rgb));
+  color: rgb(var(--fg-rgb));
 }
 .theme-light {
   color-scheme: light;
@@ -165,7 +166,7 @@
 }
 .theme-light ::-webkit-scrollbar-track,
 .theme-dark ::-webkit-scrollbar-track {
-  background: var(--color-bg);
+  background: rgb(var(--bg-rgb));
 }
 .theme-light ::-webkit-scrollbar-thumb,
 .theme-dark ::-webkit-scrollbar-thumb {

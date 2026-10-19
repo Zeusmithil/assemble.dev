@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
 
 export const SpeakerDashboardView = ({
   currentUser,
@@ -112,140 +113,41 @@ export const SpeakerDashboardView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn text-left">
-      {/* Header with Glassmorphism */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#00355f] via-[#0f4c81] to-[#0066b2] p-8 md:p-10 text-white shadow-xl shadow-blue-900/10 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
-              <span>🎤</span>
-              <span>Speaker Command Center</span>
-            </div>
-            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
-              Build Your Speaking Profile
-            </h1>
-            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
-              Showcase your thought leadership, receive keynote invitations from organizers, and discover speaking stages worldwide.
-            </p>
-          </div>
+      <PageHeader
+        icon="record_voice_over"
+        kicker="Speaker · Studio"
+        title="Your ideas,"
+        accent="on the right stage."
+        description="Showcase your expertise, receive invitations from organizers and find stages that need your voice."
+        actions={
+          <>
+            <Button icon="edit" onClick={() => setShowEditModal(true)}>Edit speaker profile</Button>
+            <Button variant="secondary" icon="explore" onClick={() => onRoleChange && onRoleChange('attendee')}>
+              Switch to attendee
+            </Button>
+          </>
+        }
+      />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="px-5 py-2.5 bg-white/90 hover:bg-white text-[#00355f] rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">edit</span>
-              <span>Edit Speaker Profile</span>
-            </button>
-            <button
-              onClick={() => onRoleChange && onRoleChange('attendee')}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">explore</span>
-              <span>Switch to Attendee Mode</span>
-            </button>
-          </div>
-        </div>
+      <StatGrid>
+        <StatTile icon="mail" label="Pending invites" value={myPendingInvites.length} />
+        <StatTile icon="event_available" label="Confirmed talks" value={myAcceptedEvents.length} />
+        <StatTile icon="campaign" label="Open stages" value={upcomingEvents.length} />
+        <StatTile icon="payments" label="Base fee" value={feeType === 'free' ? 'Free' : `${currency}${feeAmount}`} />
+      </StatGrid>
 
-        {/* Subtle decorative glow circles */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      <Tabs
+        label="Speaker sections"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'opportunities', label: 'Speaking opportunities', icon: 'explore', count: upcomingEvents.length },
+          { id: 'invitations', label: 'Invitations', icon: 'mail', count: myPendingInvites.length },
+          { id: 'my-events', label: 'My speaking events', icon: 'event_note', count: myAcceptedEvents.length },
+          { id: 'profile-preview', label: 'Public profile', icon: 'badge' },
+        ]}
+      />
 
-      {/* Quick Stats Grid with Glassmorphic Translucent Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0f4c81] flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">mail</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{myPendingInvites.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Pending Invites</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">event_available</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{myAcceptedEvents.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Confirmed Keynotes</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">campaign</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{upcomingEvents.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Open Stages</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">payments</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">
-              {feeType === 'free' ? 'Free' : `${currency}${feeAmount}`}
-            </div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Base Fee Rate</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto pb-px">
-        <button
-          onClick={() => setActiveTab('opportunities')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'opportunities'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">explore</span>
-          <span>Speaking Opportunities ({upcomingEvents.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('invitations')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'invitations'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">mail</span>
-          <span>Invitations from Organizers ({myPendingInvites.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('my-events')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'my-events'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">event_note</span>
-          <span>My Speaking Events ({myAcceptedEvents.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('profile-preview')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'profile-preview'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">badge</span>
-          <span>Public Profile Preview</span>
-        </button>
-      </div>
 
       {/* TAB 1: Speaking Opportunities */}
       {activeTab === 'opportunities' && (

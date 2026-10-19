@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
 
 export const AttendeeDashboardView = ({
   currentUser,
@@ -99,83 +100,40 @@ export const AttendeeDashboardView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn text-left">
-      {/* Hero Welcome Banner (Emphasis: "Discover what's happening around you.") */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#00355f] via-[#0f4c81] to-[#0066b2] p-8 md:p-10 text-white shadow-xl shadow-blue-900/10 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
-              <span>🎟</span>
-              <span>Attendee Home</span>
-            </div>
-            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
-              Discover what’s happening around you.
-            </h1>
-            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
-              Explore premier tech summits, masterclasses, and networking mixers. Track your digital passes and connect in active community rooms.
-            </p>
-          </div>
+      <PageHeader
+        icon="confirmation_number"
+        kicker="Attendee · Home"
+        title="Discover what's"
+        accent="happening around you."
+        description="Explore summits, masterclasses and mixers. Keep your passes in one place and stay close to your communities."
+        actions={
+          <>
+            <Button icon="travel_explore" onClick={() => setActiveTab('explore')}>Explore events</Button>
+            <Button variant="secondary" icon="confirmation_number" onClick={() => setActiveTab('my-events')}>
+              My passes ({tickets.length})
+            </Button>
+          </>
+        }
+      />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setActiveTab('explore')}
-              className="px-5 py-2.5 bg-white text-[#00355f] hover:bg-gray-100 rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">explore</span>
-              <span>Explore Events</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('my-events')}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">confirmation_number</span>
-              <span>My Passes ({tickets.length})</span>
-            </button>
-          </div>
-        </div>
+      <StatGrid>
+        <StatTile icon="confirmation_number" label="Passes" value={tickets.length} />
+        <StatTile icon="bookmark" label="Saved events" value={savedEventIds.length} />
+        <StatTile icon="groups" label="Communities" value={userCommunityNames.length} />
+        <StatTile icon="event_upcoming" label="Events near you" value={events.filter((e) => e.status === 'published').length} />
+      </StatGrid>
 
-        {/* Glow circles */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      <Tabs
+        label="Attendee sections"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'explore', label: 'Explore events', icon: 'travel_explore' },
+          { id: 'my-events', label: 'My events & tickets', icon: 'confirmation_number', count: tickets.length },
+          { id: 'communities', label: 'Communities & rooms', icon: 'groups', count: userCommunityNames.length },
+        ]}
+      />
 
-      {/* Main Tabs Navigation */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto pb-px">
-        <button
-          onClick={() => setActiveTab('explore')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'explore'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">travel_explore</span>
-          <span>Explore Events</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('my-events')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'my-events'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">confirmation_number</span>
-          <span>My Events & Tickets ({tickets.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('communities')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'communities'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">groups</span>
-          <span>Communities & Rooms ({userCommunityNames.length})</span>
-        </button>
-      </div>
 
       {/* SECTION 1: Explore Events */}
       {activeTab === 'explore' && (

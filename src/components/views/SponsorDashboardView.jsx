@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
 import { isSponsorshipApproved, isSponsorshipPending, isSponsorshipRejected } from '../../utils/sponsorship';
 
 export const SponsorDashboardView = ({
@@ -85,119 +86,37 @@ export const SponsorDashboardView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn text-left">
-      {/* Header with Glassmorphism */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] p-8 md:p-10 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
-              <span>💼</span>
-              <span>Corporate Sponsorship Portal</span>
-            </div>
-            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
-              Discover Sponsorship Opportunities
-            </h1>
-            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
-              Partner with high-impact conferences, hackathons, and masterclasses. Empower event organizers and amplify your brand visibility.
-            </p>
-          </div>
+      <PageHeader
+        icon="handshake"
+        kicker="Sponsor · Partnerships"
+        title="Back the moments"
+        accent="that matter."
+        description="Find events and communities that fit your audience, review organizer proposals and issue sponsorship codes."
+        actions={
+          <Button variant="secondary" icon="explore" onClick={() => onRoleChange && onRoleChange('attendee')}>
+            Switch to attendee
+          </Button>
+        }
+      />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => onRoleChange && onRoleChange('attendee')}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">explore</span>
-              <span>Switch to Attendee Mode</span>
-            </button>
-          </div>
-        </div>
+      <StatGrid>
+        <StatTile icon="account_balance_wallet" label="Annual budget" value={`€${totalBudget.toLocaleString()}`} />
+        <StatTile icon="savings" label="Available to grant" value={`€${availableBudget.toLocaleString()}`} />
+        <StatTile icon="handshake" label="Active partnerships" value={approvedRequests.length} />
+        <StatTile icon="pending_actions" label="Proposals to review" value={pendingRequests.length} />
+      </StatGrid>
 
-        {/* Glow accents */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      <Tabs
+        label="Sponsor sections"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'opportunities', label: 'Events seeking sponsors', icon: 'explore', count: events.length },
+          { id: 'incoming-requests', label: 'Organizer proposals', icon: 'inbox', count: pendingRequests.length },
+          { id: 'active-sponsorships', label: 'Grants & codes', icon: 'verified', count: approvedRequests.length },
+        ]}
+      />
 
-      {/* Budget & Impact Telemetry */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0f4c81] flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">€{totalBudget.toLocaleString()}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Annual Sponsor Budget</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">savings</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">€{availableBudget.toLocaleString()}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Available to Grant</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">handshake</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{approvedRequests.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Active Partnerships</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">pending_actions</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{pendingRequests.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Proposals to Review</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto pb-px">
-        <button
-          onClick={() => setActiveTab('opportunities')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'opportunities'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">explore</span>
-          <span>Events Seeking Sponsors ({events.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('incoming-requests')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'incoming-requests'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">inbox</span>
-          <span>Incoming Organizer Proposals ({pendingRequests.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('active-sponsorships')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'active-sponsorships'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">verified</span>
-          <span>Active Grants & Verification Codes ({approvedRequests.length})</span>
-        </button>
-      </div>
 
       {/* TAB 1: Events Seeking Sponsors */}
       {activeTab === 'opportunities' && (

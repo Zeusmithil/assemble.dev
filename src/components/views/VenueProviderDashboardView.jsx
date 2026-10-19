@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
 
 export const VenueProviderDashboardView = ({
   currentUser,
@@ -139,126 +140,40 @@ export const VenueProviderDashboardView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn text-left">
-      {/* Header with Glassmorphism */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#1a2d42] via-[#0f4c81] to-[#00355f] p-8 md:p-10 text-white shadow-xl shadow-slate-900/15 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
-              <span>📍</span>
-              <span>Venue Management Console</span>
-            </div>
-            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
-              Manage Your Venue Spaces
-            </h1>
-            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
-              Showcase auditoriums, conference lofts, and outdoor amphitheaters. Accept bookings and coordinate with event organizers.
-            </p>
-          </div>
+      <PageHeader
+        icon="apartment"
+        kicker="Venue · Spaces"
+        title="Spaces that bring"
+        accent="people together."
+        description="Showcase your halls, lofts and auditoriums, accept bookings and coordinate with organizers."
+        actions={
+          <>
+            <Button icon="add_business" onClick={handleOpenAdd}>Add new venue</Button>
+            <Button variant="secondary" icon="explore" onClick={() => onRoleChange && onRoleChange('attendee')}>
+              Switch to attendee
+            </Button>
+          </>
+        }
+      />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleOpenAdd}
-              className="px-5 py-2.5 bg-white text-[#00355f] hover:bg-gray-100 rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">add_business</span>
-              <span>Add New Venue</span>
-            </button>
-            <button
-              onClick={() => onRoleChange && onRoleChange('attendee')}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-            >
-              <span className="material-symbols-outlined text-sm">explore</span>
-              <span>Switch to Attendee Mode</span>
-            </button>
-          </div>
-        </div>
+      <StatGrid>
+        <StatTile icon="apartment" label="Listed venues" value={displayedVenues.length} />
+        <StatTile icon="pending_actions" label="Pending requests" value={pendingBookings.length} />
+        <StatTile icon="calendar_month" label="Confirmed bookings" value={confirmedBookings.length} />
+        <StatTile icon="star" label="Average rating" value="4.9 / 5.0" />
+      </StatGrid>
 
-        {/* Glow circles */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-teal-400/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      <Tabs
+        label="Venue sections"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'my-venues', label: 'My venues', icon: 'domain', count: displayedVenues.length },
+          { id: 'booking-requests', label: 'Booking requests', icon: 'inbox', count: pendingBookings.length },
+          { id: 'schedule', label: 'Upcoming schedule', icon: 'event_available', count: confirmedBookings.length },
+        ]}
+      />
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0f4c81] flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">apartment</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{displayedVenues.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Listed Venues</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">pending_actions</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{pendingBookings.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Pending Requests</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">calendar_month</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">{confirmedBookings.length}</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Confirmed Bookings</div>
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4]/80 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">grade</span>
-          </div>
-          <div>
-            <div className="font-geist text-2xl font-black text-[#00355f]">4.9 / 5.0</div>
-            <div className="font-inter text-xs text-gray-500 font-medium">Average Venue Rating</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto pb-px">
-        <button
-          onClick={() => setActiveTab('my-venues')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'my-venues'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">domain</span>
-          <span>My Venues ({displayedVenues.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('booking-requests')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'booking-requests'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">inbox</span>
-          <span>Booking Requests ({pendingBookings.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('schedule')}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-            activeTab === 'schedule'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base">event_available</span>
-          <span>Upcoming Schedule ({confirmedBookings.length})</span>
-        </button>
-      </div>
 
       {/* TAB 1: My Venues */}
       {activeTab === 'my-venues' && (

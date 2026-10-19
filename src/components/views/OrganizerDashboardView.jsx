@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
+import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
 import * as XLSX from 'xlsx';
 import { GoodiesMerchSection } from './GoodiesMerchSection';
 import { SponsorshipSection } from './SponsorshipSection';
 import { VenueMarketplaceView } from './VenueMarketplaceView';
 import { SpeakerMarketplaceView } from './SpeakerMarketplaceView';
+
+const STATUS_STYLES = {
+  published: 'bg-[rgb(147_211_164/0.16)] text-[color:var(--volunteer-ink)]',
+  draft: 'bg-[rgb(226_203_152/0.2)] text-[color:var(--sponsor-ink)]',
+};
+
+const EventStatus = ({ status }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${STATUS_STYLES[status] || 'bg-fg/[0.07] text-fg/60'}`}>
+    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+    {status}
+  </span>
+);
 
 export const OrganizerDashboardView = ({
   events,
@@ -269,135 +282,62 @@ export const OrganizerDashboardView = ({
     }
   };
 
+  // Open the per-event console straight on a given tab
+  const openCheckIn = (evt) => {
+    setSelectedAnalyticsEvent(evt);
+    setDashboardTab('checkin');
+    setCheckInResult(null);
+    setTicketInput('');
+  };
+  const openAnalytics = (evt) => {
+    setSelectedAnalyticsEvent(evt);
+    setDashboardTab('attendees');
+  };
+
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
-      {/* Blue Hero Header with Glassmorphism matching other roles */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] p-8 md:p-10 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider text-blue-100">
-              <span>🎯</span>
-              <span>Organizer Portal</span>
-            </div>
-            <h1 className="font-geist text-3xl md:text-4xl font-extrabold tracking-tight">
-              Event Management Console
-            </h1>
-            <p className="font-inter text-sm text-blue-100/90 leading-relaxed">
-              Coordinate live event schedules, track attendee registrations, manage budgets, procure venues, and invite keynote speakers.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={onOpenCreateEvent}
-              className="px-5 py-2.5 bg-white text-[#00355f] hover:bg-blue-50 rounded-2xl font-geist font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm font-bold">add</span>
-              <span>Create New Event</span>
-            </button>
-
+      <PageHeader
+        icon="edit_calendar"
+        kicker="Organizer · Console"
+        title="Run every event"
+        accent="from one place."
+        description="Coordinate schedules, track registrations, manage budgets, book venues and invite speakers."
+        actions={
+          <>
+            <Button icon="add" onClick={onOpenCreateEvent}>Create new event</Button>
             {onRoleChange && (
-              <button
-                onClick={() => onRoleChange('attendee')}
-                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-geist font-bold text-xs border border-white/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-              >
-                <span className="material-symbols-outlined text-sm">explore</span>
-                <span>Switch to Attendee Mode</span>
-              </button>
+              <Button variant="secondary" icon="explore" onClick={() => onRoleChange('attendee')}>
+                Switch to attendee
+              </Button>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        {/* Glow accents */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
+      <StatGrid>
+        <StatTile icon="event" label="Managed events" value={managedEvents.length} />
+        <StatTile icon="group" label="Registrations" value={managedEvents.reduce((sum, e) => sum + (e.registeredCount || 0), 0).toLocaleString()} />
+        <StatTile icon="payments" label="Revenue" value={`$${managedEvents.reduce((sum, e) => sum + (e.revenue || 0), 0).toLocaleString()}`} />
+        <StatTile icon="how_to_reg" label="Checked in" value={managedEvents.reduce((sum, e) => sum + (e.checkedInCount || 0), 0).toLocaleString()} />
+      </StatGrid>
 
-      {/* Sidebar / Tabs Row */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto">
-        <button
-          onClick={() => {
-            setActiveTab('overview');
-            setSelectedAnalyticsEvent(null);
-          }}
-          className={`pb-3 transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'overview' && !selectedAnalyticsEvent
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          Overview & Events
-        </button>
+      <Tabs
+        label="Organizer sections"
+        value={activeTab === 'overview' && selectedAnalyticsEvent ? null : activeTab}
+        onChange={(id) => {
+          setActiveTab(id);
+          setSelectedAnalyticsEvent(null);
+        }}
+        items={[
+          { id: 'overview', label: 'Overview & events', icon: 'dashboard' },
+          { id: 'goodies', label: 'Goodies & merch', icon: 'local_mall' },
+          { id: 'sponsors', label: 'Sponsorships', icon: 'handshake' },
+          { id: 'venues', label: 'Venues', icon: 'domain' },
+          { id: 'speakers', label: 'Speakers', icon: 'record_voice_over' },
+          { id: 'communities', label: 'My communities', icon: 'groups', onClick: () => setActiveView('my-communities') },
+        ]}
+      />
 
-
-        <button
-          onClick={() => {
-            setActiveTab('goodies');
-            setSelectedAnalyticsEvent(null);
-          }}
-          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-            activeTab === 'goodies'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base font-bold">local_mall</span>
-          <span>Goodies & Merchandise</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('sponsors');
-            setSelectedAnalyticsEvent(null);
-          }}
-          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-            activeTab === 'sponsors'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base font-bold">handshake</span>
-          <span>Sponsorships</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('venues');
-            setSelectedAnalyticsEvent(null);
-          }}
-          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-            activeTab === 'venues'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base font-bold">domain</span>
-          <span>Venue Marketplace</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('speakers');
-            setSelectedAnalyticsEvent(null);
-          }}
-          className={`pb-3 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-            activeTab === 'speakers'
-              ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-              : 'text-[#5f5e5e] hover:text-[#00355f]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-base font-bold">record_voice_over</span>
-          <span>Speakers Marketplace</span>
-        </button>
-
-        <button
-          onClick={() => setActiveView('my-communities')}
-          className="pb-3 text-[#5f5e5e] hover:text-[#00355f] whitespace-nowrap cursor-pointer flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined text-base font-bold">groups</span>
-          <span>My Communities</span>
-        </button>
-      </div>
 
       {/* Tab Panels */}
       {activeTab === 'overview' && (
@@ -428,99 +368,88 @@ export const OrganizerDashboardView = ({
                   </button>
                 </div>
               ) : (
-                <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs font-inter">
-                      <thead className="bg-[#f8f9fa] border-b border-[#e1e3e4] text-[#727780] font-bold uppercase tracking-wider">
+                <>
+                  {/* Desktop: table */}
+                  <div className="hidden md:block glass rounded-[24px] overflow-hidden">
+                    <table className="w-full text-left text-[13px]">
+                      <thead className="text-[11px] uppercase tracking-[0.14em] text-fg/45 border-b border-fg/[0.08]">
                         <tr>
-                          <th className="p-4">Event Name</th>
-                          <th className="p-4">Date & Time</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4">Registrations</th>
-                          <th className="p-4">Revenue</th>
-                          <th className="p-4 text-right">Actions</th>
+                          <th className="px-5 py-4 font-medium">Event</th>
+                          <th className="px-5 py-4 font-medium">Date</th>
+                          <th className="px-5 py-4 font-medium">Status</th>
+                          <th className="px-5 py-4 font-medium">Registrations</th>
+                          <th className="px-5 py-4 font-medium">Revenue</th>
+                          <th className="px-5 py-4 font-medium text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#edeeef]">
+                      <tbody className="divide-y divide-fg/[0.06]">
                         {managedEvents.map((evt) => (
-                          <tr key={evt.id} className="hover:bg-[#f8f9fa] transition-colors">
-                            <td className="p-4">
+                          <tr key={evt.id} className="hover:bg-fg/[0.025] transition-colors">
+                            <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <img
-                                  src={evt.imageUrl}
-                                  alt={evt.title}
-                                  className="w-10 h-10 rounded-lg object-cover"
-                                />
-                                <div>
-                                  <span
+                                <img src={evt.imageUrl} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
+                                <div className="min-w-0">
+                                  <button
+                                    type="button"
                                     onClick={() => onSelectEvent(evt)}
-                                    className="font-geist font-bold text-[#00355f] hover:underline cursor-pointer text-sm block animate-pulse-once"
+                                    className="font-geist font-semibold text-fg hover:underline underline-offset-4 cursor-pointer text-left block truncate max-w-[260px]"
                                   >
                                     {evt.title}
-                                  </span>
-                                  <span className="text-[11px] text-[#727780]">{evt.location}, {evt.city}</span>
+                                  </button>
+                                  <span className="text-[12px] text-fg/50 truncate block max-w-[260px]">{evt.location}, {evt.city}</span>
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4 text-[#42474f]">
-                              {evt.startDate} <br />
-                              <span className="text-[11px] text-[#727780]">{evt.time}</span>
+                            <td className="px-5 py-4 text-fg/75 whitespace-nowrap">
+                              {evt.startDate}
+                              <span className="block text-[12px] text-fg/45">{evt.time}</span>
                             </td>
-                            <td className="p-4">
-                              <span
-                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                  evt.status === 'published'
-                                    ? 'bg-[#e2f7e2] text-[#1a853e]'
-                                    : evt.status === 'draft'
-                                    ? 'bg-[#fff3d6] text-[#b46d00]'
-                                    : 'bg-[#e7e8e9] text-[#5f5e5e]'
-                                }`}
-                              >
-                                {evt.status}
-                              </span>
+                            <td className="px-5 py-4"><EventStatus status={evt.status} /></td>
+                            <td className="px-5 py-4 font-semibold text-fg whitespace-nowrap">
+                              {evt.registeredCount} <span className="text-fg/40 font-normal">/ {evt.expectedAttendees}</span>
                             </td>
-                            <td className="p-4 text-[#00355f] font-bold">
-                              {evt.registeredCount} / {evt.expectedAttendees}
-                            </td>
-                            <td className="p-4 text-[#00355f] font-bold">
-                              ${evt.revenue.toLocaleString()}
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              <button
-                                onClick={() => {
-                                  setSelectedAnalyticsEvent(evt);
-                                  setDashboardTab('checkin');
-                                  setCheckInResult(null);
-                                  setTicketInput('');
-                                }}
-                                className="px-2.5 py-1.5 bg-[#e2f7e2] text-[#1a853e] hover:bg-[#1a853e] hover:text-white rounded-lg font-bold inline-flex items-center gap-1 cursor-pointer transition-all shadow-3xs text-xs"
-                                title="Open Live Door Check-In for this event"
-                              >
-                                <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
-                                <span>Check-In</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedAnalyticsEvent(evt);
-                                  setDashboardTab('attendees');
-                                }}
-                                className="px-3 py-1.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-lg font-bold cursor-pointer text-xs"
-                              >
-                                Analytics
-                              </button>
-                              <button
-                                onClick={() => onSelectEvent(evt)}
-                                className="px-3 py-1.5 border border-[#c2c7d1] hover:bg-[#e7e8e9] rounded-lg font-bold text-[#00355f] cursor-pointer text-xs"
-                              >
-                                View
-                              </button>
+                            <td className="px-5 py-4 font-semibold text-fg whitespace-nowrap">${evt.revenue.toLocaleString()}</td>
+                            <td className="px-5 py-4">
+                              <div className="flex justify-end gap-1.5">
+                                <Button variant="secondary" icon="qr_code_scanner" className="!px-3.5 !py-1.5 !text-[12px]" onClick={() => openCheckIn(evt)} title="Open live door check-in for this event">
+                                  Check-in
+                                </Button>
+                                <Button className="!px-3.5 !py-1.5 !text-[12px]" onClick={() => openAnalytics(evt)}>Analytics</Button>
+                                <Button variant="ghost" className="!px-3 !py-1.5 !text-[12px]" onClick={() => onSelectEvent(evt)}>View</Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
+
+                  {/* Mobile: one card per event */}
+                  <ul className="md:hidden space-y-3">
+                    {managedEvents.map((evt) => (
+                      <li key={evt.id} className="glass rounded-[22px] p-4">
+                        <button type="button" onClick={() => onSelectEvent(evt)} className="flex items-center gap-3 text-left w-full cursor-pointer">
+                          <img src={evt.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                          <span className="min-w-0">
+                            <span className="font-geist font-semibold text-fg block truncate">{evt.title}</span>
+                            <span className="text-[12px] text-fg/50 block truncate">{evt.startDate} · {evt.time} · {evt.city}</span>
+                          </span>
+                        </button>
+                        <div className="flex items-center justify-between gap-3 mt-3 text-[13px]">
+                          <EventStatus status={evt.status} />
+                          <span className="text-fg/70">
+                            <span className="font-semibold text-fg">{evt.registeredCount}</span> / {evt.expectedAttendees} · <span className="font-semibold text-fg">${evt.revenue.toLocaleString()}</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                          <Button variant="secondary" icon="qr_code_scanner" className="!px-2 !text-[12px]" onClick={() => openCheckIn(evt)}>Check-in</Button>
+                          <Button className="!px-2 !text-[12px]" onClick={() => openAnalytics(evt)}>Analytics</Button>
+                          <Button variant="ghost" className="!px-2 !text-[12px]" onClick={() => onSelectEvent(evt)}>View</Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </>
           ) : (

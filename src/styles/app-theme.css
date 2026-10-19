@@ -1,0 +1,112 @@
+/*
+ * App palette, both themes.
+ * The original app used a fixed navy/blue brand colour. Here those classes are
+ * remapped to the active role's colour (--accent-rgb pastel, --accent-ink for
+ * text; set on the app root) and, in light mode, to the landing page's
+ * ink/hairline tokens. Loaded after dark-theme.css so these rules win.
+ */
+
+/* Accent text, links and icons */
+:is(.theme-light, .theme-dark) .text-\[\#0f4c81\],
+:is(.theme-light, .theme-dark) .text-blue-600,
+:is(.theme-light, .theme-dark) .text-blue-700,
+:is(.theme-light, .theme-dark) .hover\:text-\[\#0f4c81\]:hover,
+:is(.theme-light, .theme-dark) .group:hover .group-hover\:text-\[\#0f4c81\],
+:is(.theme-light, .theme-dark) .group:hover .group-hover\:text-blue-600 {
+  color: var(--accent-ink);
+}
+
+/* Primary fills: role pastel with dark text (readable in both themes) */
+:is(.theme-light, .theme-dark) .bg-\[\#0f4c81\],
+:is(.theme-light, .theme-dark) .bg-\[\#00355f\],
+:is(.theme-light, .theme-dark) .bg-blue-600,
+:is(.theme-light, .theme-dark) .bg-indigo-600 {
+  background-color: rgb(var(--accent-rgb));
+  color: #07080c;
+}
+:is(.theme-light, .theme-dark) :is(.bg-\[\#0f4c81\], .bg-\[\#00355f\], .bg-blue-600, .bg-indigo-600) :is(.text-white, .material-symbols-outlined) {
+  color: #07080c;
+}
+:is(.theme-light, .theme-dark) .hover\:bg-\[\#00355f\]:hover,
+:is(.theme-light, .theme-dark) .hover\:bg-\[\#002747\]:hover,
+:is(.theme-light, .theme-dark) .hover\:bg-\[\#0f4c81\]:hover,
+:is(.theme-light, .theme-dark) .hover\:bg-blue-700:hover {
+  background-color: rgb(var(--accent-rgb));
+  color: #07080c;
+  filter: brightness(0.94);
+}
+
+/* Old navy/blue gradients (CTA buttons, banners) become the role pastel */
+:is(.theme-light, .theme-dark) :is(.from-\[\#00355f\], .from-\[\#002244\], .from-\[\#1a2d42\]) {
+  --tw-gradient-from: rgb(var(--accent-rgb));
+  color: #07080c;
+}
+:is(.theme-light, .theme-dark) :is(.via-\[\#0f4c81\]) {
+  --tw-gradient-via: rgb(var(--accent-rgb) / 0.9);
+}
+:is(.theme-light, .theme-dark) :is(.to-\[\#0f4c81\], .to-\[\#004b87\], .to-\[\#0066b2\], .to-\[\#00355f\]) {
+  --tw-gradient-to: rgb(var(--accent-rgb) / 0.78);
+}
+:is(.theme-light, .theme-dark) :is(.hover\:from-\[\#002747\]:hover) {
+  --tw-gradient-from: rgb(var(--accent-rgb));
+}
+:is(.theme-light, .theme-dark) :is(.hover\:to-\[\#083a65\]:hover) {
+  --tw-gradient-to: rgb(var(--accent-rgb) / 0.85);
+}
+:is(.theme-light, .theme-dark) :is(.from-\[\#00355f\], .from-\[\#002244\], .from-\[\#1a2d42\]) :is(.text-white, .material-symbols-outlined) {
+  color: #07080c;
+}
+
+/* Soft accent washes (chips, selected states) */
+:is(.theme-light, .theme-dark) :is(.bg-\[\#d2e4ff\], .bg-\[\#d2e4ff\]\/20, .bg-\[\#d2e4ff\]\/30, .bg-\[\#d2e4ff\]\/40, .bg-\[\#d2e4ff\]\/50, .bg-blue-50, .bg-blue-50\/50, .bg-blue-50\/60, .bg-blue-50\/70, .bg-blue-50\/80, .bg-blue-100, .bg-\[\#eef6ff\], .bg-\[\#f0f7ff\]),
+:is(.theme-light, .theme-dark) :is(.hover\:bg-blue-50:hover, .hover\:bg-blue-50\/50:hover, .hover\:bg-\[\#d2e4ff\]\/10:hover, .hover\:bg-\[\#d2e4ff\]\/20:hover) {
+  background-color: rgb(var(--accent-rgb) / 0.14);
+}
+
+/* Accent outlines and focus rings */
+:is(.theme-light, .theme-dark) :is(.border-\[\#0f4c81\], .border-\[\#00355f\], .hover\:border-\[\#0f4c81\]:hover, .focus\:border-\[\#0f4c81\]:focus) {
+  border-color: var(--accent-ink);
+}
+:is(.theme-light, .theme-dark) :is(.ring-\[\#0f4c81\], .focus\:ring-\[\#0f4c81\]:focus, .ring-\[\#0f4c81\]\/30) {
+  --tw-ring-color: rgb(var(--accent-rgb) / 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   Light mode: landing ink, greys and hairlines instead of navy and cool greys
+   -------------------------------------------------------------------------- */
+.theme-light :is(.text-\[\#00355f\], .text-\[\#191c1d\], .text-\[\#002747\], .hover\:text-\[\#00355f\]:hover, .hover\:text-\[\#191c1d\]:hover) {
+  color: rgb(var(--fg-rgb));
+}
+.theme-light .group:hover .group-hover\:text-\[\#00355f\] {
+  color: rgb(var(--fg-rgb));
+}
+.theme-light :is(.text-\[\#42474f\]) {
+  color: rgb(var(--fg-rgb) / 0.8);
+}
+.theme-light :is(.text-\[\#5f5e5e\], .text-\[\#727780\]) {
+  color: rgb(var(--fg-rgb) / 0.6);
+}
+.theme-light :is(.bg-\[\#f8f9fa\], .bg-gray-50, .bg-gray-50\/80, .bg-\[\#f3f4f5\]) {
+  background-color: rgb(var(--fg-rgb) / 0.035);
+}
+.theme-light :is(.bg-\[\#e7e8e9\], .bg-gray-100, .hover\:bg-\[\#f8f9fa\]:hover, .hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover, .hover\:bg-\[\#e7e8e9\]:hover) {
+  background-color: rgb(var(--fg-rgb) / 0.06);
+}
+.theme-light :is(.border-\[\#e1e3e4\], .border-\[\#e1e3e4\]\/80, .border-gray-100, .border-gray-200, .border-\[\#edeeef\], .divide-\[\#edeeef\] > :not(:last-child)) {
+  border-color: rgb(var(--fg-rgb) / 0.09);
+}
+.theme-light :is(.border-\[\#c2c7d1\], .border-gray-300) {
+  border-color: rgb(var(--fg-rgb) / 0.16);
+}
+/* White cards sit on the warm background like the landing's glass panels */
+.theme-light main :is(.bg-white, .bg-white\/80, .bg-white\/90, .bg-white\/95):where([class*='rounded-2xl'], [class*='rounded-3xl'], [class*='rounded-[2'], [class*='rounded-[3']) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 22px 50px -32px rgb(40 44 60 / 0.28);
+}
+
+/* Horizontal scrollers without a visible scrollbar (tab bars) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
