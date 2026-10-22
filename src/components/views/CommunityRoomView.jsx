@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { isSponsorshipApproved, isSponsorshipPending } from '../../utils/sponsorship';
+import { HostGame } from '../game/HostGame';
 
 export const CommunityRoomView = ({
   community,
@@ -112,19 +113,8 @@ export const CommunityRoomView = ({
   const [draftTitle, setDraftTitle] = useState('');
   const [draftType, setDraftType] = useState('Quiz');
 
-  // Live game controls
+  // Activity currently running as a live game (host screen open)
   const [liveActId, setLiveActId] = useState(null);
-  const [liveQuestionIdx, setLiveQuestionIdx] = useState(0);
-  const [liveAttendees, setLiveAttendees] = useState([
-    { name: 'Aravind', score: 0, answers: [] },
-    { name: 'Meera', score: 0, answers: [] },
-    { name: 'Vikram', score: 0, answers: [] }
-  ]);
-  const [simNickname, setSimNickname] = useState('You');
-  const [simJoined, setSimJoined] = useState(false);
-  const [simRoomCode, setSimRoomCode] = useState('');
-  const [simAnswered, setSimAnswered] = useState(false);
-  const [simSelectedOption, setSimSelectedOption] = useState(null);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -382,15 +372,6 @@ export const CommunityRoomView = ({
 
   const handleStartLive = (act) => {
     setLiveActId(act.id);
-    setLiveQuestionIdx(0);
-    setLiveAttendees([
-      { name: 'Aravind', score: 0, answers: [] },
-      { name: 'Meera', score: 0, answers: [] },
-      { name: 'Vikram', score: 0, answers: [] }
-    ]);
-    setSimJoined(false);
-    setSimAnswered(false);
-    setSimSelectedOption(null);
     setActivities(
       activities.map((a) => (a.id === act.id ? { ...a, status: 'Live' } : a))
     );
@@ -401,49 +382,6 @@ export const CommunityRoomView = ({
       activities.map((a) => (a.id === liveActId ? { ...a, status: 'Completed' } : a))
     );
     setLiveActId(null);
-  };
-
-  const handleSimSubmitOption = (optIdx, act) => {
-    if (simAnswered) return;
-    setSimSelectedOption(optIdx);
-    setSimAnswered(true);
-
-    const activeQuestion = act.questions[liveQuestionIdx];
-    const isCorrect = optIdx === activeQuestion.correct;
-    
-    // Add point to simulator scores list
-    const updatedAttendees = liveAttendees.map((att) => {
-      if (att.name === simNickname) {
-        const newScore = isCorrect ? att.score + 100 : att.score;
-        return { ...att, score: newScore, answers: [...att.answers, optIdx] };
-      }
-      return att;
-    });
-
-    // Simulated responses from other attendees
-    const nextAttendees = updatedAttendees.map((att) => {
-      if (att.name !== simNickname) {
-        // Random correct/incorrect guess
-        const correctGuess = Math.random() > 0.4;
-        const answerVal = correctGuess ? activeQuestion.correct : (activeQuestion.correct + 1) % 4;
-        const newScore = correctGuess ? att.score + 100 : att.score;
-        return { ...att, score: newScore, answers: [...att.answers, answerVal] };
-      }
-      return att;
-    });
-
-    setLiveAttendees(nextAttendees);
-  };
-
-  const handleNextLiveQuestion = (act) => {
-    if (liveQuestionIdx < act.questions.length - 1) {
-      setLiveQuestionIdx(liveQuestionIdx + 1);
-      setSimAnswered(false);
-      setSimSelectedOption(null);
-    } else {
-      // End game
-      handleEndLiveGame();
-    }
   };
 
   const renderEventCard = (evt) => (
@@ -1320,201 +1258,10 @@ export const CommunityRoomView = ({
             </div>
           )}
 
-          {/* 5. Live Activity simulator room (split screen organizer control and simulated attendee) */}
+          {/* 5. Live game: full-screen host view; players join from the event page with the room code */}
           {liveActId && (() => {
             const activeAct = activities.find((a) => a.id === liveActId);
-            if (!activeAct) return null;
-
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left bg-[#f8f9fa] border border-[#e1e3e4] rounded-3xl p-6 animate-fadeIn">
-                
-                {/* Left Panel: Organizer live controls */}
-                <div className="space-y-5 border-b md:border-b-0 md:border-r border-[#e1e3e4] pb-6 md:pb-0 md:pr-6">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-extrabold uppercase bg-amber-100 text-amber-700 px-2 py-0.5 rounded tracking-wider">
-                      Live Room Controller
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleEndLiveGame}
-                      className="text-xs font-bold text-rose-600 hover:underline cursor-pointer border-none bg-transparent"
-                    >
-                      End Activity
-                    </button>
-                  </div>
-
-                  <div>
-                    <h4 className="font-geist text-lg font-bold text-[#00355f]">{activeAct.title}</h4>
-                    <p className="text-[10px] text-gray-500 font-inter mt-0.5">
-                      Room Code: <span className="font-mono font-bold bg-white px-2 py-0.5 border border-[#e1e3e4] rounded text-black">{activeAct.roomCode}</span>
-                    </p>
-                  </div>
-
-                  {activeAct.questions && activeAct.questions[liveQuestionIdx] && (
-                    <div className="bg-white border border-[#e1e3e4] rounded-2xl p-5 space-y-3 shadow-2xs">
-                      <div className="flex justify-between text-[10px] font-bold text-[#0f4c81]">
-                        <span>ACTIVE QUESTION {liveQuestionIdx + 1} OF {activeAct.questions.length}</span>
-                        <span>Points: 100</span>
-                      </div>
-                      
-                      <p className="font-geist font-bold text-sm text-black">
-                        {activeAct.questions[liveQuestionIdx].question}
-                      </p>
-
-                      <div className="space-y-1.5 pt-2">
-                        {activeAct.questions[liveQuestionIdx].options.map((opt, oIdx) => (
-                          <div
-                            key={oIdx}
-                            className={`p-2.5 rounded-xl border text-xs font-inter flex justify-between items-center ${
-                              oIdx === activeAct.questions[liveQuestionIdx].correct
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                                : 'bg-[#f8f9fa] border-gray-200 text-gray-700'
-                            }`}
-                          >
-                            <span>Option {String.fromCharCode(65 + oIdx)}: {opt}</span>
-                            {oIdx === activeAct.questions[liveQuestionIdx].correct && (
-                              <span className="text-emerald-600 font-bold font-bold font-bold font-bold font-bold font-bold">Correct Answer ✓</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {activeAct.questions[liveQuestionIdx].explanation && (
-                        <p className="text-[10px] text-gray-400 font-inter italic pt-1">
-                          Explanation: {activeAct.questions[liveQuestionIdx].explanation}
-                        </p>
-                      )}
-
-                      <div className="pt-4 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleNextLiveQuestion(activeAct)}
-                          className="px-4 py-2 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold shadow-xs cursor-pointer border-none"
-                        >
-                          {liveQuestionIdx < activeAct.questions.length - 1 ? 'Next Question →' : 'Announce Winner 🏆'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Leaderboard Tracker */}
-                  <div className="space-y-3">
-                    <h5 className="font-geist text-xs font-bold text-[#00355f]">🏆 Real-Time Leaderboard</h5>
-                    <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs divide-y divide-[#edeeef]">
-                      {liveAttendees.map((att, rIdx) => (
-                        <div key={att.name} className="p-3 flex justify-between items-center text-xs font-inter">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-400">#{rIdx + 1}</span>
-                            <span className="font-semibold text-black">{att.name}</span>
-                          </div>
-                          <span className="font-bold text-[#0f4c81]">{att.score} pts</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Panel: Simulated attendee interface */}
-                <div className="space-y-5 pl-0 md:pl-6">
-                  <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded tracking-wider">
-                    Simulated Attendee Device
-                  </span>
-
-                  {!simJoined ? (
-                    <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 space-y-4 shadow-2xs">
-                      <h4 className="font-geist text-sm font-bold text-[#00355f]">Join Live Activity</h4>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase block">Nickname</label>
-                          <input
-                            type="text"
-                            value={simNickname}
-                            onChange={(e) => setSimNickname(e.target.value)}
-                            className="w-full px-3 py-2 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs focus:outline-none"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase block">Room Code</label>
-                          <input
-                            type="text"
-                            value={simRoomCode}
-                            onChange={(e) => setSimRoomCode(e.target.value)}
-                            placeholder="e.g. QUIZ8472"
-                            className="w-full px-3 py-2 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-xs font-mono font-bold focus:outline-none uppercase"
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (simRoomCode.toUpperCase() !== activeAct.roomCode) {
-                              alert('Incorrect room code.');
-                              return;
-                            }
-                            setSimJoined(true);
-                            // Add simulated player to attendees list
-                            if (!liveAttendees.some((a) => a.name === simNickname)) {
-                              setLiveAttendees([...liveAttendees, { name: simNickname, score: 0, answers: [] }]);
-                            }
-                          }}
-                          className="w-full py-2 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold shadow-xs cursor-pointer border-none"
-                        >
-                          Join Room
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 space-y-4 shadow-2xs">
-                      <div className="flex justify-between items-center text-xs font-inter text-gray-500">
-                        <span>Participant: <strong>{simNickname}</strong></span>
-                        <span>Score: <strong>{liveAttendees.find((a) => a.name === simNickname)?.score || 0} pts</strong></span>
-                      </div>
-
-                      {activeAct.questions && activeAct.questions[liveQuestionIdx] && (
-                        <div className="space-y-3">
-                          <p className="font-geist font-bold text-xs text-black">
-                            {activeAct.questions[liveQuestionIdx].question}
-                          </p>
-
-                          <div className="grid grid-cols-1 gap-2">
-                            {activeAct.questions[liveQuestionIdx].options.map((opt, oIdx) => {
-                              const isSelected = simSelectedOption === oIdx;
-                              return (
-                                <button
-                                  key={oIdx}
-                                  type="button"
-                                  onClick={() => handleSimSubmitOption(oIdx, activeAct)}
-                                  className={`p-3 rounded-xl border text-xs font-inter font-medium text-left transition-all ${
-                                    isSelected
-                                      ? 'border-[#0f4c81] bg-[#d2e4ff]/30 text-[#00355f]'
-                                      : simAnswered
-                                      ? 'border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed font-bold font-bold font-bold font-bold'
-                                      : 'border-gray-200 bg-[#f8f9fa] hover:border-[#c2c7d1] cursor-pointer'
-                                  }`}
-                                  disabled={simAnswered}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {simAnswered && (
-                            <div className="p-3 bg-gray-50 rounded-xl text-[11px] font-inter text-gray-500 border border-gray-100 font-bold">
-                              {simSelectedOption === activeAct.questions[liveQuestionIdx].correct ? (
-                                <span className="text-emerald-600">✓ Correct! +100 Points</span>
-                              ) : (
-                                <span className="text-rose-600">✗ Incorrect. The correct answer was Option {String.fromCharCode(65 + activeAct.questions[liveQuestionIdx].correct)}</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
+            return activeAct ? <HostGame activity={activeAct} onEnd={handleEndLiveGame} /> : null;
           })()}
 
           {/* 6. Active activities dashboard list */}

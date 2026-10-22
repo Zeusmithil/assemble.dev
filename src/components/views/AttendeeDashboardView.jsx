@@ -14,11 +14,10 @@ export const AttendeeDashboardView = ({
   onCreateCommunityRoom,
   onOpenCommunityRoom,
   onRoleChange,
+  selectedCity,
 }) => {
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'my-events' | 'communities'
-  const [exploreSubFilter, setExploreSubFilter] = useState('recommended'); // 'recommended' | 'nearby' | 'upcoming' | 'popular'
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  // Finding events lives in Browse Events; the dashboard is the attendee's personal hub
+  const [activeTab, setActiveTab] = useState('my-events'); // 'my-events' | 'communities'
   const [communityCode, setCommunityCode] = useState('');
   const [communityStatusMsg, setCommunityStatusMsg] = useState('');
   const [isCommunityError, setIsCommunityError] = useState(false);
@@ -39,46 +38,19 @@ export const AttendeeDashboardView = ({
 
   const savedEvents = events.filter((evt) => savedEventIds.includes(evt.id));
 
-  // Explore filtering
-  const categories = ['All', 'Technology', 'Design', 'Culinary', 'Music', 'Business', 'Startup'];
-
-  const filteredExploreEvents = useMemo(() => {
-    let list = [...events];
-
-    // Category
-    if (selectedCategory !== 'All') {
-      list = list.filter((e) => e.category?.toLowerCase() === selectedCategory.toLowerCase());
-    }
-
-    // Search
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter((e) => 
-        e.title?.toLowerCase().includes(q) ||
-        e.description?.toLowerCase().includes(q) ||
-        e.city?.toLowerCase().includes(q) ||
-        e.organizer?.toLowerCase().includes(q)
-      );
-    }
-
-    // Sub-filters
-    if (exploreSubFilter === 'recommended') {
-      // Sort by high rating / expected attendees
-      return list.sort((a, b) => (b.registeredCount || 0) - (a.registeredCount || 0));
-    }
-    if (exploreSubFilter === 'nearby') {
-      // Prioritize city or in-person
-      return list.filter((e) => e.format === 'In-Person');
-    }
-    if (exploreSubFilter === 'upcoming') {
-      return list.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-    }
-    if (exploreSubFilter === 'popular') {
-      return list.filter((e) => (e.registeredCount || 0) > 40);
-    }
-
-    return list;
-  }, [events, selectedCategory, searchTerm, exploreSubFilter]);
+  // "For you": a few upcoming published events, preferring the selected city
+  // and skipping ones the attendee is already registered for.
+  const forYouEvents = useMemo(() => {
+    const registered = new Set(tickets.map((t) => t.eventId));
+    const upcoming = events
+      .filter((e) => e.status === 'published' && !registered.has(e.id) && new Date(e.startDate) >= today)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    const city = selectedCity && selectedCity !== 'All Cities' ? selectedCity.toLowerCase() : null;
+    const local = city ? upcoming.filter((e) => e.city?.toLowerCase() === city) : [];
+    const rest = upcoming.filter((e) => !local.includes(e));
+    return [...local, ...rest].slice(0, 3);
+  }, [events, tickets, selectedCity]); // eslint-disable-line react-hooks/exhaustive-deps
+  const forYouLocal = Boolean(selectedCity && selectedCity !== 'All Cities' && forYouEvents.some((e) => e.city?.toLowerCase() === selectedCity.toLowerCase()));
 
   const handleJoinCommunitySubmit = (e) => {
     e.preventDefault();
@@ -108,7 +80,7 @@ export const AttendeeDashboardView = ({
         description="Explore summits, masterclasses and mixers. Keep your passes in one place and stay close to your communities."
         actions={
           <>
-            <Button icon="travel_explore" onClick={() => setActiveTab('explore')}>Explore events</Button>
+            <Button icon="travel_explore" onClick={() => setActiveView('discover')}>Browse events</Button>
             <Button variant="secondary" icon="confirmation_number" onClick={() => setActiveTab('my-events')}>
               My passes ({tickets.length})
             </Button>
@@ -120,152 +92,63 @@ export const AttendeeDashboardView = ({
         <StatTile icon="confirmation_number" label="Passes" value={tickets.length} />
         <StatTile icon="bookmark" label="Saved events" value={savedEventIds.length} />
         <StatTile icon="groups" label="Communities" value={userCommunityNames.length} />
-        <StatTile icon="event_upcoming" label="Events near you" value={events.filter((e) => e.status === 'published').length} />
+        <StatTile icon="event_upcoming" label="Upcoming passes" value={upcomingTickets.length} />
       </StatGrid>
+
+      {forYouEvents.length > 0 && (
+        <section aria-labelledby="for-you-title" className="space-y-4">
+          <div className="flex items-end justify-between gap-4">
+            <h2 id="for-you-title" className="font-geist text-xl font-semibold text-fg tracking-tight">
+              For you
+              <span className="font-display italic font-normal" style={{ color: 'var(--accent-ink)' }}>
+                {forYouLocal ? ` in ${selectedCity}` : ' this season'}
+              </span>
+            </h2>
+            <Button variant="ghost" icon="arrow_forward" className="!px-3 !py-1.5" onClick={() => setActiveView('discover')}>
+              See all events
+            </Button>
+          </div>
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {forYouEvents.map((evt) => (
+              <li key={evt.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelectEvent && onSelectEvent(evt)}
+                  className="glass rounded-[24px] overflow-hidden text-left w-full group cursor-pointer transition-transform duration-300 hover:-translate-y-0.5"
+                >
+                  <div className="relative h-36 overflow-hidden">
+                    <img src={evt.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                    <span className="absolute top-3 left-3 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] bg-black/55 text-white backdrop-blur-md">
+                      {evt.category}
+                    </span>
+                    <span className="absolute top-3 right-3 rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/90 text-ink-950">
+                      {evt.isFree ? 'Free' : `$${evt.price}`}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-[12px] font-medium" style={{ color: 'var(--accent-ink)' }}>
+                      {evt.startDate} · {evt.time}
+                    </p>
+                    <p className="font-geist font-semibold text-fg mt-1 leading-snug line-clamp-2">{evt.title}</p>
+                    <p className="text-[12px] text-fg/55 mt-1 truncate">{evt.location}, {evt.city}</p>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <Tabs
         label="Attendee sections"
         value={activeTab}
         onChange={setActiveTab}
         items={[
-          { id: 'explore', label: 'Explore events', icon: 'travel_explore' },
           { id: 'my-events', label: 'My events & tickets', icon: 'confirmation_number', count: tickets.length },
           { id: 'communities', label: 'Communities & rooms', icon: 'groups', count: userCommunityNames.length },
         ]}
       />
 
-
-      {/* SECTION 1: Explore Events */}
-      {activeTab === 'explore' && (
-        <div className="space-y-6">
-          {/* Search & Categories Bento Card */}
-          <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow flex items-center">
-                <span className="material-symbols-outlined absolute left-4 text-gray-400">search</span>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search events by title, description, host, or city..."
-                  className="w-full pl-12 pr-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-2xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white transition-all"
-                />
-                {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} className="absolute right-4 text-gray-400 hover:text-black">
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {/* Sub-Filters Tabs */}
-              <div className="flex bg-[#f8f9fa] p-1 rounded-2xl border border-[#e1e3e4] text-xs font-semibold">
-                {[
-                  { id: 'recommended', label: '⭐ Recommended' },
-                  { id: 'nearby', label: '📍 Nearby' },
-                  { id: 'upcoming', label: '📅 Upcoming' },
-                  { id: 'popular', label: '🔥 Popular' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setExploreSubFilter(item.id)}
-                    className={`px-3 py-2 rounded-xl transition-all cursor-pointer ${
-                      exploreSubFilter === item.id
-                        ? 'bg-white text-[#00355f] font-bold shadow-2xs'
-                        : 'text-gray-500 hover:text-black'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Categories Horizontal Scroll */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-[10px] font-bold uppercase text-gray-400 mr-1">Category:</span>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-[#0f4c81] text-white shadow-2xs'
-                      : 'bg-[#f8f9fa] border border-gray-200 text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Events Grid */}
-          {filteredExploreEvents.length === 0 ? (
-            <div className="text-center py-16 bg-white/70 backdrop-blur-md rounded-3xl border border-[#e1e3e4] p-8 space-y-2">
-              <span className="material-symbols-outlined text-4xl text-gray-300">event_busy</span>
-              <h3 className="font-geist text-lg font-bold text-[#00355f]">No Matching Events</h3>
-              <p className="font-inter text-xs text-gray-500 max-w-sm mx-auto">
-                Try searching for another topic, city, or clearing your filters.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredExploreEvents.map((evt) => (
-                <div
-                  key={evt.id}
-                  onClick={() => onSelectEvent && onSelectEvent(evt)}
-                  className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-[2rem] overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
-                >
-                  <div>
-                    <div className="relative h-48 w-full overflow-hidden bg-gray-100">
-                      <img
-                        src={evt.imageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800'}
-                        alt={evt.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
-                        {evt.category}
-                      </div>
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-[#00355f] text-xs font-black px-2.5 py-1 rounded-full shadow-xs">
-                        {evt.isFree ? 'Free' : `$${evt.price}`}
-                      </div>
-                    </div>
-
-                    <div className="p-6 space-y-3">
-                      <div className="text-xs font-inter text-[#0f4c81] font-semibold flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm">calendar_today</span>
-                        <span>{evt.startDate} • {evt.time}</span>
-                      </div>
-
-                      <h3 className="font-geist font-bold text-base text-[#00355f] leading-snug group-hover:text-[#0f4c81] transition-colors line-clamp-2">
-                        {evt.title}
-                      </h3>
-
-                      <p className="font-inter text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                        {evt.description}
-                      </p>
-
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 pt-1">
-                        <span className="material-symbols-outlined text-sm text-gray-400">location_on</span>
-                        <span className="truncate">{evt.location}, {evt.city}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 pt-0 border-t border-gray-100 flex items-center justify-between mt-3">
-                    <span className="text-[11px] text-gray-500 font-medium">
-                      Host: <strong className="text-black">{evt.organizer || 'Community Guild'}</strong>
-                    </span>
-                    <button className="px-3.5 py-1.5 bg-[#0f4c81] text-white rounded-xl text-xs font-bold shadow-2xs group-hover:bg-[#00355f] transition-colors">
-                      View Event
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* SECTION 2: My Events & Tickets */}
       {activeTab === 'my-events' && (
@@ -276,7 +159,7 @@ export const AttendeeDashboardView = ({
               <p className="font-inter text-xs text-gray-500">Present your digital pass with QR code at the door for entry.</p>
             </div>
             <button
-              onClick={() => setActiveTab('explore')}
+              onClick={() => setActiveView('discover')}
               className="px-4 py-2 bg-[#0f4c81] text-white rounded-xl text-xs font-bold hover:bg-[#00355f] cursor-pointer"
             >
               + Find More Events
@@ -288,10 +171,10 @@ export const AttendeeDashboardView = ({
               <span className="material-symbols-outlined text-4xl text-gray-300">confirmation_number</span>
               <h3 className="font-geist text-lg font-bold text-[#00355f]">No Registered Passes Yet</h3>
               <p className="font-inter text-xs text-gray-500 max-w-sm mx-auto">
-                You haven't registered for any events yet. Browse events in the Explore tab to reserve your spot!
+                You haven't registered for any events yet. Browse events to reserve your spot!
               </p>
               <button
-                onClick={() => setActiveTab('explore')}
+                onClick={() => setActiveView('discover')}
                 className="px-6 py-2.5 bg-[#0f4c81] text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Browse Events Now

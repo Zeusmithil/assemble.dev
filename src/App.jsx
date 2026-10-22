@@ -29,6 +29,8 @@ import { ROLE_JOURNEY } from './components/landing/journey';
 
 // The landing experience (3D canvas + animations) loads separately from the app shell
 const LandingView = lazy(() => import('./components/landing/LandingView'));
+// The live game player screen loads on demand too
+const PlayerGame = lazy(() => import('./components/game/PlayerGame'));
 
 
 const SIGNUP_ROLES = ['attendee', 'organizer', 'speaker', 'sponsor', 'venue', 'volunteer'];
@@ -1063,7 +1065,8 @@ export function App() {
 
   // Returns where the current path should send the user instead, or null if it can render
   const getRouteRedirect = () => {
-    const isProtected = PROTECTED_PATHS.includes(currentPath) || currentPath.startsWith('/setup-role');
+    const isProtected =
+      PROTECTED_PATHS.includes(currentPath) || currentPath.startsWith('/setup-role') || currentPath === '/play' || currentPath.startsWith('/play/');
     if (isProtected && !currentUser) return '/login';
     if (currentPath === '/community-room' && !activeCommunity) return '/my-communities';
     if (currentPath === '/event-details' && !selectedEvent) return '/discover';
@@ -1107,6 +1110,19 @@ export function App() {
           onComplete={(roleData) => handleActivateRole(targetRole, roleData)}
           onCancel={() => navigate('/dashboard')}
         />
+      );
+    }
+
+    // Live game player screen: /play, or /play/CODE to prefill the code
+    if (currentPath === '/play' || currentPath.startsWith('/play/')) {
+      return (
+        <Suspense fallback={<div className="min-h-screen" />}>
+          <PlayerGame
+            currentUser={currentUser}
+            initialCode={currentPath.split('/')[2] || ''}
+            onExit={() => navigate(selectedEvent ? '/event-details' : '/discover')}
+          />
+        </Suspense>
       );
     }
 
@@ -1308,6 +1324,7 @@ export function App() {
               navigate('/community-room');
             }}
             onRoleChange={handleRoleChange}
+            selectedCity={selectedCity}
           />
         );
       }
@@ -1344,6 +1361,7 @@ export function App() {
               onBack={() => navigate('/discover')}
               onBackToDashboard={() => handleActiveViewChange('dashboard')}
               onRegister={handleRegisterForEvent}
+              onJoinGame={() => navigate('/play')}
               isSaved={savedEventIds.includes(selectedEvent.id)}
               onToggleSave={() => handleToggleSaveEvent(selectedEvent.id)}
               currentUser={currentUser}
@@ -1536,6 +1554,9 @@ export function App() {
 
       {/* Footer */}
       <Footer setActiveView={handleActiveViewChange} onJoin={handleRoleCta} />
+
+      {/* Full-screen overlays (e.g. the live game host screen) render here, above the navbar */}
+      <div id="overlay-root" />
 
       {/* Digital Ticket Modal */}
       <TicketModal ticket={viewedTicket} onClose={() => setViewedTicket(null)} />

@@ -6,6 +6,7 @@ export const EventDetailsView = ({
   onBack,
   onBackToDashboard,
   onRegister,
+  onJoinGame,
   isSaved,
   onToggleSave,
   currentUser,
@@ -461,6 +462,23 @@ export const EventDetailsView = ({
              <p className="text-[11px] text-gray-400 text-center leading-relaxed font-inter">
                Instant digital pass issuance with dynamic QR code verification.
              </p>
+
+             {onJoinGame && (
+               <div className="pt-4 border-t border-gray-100 space-y-2.5">
+                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">At the event</p>
+                 <button
+                   type="button"
+                   onClick={onJoinGame}
+                   className="w-full py-3.5 rounded-2xl font-geist font-semibold text-sm flex items-center justify-center gap-2 text-ink-950 bg-[rgb(var(--accent-rgb))] hover:brightness-[0.96] active:scale-[0.98] transition cursor-pointer"
+                 >
+                   <span className="material-symbols-outlined text-[20px]" aria-hidden="true">sports_esports</span>
+                   <span>Join live game</span>
+                 </button>
+                 <p className="text-[11px] text-gray-400 text-center leading-relaxed font-inter">
+                   Play quizzes and polls with the code shown by the organizer.
+                 </p>
+               </div>
+             )}
            </div>
          </div>
        </div>
