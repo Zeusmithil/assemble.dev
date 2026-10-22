@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { computeCommunityStats } from '../../utils/communityAnalysis';
+import { PageHeader, Button, Tabs, StatTile, StatGrid, Icon } from '../ui';
 
 export const CommunityAnalysisView = ({
   community,
@@ -20,7 +21,7 @@ export const CommunityAnalysisView = ({
   if (!stats) {
     return (
       <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-16 text-center space-y-4">
-        <span className="material-symbols-outlined text-5xl text-gray-400">error</span>
+        <span className="material-symbols-outlined text-5xl text-gray-500">error</span>
         <h2 className="font-geist text-2xl font-bold text-[#00355f]">Community Data Not Found</h2>
         <p className="font-inter text-sm text-gray-500">
           Unable to resolve the community profile for this event.
@@ -83,240 +84,155 @@ export const CommunityAnalysisView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn text-left">
-      {/* Top Breadcrumb & Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 font-geist text-xs font-bold text-gray-500 hover:text-[#00355f] transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-            <span>Back to {event?.title ? `Event: "${event.title.slice(0, 30)}..."` : 'Event Details'}</span>
-          </button>
-          <span className="text-gray-300">•</span>
-          <span className="text-xs font-inter font-medium text-gray-400">Due Diligence Audit</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#0f4c81] text-[11px] font-bold uppercase tracking-wider font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Sponsor Due-Diligence Mode</span>
-          </span>
-          {event && onSponsorEvent && (
-            <button
-              onClick={() => onSponsorEvent(event)}
-              className="px-4 py-2 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-xl font-geist font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-sm">handshake</span>
-              <span>Sponsor This Event</span>
-            </button>
-          )}
-        </div>
+      {/* Header */}
+      <div className="space-y-5">
+        <Button variant="ghost" size="sm" icon="arrow_back" className="-ml-2" onClick={onBack}>
+          {event?.title ? `Back to ${event.title.length > 34 ? `${event.title.slice(0, 34)}…` : event.title}` : 'Back to event'}
+        </Button>
+        <PageHeader
+          icon="query_stats"
+          kicker="Sponsor · Due diligence"
+          title="Is this community"
+          accent="worth backing?"
+          description="Track record, sponsorship history and member engagement for the community behind this event, from Connect's own event, ticket and sponsorship records."
+          actions={
+            event && onSponsorEvent ? (
+              <Button icon="handshake" onClick={() => onSponsorEvent(event)}>Sponsor this event</Button>
+            ) : null
+          }
+        />
       </div>
 
-      {/* SECTION 3: Community Overview (Hero Card with Glassmorphism) */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#002244] via-[#0f4c81] to-[#004b87] p-8 md:p-10 text-white shadow-xl shadow-blue-950/15 border border-white/20 backdrop-blur-md">
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-white/30 shadow-lg bg-white/10 backdrop-blur-md shrink-0">
-              <img
-                src={community.image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=400'}
-                alt={community.name}
-                className="w-full h-full object-cover"
-              />
+      {/* Community overview with credibility score */}
+      <section className="glass-strong rounded-[28px] p-6 md:p-8 grid lg:grid-cols-[1fr_auto] gap-8 items-center" aria-labelledby="community-name">
+        <div className="flex flex-col sm:flex-row gap-5 sm:items-center min-w-0">
+          <img
+            src={community.image || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=400'}
+            alt=""
+            className="w-24 h-24 rounded-[22px] object-cover shrink-0"
+          />
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-medium bg-fg/[0.06] text-fg/70">{community.category}</span>
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold flex items-center gap-1" style={{ background: 'rgb(147 211 164 / 0.16)', color: 'var(--volunteer-ink)' }}>
+                <Icon name="verified" className="!text-[14px]" />
+                {community.activityStatus || 'Active community'}
+              </span>
             </div>
-
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider bg-white/20 px-3 py-0.5 rounded-full backdrop-blur-md border border-white/20">
-                  {community.category}
-                </span>
-                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-400/40 px-3 py-0.5 rounded-full flex items-center gap-1">
-                  <span>✓</span>
-                  <span>{community.activityStatus || 'Active Community'}</span>
-                </span>
-              </div>
-
-              <h1 className="font-geist text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
-                {community.name}
-              </h1>
-
-              <p className="font-inter text-xs sm:text-sm text-blue-100/90 max-w-2xl leading-relaxed">
-                {community.description}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4 text-xs font-inter text-blue-200/90 pt-1">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">calendar_month</span>
-                  <span>Created {new Date(community.createdDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">location_on</span>
-                  <span>{community.location}</span>
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">shield_person</span>
-                  <span>{community.organizerCount} Verified Admins</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Credibility Score Gauge */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center shrink-0 w-full lg:w-auto min-w-[200px]">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-blue-200">Credibility Index</div>
-            <div className="font-geist text-4xl sm:text-5xl font-black text-cyan-300 mt-1">
-              {credibilityScore}<span className="text-xl text-blue-200 font-semibold">/100</span>
-            </div>
-            <div className="text-xs font-bold text-emerald-300 mt-1 flex items-center justify-center gap-1">
-              <span className="material-symbols-outlined text-sm">verified</span>
-              <span>High Institutional Trust</span>
-            </div>
-            <div className="text-[10px] text-blue-200/70 mt-1">Due Diligence Audit Passed</div>
-          </div>
-        </div>
-
-        {/* Ambient Glows */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
-      </div>
-
-      {/* SECTION 7: Community Credibility Section ("Why Sponsor This Community?") */}
-      <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-[2.5rem] p-6 md:p-8 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0f4c81] uppercase tracking-wider">
-              <span className="material-symbols-outlined text-base">verified_user</span>
-              <span>Due-Diligence Summary</span>
-            </div>
-            <h2 className="font-geist text-xl font-bold text-[#00355f] mt-0.5">
-              Community Credibility — Why Sponsor This Community?
+            <h2 id="community-name" className="font-geist text-[26px] sm:text-[32px] font-semibold tracking-tight text-fg leading-tight">
+              {community.name}
             </h2>
+            <p className="text-[14px] text-fg/60 leading-relaxed max-w-2xl">{community.description}</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-fg/55 pt-1">
+              <span className="flex items-center gap-1.5">
+                <Icon name="calendar_month" className="!text-[16px]" />
+                Since {new Date(community.createdDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Icon name="location_on" className="!text-[16px]" />
+                {community.location}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Icon name="shield_person" className="!text-[16px]" />
+                {community.organizerCount} verified admins
+              </span>
+            </div>
           </div>
-          <span className="text-xs font-inter text-gray-500">
-            Backed by platform-verified registration logs and financial audits
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {credibilityChecklist.map((item) => (
-            <div
-              key={item.id}
-              className={`p-4 rounded-2xl border transition-all flex items-start gap-3.5 ${
-                item.valid
-                  ? 'bg-emerald-50/50 border-emerald-200/80'
-                  : 'bg-gray-50 border-gray-200 opacity-75'
-              }`}
-            >
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
-                  item.valid ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-600'
-                }`}
-              >
-                {item.valid ? '✓' : '—'}
+        {/* Credibility ring */}
+        {(() => {
+          const r = 46;
+          const c = 2 * Math.PI * r;
+          const score = Math.max(0, Math.min(100, credibilityScore));
+          const label = score >= 80 ? 'High trust' : score >= 60 ? 'Moderate trust' : 'Building trust';
+          return (
+            <div className="flex lg:flex-col items-center gap-4 lg:gap-2 lg:text-center">
+              <div className="relative w-[116px] h-[116px] shrink-0" role="img" aria-label={`Credibility score ${score} out of 100`}>
+                <svg width="116" height="116" className="-rotate-90">
+                  <circle cx="58" cy="58" r={r} fill="none" stroke="rgb(var(--fg-rgb) / 0.08)" strokeWidth="9" />
+                  <circle
+                    cx="58"
+                    cy="58"
+                    r={r}
+                    fill="none"
+                    stroke="rgb(var(--accent-rgb))"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray={c}
+                    strokeDashoffset={c * (1 - score / 100)}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-geist text-3xl font-semibold text-fg leading-none">{score}</span>
+                  <span className="text-[11px] text-fg/45 mt-1">of 100</span>
+                </span>
               </div>
-              <div className="space-y-0.5">
-                <h4 className="font-geist font-bold text-sm text-[#00355f]">
-                  {item.title}
-                </h4>
-                <p className="font-inter text-xs text-gray-600 leading-relaxed">
-                  {item.description}
-                </p>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-fg/45">Credibility</p>
+                <p className="font-geist font-semibold" style={{ color: 'var(--accent-ink)' }}>{label}</p>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })()}
+      </section>
 
-        <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-2.5 text-xs font-inter text-[#0f4c81]">
-          <span className="material-symbols-outlined text-base font-bold shrink-0">info</span>
-          <span>
-            <strong>Authentic Telemetry:</strong> All statistics displayed below are aggregated directly from Connect verified event databases, checked-in tickets, and approved sponsorship allocations. No mock or fabricated statistics are used.
+      {/* Why sponsor this community */}
+      <section className="space-y-4" aria-labelledby="why-sponsor-title">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h3 id="why-sponsor-title" className="font-geist text-xl font-semibold tracking-tight text-fg">
+            Why sponsor
+            <span className="font-display italic font-normal" style={{ color: 'var(--accent-ink)' }}> this community</span>
+          </h3>
+          <span className="text-[12px] text-fg/50">
+            {credibilityChecklist.filter((i) => i.valid).length} of {credibilityChecklist.length} checks passed
           </span>
         </div>
-      </div>
+        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {credibilityChecklist.map((item) => (
+            <li key={item.id} className={`glass rounded-[20px] p-4 flex gap-3 ${item.valid ? '' : 'opacity-60'}`}>
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={item.valid ? { background: 'rgb(147 211 164 / 0.2)', color: 'var(--volunteer-ink)' } : { background: 'rgb(var(--fg-rgb) / 0.07)' }}
+              >
+                <Icon name={item.valid ? 'check' : 'remove'} className="!text-[17px]" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium text-fg">{item.title}</span>
+                <span className="block text-[12px] text-fg/55 leading-relaxed mt-0.5">{item.description}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex border-b border-[#e1e3e4] gap-6 text-sm font-semibold overflow-x-auto pb-px">
-        {[
-          { id: 'overview', label: '📊 Executive Due-Diligence Overview', icon: 'dashboard' },
-          { id: 'events', label: `📅 Event History & Track Record (${totalPastEvents + linkedActiveEvents.length})`, icon: 'history' },
-          { id: 'sponsorships', label: `💰 Sponsorship History & Financials (€${totalSponsorshipAmount.toLocaleString()})`, icon: 'paid' },
-          { id: 'engagement', label: '👥 Member & Engagement Telemetry', icon: 'groups' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-              activeTab === tab.id
-                ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                : 'text-[#5f5e5e] hover:text-[#00355f]'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Analysis sections"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'overview', label: 'Overview', icon: 'dashboard' },
+          { id: 'events', label: 'Event history', icon: 'history', count: totalPastEvents + linkedActiveEvents.length },
+          { id: 'sponsorships', label: 'Sponsorship history', icon: 'paid' },
+          { id: 'engagement', label: 'Members & engagement', icon: 'groups' },
+        ]}
+      />
 
-      {/* TAB 1: EXECUTIVE OVERVIEW */}
+      {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-8">
-          {/* Key Metric Highlights */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0f4c81] flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">event_available</span>
-              </div>
-              <div>
-                <div className="font-geist text-2xl font-black text-[#00355f]">{totalEventsAllTime}</div>
-                <div className="font-inter text-xs text-gray-500 font-medium">Total Events Held & Scheduled</div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">groups</span>
-              </div>
-              <div>
-                <div className="font-geist text-2xl font-black text-[#00355f]">
-                  {totalAttendeesAcrossAll > 0 ? `${totalAttendeesAcrossAll.toLocaleString()}+` : '0'}
-                </div>
-                <div className="font-inter text-xs text-gray-500 font-medium">Total Verified Attendees</div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">payments</span>
-              </div>
-              <div>
-                <div className="font-geist text-2xl font-black text-[#00355f]">
-                  €{totalSponsorshipAmount.toLocaleString()}
-                </div>
-                <div className="font-inter text-xs text-gray-500 font-medium">Historical Sponsorship Received</div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">handshake</span>
-              </div>
-              <div>
-                <div className="font-geist text-2xl font-black text-[#00355f]">
-                  {numberOfPreviousSponsors}
-                </div>
-                <div className="font-inter text-xs text-gray-500 font-medium">Enterprise Sponsors Supported</div>
-              </div>
-            </div>
-          </div>
+          <StatGrid>
+            <StatTile icon="event_available" label="Events held & scheduled" value={totalEventsAllTime} />
+            <StatTile icon="groups" label="Verified attendees" value={totalAttendeesAcrossAll > 0 ? `${totalAttendeesAcrossAll.toLocaleString()}+` : '0'} />
+            <StatTile icon="payments" label="Sponsorship received" value={`€${totalSponsorshipAmount.toLocaleString()}`} />
+            <StatTile icon="handshake" label="Past sponsors" value={numberOfPreviousSponsors} />
+          </StatGrid>
 
           {/* Dual Grid: Recent Activity & Event Being Evaluated */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Current Event Opportunity */}
             {event && (
-              <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="glass rounded-[24px] p-6 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#0f4c81] px-2.5 py-1 rounded-md">
@@ -350,7 +266,7 @@ export const CommunityAnalysisView = ({
 
                 {event.sponsorshipOpportunities && event.sponsorshipOpportunities.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-gray-100">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                       Open Grant Requirements
                     </span>
                     <div className="flex flex-wrap gap-2">
@@ -374,15 +290,15 @@ export const CommunityAnalysisView = ({
             )}
 
             {/* Right: Sponsorship History Highlights & Sponsors */}
-            <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="glass rounded-[24px] p-6 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-geist text-base font-bold text-[#00355f]">Previous Sponsors Backing This Community</h3>
-                  <span className="text-xs font-bold text-gray-400">{numberOfPreviousSponsors} Brands</span>
+                  <h3 className="font-geist text-base font-semibold text-[#00355f]">Previous Sponsors Backing This Community</h3>
+                  <span className="text-xs font-bold text-gray-500">{numberOfPreviousSponsors} Brands</span>
                 </div>
 
                 {previousSponsorsList.length === 0 ? (
-                  <div className="p-6 bg-gray-50 rounded-2xl text-center text-xs text-gray-400 italic">
+                  <div className="p-6 bg-gray-50 rounded-2xl text-center text-xs text-gray-500 italic">
                     No historical corporate sponsors recorded yet for this community.
                   </div>
                 ) : (
@@ -400,7 +316,7 @@ export const CommunityAnalysisView = ({
                 )}
 
                 <div className="border-t border-gray-100 pt-3 space-y-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
                     Recent Grants & Verified Deliverables
                   </span>
                   {recentSponsorshipActivity.slice(0, 3).map((act, i) => (
@@ -411,7 +327,7 @@ export const CommunityAnalysisView = ({
                       </div>
                       <div className="text-right">
                         <div className="font-mono font-bold text-emerald-700">€{Number(act.amount).toLocaleString()}</div>
-                        <div className="text-[10px] text-gray-400">{act.date}</div>
+                        <div className="text-[10px] text-gray-500">{act.date}</div>
                       </div>
                     </div>
                   ))}
@@ -437,7 +353,7 @@ export const CommunityAnalysisView = ({
         <div className="space-y-6">
           {/* Header & Metrics */}
           <div>
-            <h2 className="font-geist text-xl font-bold text-[#00355f]">Community Event History & Track Record</h2>
+            <h2 className="font-geist text-xl font-semibold tracking-tight text-[#00355f]">Community Event History & Track Record</h2>
             <p className="font-inter text-xs text-gray-500">
               Verified historical gatherings, scale of participation, and attendee engagement over past editions.
             </p>
@@ -445,43 +361,43 @@ export const CommunityAnalysisView = ({
 
           {/* Metric Cards Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Events Conducted</span>
-              <span className="font-geist text-2xl font-black text-[#00355f]">{totalPastEvents}</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total Events Conducted</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">{totalPastEvents}</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Completed editions</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Conducted This Year (2026)</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Conducted This Year (2026)</span>
               <span className="font-geist text-2xl font-black text-[#0f4c81]">{eventsThisYear}</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Year to date</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Conducted Last Year (2025)</span>
-              <span className="font-geist text-2xl font-black text-[#00355f]">{eventsLastYear}</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Conducted Last Year (2025)</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">{eventsLastYear}</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Prior annual cycle</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Past Attendees</span>
-              <span className="font-geist text-2xl font-black text-emerald-600">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total Past Attendees</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">
                 {totalPastAttendees > 0 ? totalPastAttendees.toLocaleString() : '0'}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Across completed events</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Average Attendance</span>
-              <span className="font-geist text-2xl font-black text-[#00355f]">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Average Attendance</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">
                 {avgAttendancePerEvent > 0 ? avgAttendancePerEvent.toLocaleString() : '0'}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Turnout per gathering</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Largest Event Turnout</span>
-              <span className="font-geist text-2xl font-black text-purple-700">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Largest Event Turnout</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">
                 {largestEvent ? (largestEvent.attendees || 0).toLocaleString() : '0'}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5 truncate" title={largestEvent?.title}>
@@ -489,16 +405,16 @@ export const CommunityAnalysisView = ({
               </span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Event Frequency</span>
-              <span className="font-geist text-base font-bold text-[#00355f] mt-1 block truncate">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Event Frequency</span>
+              <span className="font-geist text-base font-semibold text-[#00355f] mt-1 block truncate">
                 {eventFrequency}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Organizational cadence</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Event Categories</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Event Categories</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {eventCategories.map((c, i) => (
                   <span key={i} className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-bold">
@@ -510,14 +426,14 @@ export const CommunityAnalysisView = ({
           </div>
 
           {/* Past Events Filter & List */}
-          <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="glass rounded-[24px] p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="font-geist text-base font-bold text-[#00355f]">
+              <h3 className="font-geist text-base font-semibold text-[#00355f]">
                 Detailed Past Events Log ({filteredPastEvents.length})
               </h3>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Filter Category:</span>
+                <span className="text-xs text-gray-500">Filter Category:</span>
                 <select
                   value={pastEventFilter}
                   onChange={(e) => setPastEventFilter(e.target.value)}
@@ -575,7 +491,7 @@ export const CommunityAnalysisView = ({
                           {(evt.attendees || 0).toLocaleString()}
                         </td>
                         <td className="p-3.5">
-                          <span className="font-bold text-amber-600">⭐ {evt.rating || '4.9'}</span>
+                          <span className="font-bold text-amber-700">⭐ {evt.rating || '4.9'}</span>
                         </td>
                         <td className="p-3.5">
                           {evt.sponsored ? (
@@ -583,12 +499,12 @@ export const CommunityAnalysisView = ({
                               <span className="text-emerald-700 font-bold text-[11px] block">
                                 ✓ €{(evt.sponsorshipAmount || 0).toLocaleString()}
                               </span>
-                              <span className="text-[10px] text-gray-400 truncate block max-w-[120px]">
+                              <span className="text-[10px] text-gray-500 truncate block max-w-[120px]">
                                 {(evt.sponsorNames || []).join(', ')}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-gray-400 italic text-[11px]">Self-funded</span>
+                            <span className="text-gray-500 italic text-[11px]">Self-funded</span>
                           )}
                         </td>
                       </tr>
@@ -605,7 +521,7 @@ export const CommunityAnalysisView = ({
       {activeTab === 'sponsorships' && (
         <div className="space-y-6">
           <div>
-            <h2 className="font-geist text-xl font-bold text-[#00355f]">Sponsorship History & Financial Statistics</h2>
+            <h2 className="font-geist text-xl font-semibold tracking-tight text-[#00355f]">Sponsorship History & Financial Statistics</h2>
             <p className="font-inter text-xs text-gray-500">
               Track record of previous corporate grants, supporting enterprise partners, and budget allocations.
             </p>
@@ -613,37 +529,37 @@ export const CommunityAnalysisView = ({
 
           {/* Financial Telemetry Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Sponsorships</span>
-              <span className="font-geist text-2xl font-black text-[#00355f]">{totalSponsorshipsCount} Grants</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total Sponsorships</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">{totalSponsorshipsCount} Grants</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Historical partnerships</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Amount Received</span>
-              <span className="font-geist text-2xl font-black text-emerald-600">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total Amount Received</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">
                 €{totalSponsorshipAmount.toLocaleString()}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Verified grant capital</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Sponsored Events</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Sponsored Events</span>
               <span className="font-geist text-2xl font-black text-[#0f4c81]">{numberOfSponsoredEvents}</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Events backed by grants</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Average Grant Size</span>
-              <span className="font-geist text-2xl font-black text-purple-700">
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Average Grant Size</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">
                 €{avgSponsorshipAmount.toLocaleString()}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Per sponsorship tier</span>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-2xl p-4 shadow-3xs">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Supporting Sponsors</span>
-              <span className="font-geist text-2xl font-black text-amber-600">{numberOfPreviousSponsors}</span>
+            <div className="glass rounded-[20px] p-4">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Supporting Sponsors</span>
+              <span className="font-geist text-2xl font-semibold tracking-tight text-fg">{numberOfPreviousSponsors}</span>
               <span className="text-[10px] text-gray-500 block mt-0.5">Distinct enterprise logos</span>
             </div>
           </div>
@@ -651,19 +567,19 @@ export const CommunityAnalysisView = ({
           {/* Visual Charts & Breakdowns */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Funding by Year Bar Chart */}
-            <div className="lg:col-span-7 bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="lg:col-span-7 glass rounded-[24px] p-6 space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="font-geist text-base font-bold text-[#00355f]">Historical Funding Trajectory</h3>
+                  <h3 className="font-geist text-base font-semibold text-[#00355f]">Historical Funding Trajectory</h3>
                   <p className="font-inter text-xs text-gray-500">Corporate grant funding raised per calendar year</p>
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-700">
+                <span className="text-xs font-semibold text-fg/70">
                   Total: €{totalSponsorshipAmount.toLocaleString()}
                 </span>
               </div>
 
               {fundingByYear.length === 0 ? (
-                <div className="py-12 text-center text-xs text-gray-400 italic">No funding year data available yet.</div>
+                <div className="py-12 text-center text-xs text-gray-500 italic">No funding year data available yet.</div>
               ) : (
                 <div className="space-y-3 pt-4">
                   <div className="h-44 flex items-end justify-around gap-6 border-b border-gray-200 pb-2">
@@ -684,7 +600,7 @@ export const CommunityAnalysisView = ({
                       );
                     })}
                   </div>
-                  <div className="text-[11px] text-gray-400 text-center">
+                  <div className="text-[11px] text-gray-500 text-center">
                     Annual grant volume from approved Connect sponsorships.
                   </div>
                 </div>
@@ -692,14 +608,14 @@ export const CommunityAnalysisView = ({
             </div>
 
             {/* Requirement Category Breakdown */}
-            <div className="lg:col-span-5 bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="lg:col-span-5 glass rounded-[24px] p-6 space-y-4">
               <div>
-                <h3 className="font-geist text-base font-bold text-[#00355f]">Grant Allocation Breakdown</h3>
+                <h3 className="font-geist text-base font-semibold text-[#00355f]">Grant Allocation Breakdown</h3>
                 <p className="font-inter text-xs text-gray-500">How sponsored funding was deployed across event operations</p>
               </div>
 
               {fundingByRequirement.length === 0 ? (
-                <div className="py-12 text-center text-xs text-gray-400 italic">No allocation category data available yet.</div>
+                <div className="py-12 text-center text-xs text-gray-500 italic">No allocation category data available yet.</div>
               ) : (
                 <div className="space-y-3 pt-2">
                   {fundingByRequirement.map((req, idx) => (
@@ -724,8 +640,8 @@ export const CommunityAnalysisView = ({
           </div>
 
           {/* Historical Sponsorship By Event Table */}
-          <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
-            <h3 className="font-geist text-base font-bold text-[#00355f]">
+          <div className="glass rounded-[24px] p-6 space-y-4">
+            <h3 className="font-geist text-base font-semibold text-[#00355f]">
               Itemized Sponsorship History by Event ({recentSponsorshipActivity.length})
             </h3>
 
@@ -790,55 +706,55 @@ export const CommunityAnalysisView = ({
       {activeTab === 'engagement' && (
         <div className="space-y-6">
           <div>
-            <h2 className="font-geist text-xl font-bold text-[#00355f]">Community Engagement & Legitimacy Statistics</h2>
+            <h2 className="font-geist text-xl font-semibold tracking-tight text-[#00355f]">Community Engagement & Legitimacy Statistics</h2>
             <p className="font-inter text-xs text-gray-500">
               Community vitality, member retention rate, recurring event momentum, and audience loyalty metrics.
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs">
+            <div className="glass rounded-[24px] p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Members</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Members</span>
                 <span className="material-symbols-outlined text-base text-[#0f4c81]">group</span>
               </div>
-              <div className="font-geist text-2xl font-black text-[#00355f] mt-1">{totalMembers.toLocaleString()}</div>
+              <div className="font-geist text-2xl font-semibold tracking-tight text-fg mt-1">{totalMembers.toLocaleString()}</div>
               <div className="text-[10px] text-gray-500 mt-0.5">Registered room members</div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs">
+            <div className="glass rounded-[24px] p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Members</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Members</span>
                 <span className="material-symbols-outlined text-base text-emerald-600">person_check</span>
               </div>
-              <div className="font-geist text-2xl font-black text-emerald-600 mt-1">
+              <div className="font-geist text-2xl font-semibold tracking-tight text-fg mt-1">
                 {activeMembers.toLocaleString()}
               </div>
               <div className="text-[10px] text-emerald-700 font-bold mt-0.5">{activeMemberPercent}% Monthly Active Rate</div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs">
+            <div className="glass rounded-[24px] p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Community Growth</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Community Growth</span>
                 <span className="material-symbols-outlined text-base text-purple-600">trending_up</span>
               </div>
-              <div className="font-geist text-2xl font-black text-purple-700 mt-1">{memberGrowthRate}</div>
+              <div className="font-geist text-2xl font-semibold tracking-tight text-fg mt-1">{memberGrowthRate}</div>
               <div className="text-[10px] text-gray-500 mt-0.5">Year-over-year expansion</div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-5 shadow-xs">
+            <div className="glass rounded-[24px] p-5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Repeat Attendees</span>
-                <span className="material-symbols-outlined text-base text-amber-600">repeat</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Repeat Attendees</span>
+                <span className="material-symbols-outlined text-base text-amber-700">repeat</span>
               </div>
-              <div className="font-geist text-2xl font-black text-amber-600 mt-1">{repeatAttendeeRate}</div>
+              <div className="font-geist text-2xl font-semibold tracking-tight text-fg mt-1">{repeatAttendeeRate}</div>
               <div className="text-[10px] text-gray-500 mt-0.5">Participation consistency</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4">
-              <h3 className="font-geist text-base font-bold text-[#00355f]">Engagement & Community Vitality Health</h3>
+            <div className="glass rounded-[24px] p-6 space-y-4">
+              <h3 className="font-geist text-base font-semibold text-[#00355f]">Engagement & Community Vitality Health</h3>
 
               <div className="space-y-4 font-inter text-xs">
                 <div className="space-y-1">
@@ -880,9 +796,9 @@ export const CommunityAnalysisView = ({
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl p-6 shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="glass rounded-[24px] p-6 space-y-4 flex flex-col justify-between">
               <div>
-                <h3 className="font-geist text-base font-bold text-[#00355f]">Summary of Organizational Assets</h3>
+                <h3 className="font-geist text-base font-semibold text-[#00355f]">Summary of Organizational Assets</h3>
                 <div className="space-y-3 mt-3 text-xs font-inter text-gray-600">
                   <div className="flex justify-between border-b border-gray-100 pb-2">
                     <span>Dedicated Organizers & Core Team:</span>
@@ -912,35 +828,21 @@ export const CommunityAnalysisView = ({
         </div>
       )}
 
-      {/* Bottom Sticky CTA Bar */}
-      <div className="p-6 bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-3xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Closing call to action */}
+      <section className="glass-strong rounded-[28px] p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
-          <h4 className="font-geist font-bold text-sm text-[#00355f]">
-            Ready to partner with {community.name}?
-          </h4>
-          <p className="font-inter text-xs text-gray-500">
-            Submit a sponsorship offer directly or inspect itemized budget allocations for {event ? event.title : 'their upcoming event'}.
+          <h4 className="font-geist font-semibold text-fg">Ready to partner with {community.name}?</h4>
+          <p className="text-[13px] text-fg/55 mt-0.5">
+            Back {event ? event.title : 'their upcoming event'} directly — your sponsorship is added to the event straight away.
           </p>
         </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={onBack}
-            className="flex-1 sm:flex-none px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
-          >
-            ← Return to Event
-          </button>
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <Button variant="secondary" icon="arrow_back" className="flex-1 lg:flex-none" onClick={onBack}>Back to event</Button>
           {event && onSponsorEvent && (
-            <button
-              onClick={() => onSponsorEvent(event)}
-              className="flex-1 sm:flex-none px-6 py-2.5 bg-[#0f4c81] hover:bg-[#00355f] text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-sm">handshake</span>
-              <span>Sponsor This Event</span>
-            </button>
+            <Button icon="handshake" className="flex-1 lg:flex-none" onClick={() => onSponsorEvent(event)}>Sponsor this event</Button>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };
