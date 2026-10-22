@@ -105,11 +105,11 @@ export const ROLE_JOURNEY = [
     kicker: 'Partner',
     title: ['Back the moments', 'that matter.'],
     description:
-      'Find events and communities that match your audience, evaluate their real reach and issue sponsorship codes organizers can apply on the spot.',
+      'Find events and communities that match your audience, evaluate their real reach and back the ones you believe in — your support is added to the event instantly.',
     benefits: [
       { icon: 'query_stats', title: 'Evaluate communities', text: 'Attendance, engagement and past partners.' },
       { icon: 'handshake', title: 'Review proposals', text: 'Approve requests from organizers directly.' },
-      { icon: 'verified', title: 'Issue codes', text: 'Grants are tracked through verifiable codes.' },
+      { icon: 'verified', title: 'Linked instantly', text: 'Approved sponsorships appear on the event.' },
       { icon: 'trending_up', title: 'Measure impact', text: 'See where your budget is making a difference.' },
     ],
     cta: 'Become a Sponsor',

@@ -369,8 +369,8 @@ export const OrganizerDashboardView = ({
                 </div>
               ) : (
                 <>
-                  {/* Desktop: table */}
-                  <div className="hidden md:block glass rounded-[24px] overflow-hidden">
+                  {/* Wide screens: table (it needs ~1200px, so smaller windows get cards) */}
+                  <div className="hidden xl:block glass rounded-[24px] overflow-hidden">
                     <table className="w-full text-left text-[13px]">
                       <thead className="text-[11px] uppercase tracking-[0.14em] text-fg/45 border-b border-fg/[0.08]">
                         <tr>
@@ -392,11 +392,11 @@ export const OrganizerDashboardView = ({
                                   <button
                                     type="button"
                                     onClick={() => onSelectEvent(evt)}
-                                    className="font-geist font-semibold text-fg hover:underline underline-offset-4 cursor-pointer text-left block truncate max-w-[260px]"
+                                    className="font-geist font-semibold text-fg hover:underline underline-offset-4 cursor-pointer text-left block truncate max-w-[220px]"
                                   >
                                     {evt.title}
                                   </button>
-                                  <span className="text-[12px] text-fg/50 truncate block max-w-[260px]">{evt.location}, {evt.city}</span>
+                                  <span className="text-[12px] text-fg/50 truncate block max-w-[220px]">{evt.location}, {evt.city}</span>
                                 </div>
                               </div>
                             </td>
@@ -424,10 +424,10 @@ export const OrganizerDashboardView = ({
                     </table>
                   </div>
 
-                  {/* Mobile: one card per event */}
-                  <ul className="md:hidden space-y-3">
+                  {/* Phones to small laptops: one card per event, two columns from tablet width */}
+                  <ul className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
                     {managedEvents.map((evt) => (
-                      <li key={evt.id} className="glass rounded-[22px] p-4">
+                      <li key={evt.id} className="glass rounded-[22px] p-4 min-w-0">
                         <button type="button" onClick={() => onSelectEvent(evt)} className="flex items-center gap-3 text-left w-full cursor-pointer">
                           <img src={evt.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
                           <span className="min-w-0">
@@ -598,65 +598,26 @@ export const OrganizerDashboardView = ({
                 </div>
 
                 {/* Sub-tabs inside selected event dashboard */}
-                <div className="flex border-b border-[#e1e3e4] gap-6 text-xs font-semibold pt-1">
-                  <button
-                    onClick={() => setDashboardTab('attendees')}
-                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
-                      dashboardTab === 'attendees'
-                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                        : 'text-[#5f5e5e] hover:text-[#00355f]'
-                    }`}
-                  >
-                    Registered Attendees ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length})
-                  </button>
-                  <button
-                    onClick={() => setDashboardTab('volunteers')}
-                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
-                      dashboardTab === 'volunteers'
-                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                        : 'text-[#5f5e5e] hover:text-[#00355f]'
-                    }`}
-                  >
-                    Volunteers ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Volunteer' || t.registrationType === 'Volunteer + Community')).length})
-                  </button>
-                  <button
-                    onClick={() => setDashboardTab('community')}
-                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
-                      dashboardTab === 'community'
-                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                        : 'text-[#5f5e5e] hover:text-[#00355f]'
-                    }`}
-                  >
-                    Community Applicants ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && (t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community')).length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDashboardTab('checkin');
-                      setCheckInResult(null);
-                    }}
-                    className={`pb-2 transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                      dashboardTab === 'checkin'
-                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                        : 'text-[#5f5e5e] hover:text-[#00355f]'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
-                    <span>
-                      Live Door Check-In ({tickets.filter(t => t.eventId === selectedAnalyticsEvent.id && t.status === 'checked-in').length}/{tickets.filter(t => t.eventId === selectedAnalyticsEvent.id).length})
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setDashboardTab('budget')}
-                    className={`pb-2 transition-all whitespace-nowrap cursor-pointer ${
-                      dashboardTab === 'budget'
-                        ? 'border-b-2 border-[#00355f] text-[#00355f] font-bold'
-                        : 'text-[#5f5e5e] hover:text-[#00355f]'
-                    }`}
-                  >
-                    💰 Budget & Expense Tracker
-                  </button>
-                </div>
+                {(() => {
+                  const evtTickets = tickets.filter((t) => t.eventId === selectedAnalyticsEvent.id);
+                  return (
+                    <Tabs
+                      label="Event console sections"
+                      value={dashboardTab}
+                      onChange={(id) => {
+                        setDashboardTab(id);
+                        if (id === 'checkin') setCheckInResult(null);
+                      }}
+                      items={[
+                        { id: 'attendees', label: 'Attendees', icon: 'group', count: evtTickets.length },
+                        { id: 'volunteers', label: 'Volunteers', icon: 'volunteer_activism', count: evtTickets.filter((t) => t.registrationType === 'Volunteer' || t.registrationType === 'Volunteer + Community').length },
+                        { id: 'community', label: 'Community applicants', icon: 'diversity_3', count: evtTickets.filter((t) => t.registrationType === 'Community' || t.registrationType === 'Volunteer + Community').length },
+                        { id: 'checkin', label: `Door check-in ${evtTickets.filter((t) => t.status === 'checked-in').length}/${evtTickets.length}`, icon: 'qr_code_scanner' },
+                        { id: 'budget', label: 'Budget & expenses', icon: 'payments' },
+                      ]}
+                    />
+                  );
+                })()}
 
                 {/* Tab Rendering content */}
                 {dashboardTab === 'attendees' && (
@@ -922,6 +883,45 @@ export const OrganizerDashboardView = ({
                         </button>
                       </div>
                     </div>
+
+                    {/* Sponsorship linked to this event */}
+                    {((selectedAnalyticsEvent.sponsorshipOpportunities || []).length > 0 || (selectedAnalyticsEvent.sponsors || []).length > 0) && (
+                      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-5 space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="font-geist font-bold text-sm text-[#00355f] flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-[#0f4c81]">handshake</span>
+                            Sponsorship
+                          </h4>
+                          <span className="text-xs text-[#5f5e5e]">
+                            ${(selectedAnalyticsEvent.sponsorshipOpportunities || []).reduce((s, o) => s + (Number(o.fundedAmount) || 0), 0).toLocaleString()} funded of $
+                            {(selectedAnalyticsEvent.sponsorshipOpportunities || []).reduce((s, o) => s + (Number(o.amount) || 0), 0).toLocaleString()} sought
+                          </span>
+                        </div>
+                        <ul className="space-y-3">
+                          {(selectedAnalyticsEvent.sponsorshipOpportunities || []).map((opp) => {
+                            const pct = opp.amount ? Math.min(100, Math.round(((Number(opp.fundedAmount) || 0) / Number(opp.amount)) * 100)) : 0;
+                            return (
+                              <li key={opp.id} className="space-y-1.5">
+                                <div className="flex justify-between gap-3 text-xs">
+                                  <span className="font-semibold text-[#00355f] truncate">{opp.requirement}</span>
+                                  <span className="text-[#5f5e5e] shrink-0">
+                                    {opp.status === 'Funded' ? `Funded by ${opp.sponsor || 'a sponsor'}` : opp.status === 'Partially funded' ? `${pct}% · ${opp.sponsor}` : 'Open'}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-[#e7e8e9] overflow-hidden">
+                                  <div className="h-full rounded-full bg-[#0f4c81]" style={{ width: `${pct}%` }} />
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        {(selectedAnalyticsEvent.sponsors || []).length > 0 && (
+                          <p className="text-xs text-[#5f5e5e]">
+                            Sponsors: {selectedAnalyticsEvent.sponsors.map((sp) => `${sp.sponsorName} ($${Number(sp.amount).toLocaleString()})`).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Financial Metric Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

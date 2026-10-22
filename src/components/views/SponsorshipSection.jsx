@@ -399,6 +399,19 @@ export const SponsorshipSection = ({
                     <option key={evt.id} value={evt.id}>{evt.title}</option>
                   ))}
                 </select>
+                {(() => {
+                  // Show what this event is still looking for, so the request matches a real need
+                  const evt = events.find((e) => e.id === selectedEventId);
+                  const open = (evt?.sponsorshipOpportunities || []).filter((o) => o.status !== 'Funded');
+                  return open.length > 0 ? (
+                    <p className="text-[11px] text-gray-500 pt-1 leading-relaxed">
+                      Open needs: {open.map((o) => `${o.requirement} ($${Number(o.amount).toLocaleString()})`).join(' · ')}
+                    </p>
+                  ) : null;
+                })()}
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  When the sponsor approves, the sponsorship is added to this event automatically.
+                </p>
               </div>
 
               {/* Lock warning */}

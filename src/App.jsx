@@ -24,7 +24,7 @@ import { BecomeSponsorView } from './components/views/BecomeSponsorView';
 import { RoleSetupPendingView } from './components/views/RoleSetupPendingView';
 import { RoleSetupView } from './components/views/RoleSetupView';
 import { getUserCapabilities, persistUserRecord, userHasRoleSetup } from './utils/roles';
-import { SPONSORSHIP_STATUS } from './utils/sponsorship';
+import { SPONSORSHIP_STATUS, sponsorshipNeedMatches } from './utils/sponsorship';
 import { ROLE_JOURNEY } from './components/landing/journey';
 
 // The landing experience (3D canvas + animations) loads separately from the app shell
@@ -62,13 +62,6 @@ const INITIAL_GOODIES_ORDERS = [
   }
 ];
 
-const INITIAL_SPONSORSHIP_CODES = {
-  'TN2026-AI50': { sponsor: 'TechNova Solutions', amount: 50000, requirement: 'Venue', status: 'Active', code: 'TN2026-AI50' },
-  'TN2026-75K': { sponsor: 'TechNova Solutions', amount: 75000, requirement: 'Venue', status: 'Active', code: 'TN2026-75K' },
-  'BX2026-30K': { sponsor: 'BrandX Media', amount: 30000, requirement: 'Goodies', status: 'Active', code: 'BX2026-30K' },
-  'GG2026-10K': { sponsor: 'GigaTech Energy', amount: 10000, requirement: 'Speakers', status: 'Active', code: 'GG2026-10K' }
-};
-
 const INITIAL_SPONSORSHIP_REQUESTS = [
   {
     requestId: 'REQ-1092',
@@ -79,7 +72,6 @@ const INITIAL_SPONSORSHIP_REQUESTS = [
     requirement: 'Venue',
     amount: 75000,
     status: SPONSORSHIP_STATUS.APPROVED,
-    code: 'TN2026-75K',
     date: '2026-08-12',
     appliedBy: 'Aravind Swaminathan',
     appliedByEmail: 'organizer@connect.dev'
@@ -93,7 +85,6 @@ const INITIAL_SPONSORSHIP_REQUESTS = [
     requirement: 'Goodies',
     amount: 30000,
     status: SPONSORSHIP_STATUS.REQUESTED,
-    code: '',
     date: '2026-08-13',
     appliedBy: 'Meera Sen',
     appliedByEmail: 'meera@connect.dev'
@@ -419,24 +410,22 @@ export function App() {
     return newOrder;
   };
 
-  // Sponsorship States
-  const [sponsorshipCodes, setSponsorshipCodes] = useState(() => {
-    const saved = localStorage.getItem('assemble_sponsorship_codes');
-    return saved ? JSON.parse(saved) : INITIAL_SPONSORSHIP_CODES;
-  });
-
+  // Sponsorship: requests between organizers and sponsors. When a sponsor approves a
+  // request (or offers directly), the funding is linked to the event automatically;
+  // there are no codes to copy between them.
   const [sponsorshipRequests, setSponsorshipRequests] = useState(() => {
     const saved = localStorage.getItem('assemble_sponsorship_requests');
     return saved ? JSON.parse(saved) : INITIAL_SPONSORSHIP_REQUESTS;
   });
 
   useEffect(() => {
-    localStorage.setItem('assemble_sponsorship_codes', JSON.stringify(sponsorshipCodes));
-  }, [sponsorshipCodes]);
-  useEffect(() => {
     localStorage.setItem('assemble_sponsorship_requests', JSON.stringify(sponsorshipRequests));
   }, [sponsorshipRequests]);
 
+  useEffect(() => {
+    // Codes from the old flow are no longer used
+    localStorage.removeItem('assemble_sponsorship_codes');
+  }, []);
 
   const handleRequestSponsorship = (request) => {
     setSponsorshipRequests((prev) => [
@@ -445,39 +434,64 @@ export function App() {
     ]);
   };
 
-  const generateSponsorshipCode = (sponsorName, amount) => {
-    const sponsorAbbr = (sponsorName || 'TN').split(' ')[0].substring(0, 2).toUpperCase();
-    const amountVal = amount >= 1000 ? `${Math.round(amount / 1000)}K` : amount;
-    return `${sponsorAbbr}2026-${amountVal}-${Math.floor(100 + Math.random() * 900)}`;
+  // Record an approved sponsorship on its event: add the sponsor and credit the
+  // matching funding need (marking it Funded once covered).
+  const linkSponsorshipToEvent = (req) => {
+    setEvents((prev) => {
+      const updated = prev.map((e) => {
+        if (e.id !== req.eventId) return e;
+        const sponsors = [
+          ...(e.sponsors || []).filter((sp) => sp.requestId !== req.requestId),
+          {
+            requestId: req.requestId,
+            sponsorName: req.sponsorName,
+            amount: Number(req.amount) || 0,
+            requirement: req.requirement,
+            date: new Date().toISOString().split('T')[0],
+          },
+        ];
+        let credited = false;
+        const sponsorshipOpportunities = (e.sponsorshipOpportunities || []).map((opp) => {
+          if (credited || opp.status === 'Funded') return opp;
+          const matches = sponsorshipNeedMatches(opp, req.requirement);
+          if (!matches) return opp;
+          credited = true;
+          const fundedAmount = (Number(opp.fundedAmount) || 0) + (Number(req.amount) || 0);
+          return {
+            ...opp,
+            fundedAmount,
+            status: fundedAmount >= Number(opp.amount) ? 'Funded' : 'Partially funded',
+            sponsor: req.sponsorName,
+          };
+        });
+        return { ...e, sponsors, sponsorshipOpportunities };
+      });
+      localStorage.setItem('assemble_events', JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  // A sponsor offering money directly to an event: approved immediately, code issued
+  // A sponsor offering money directly to an event: approved and linked immediately
   const handleSponsorOffer = (eventId, requirement, amount, pitch) => {
     const targetEvent = events.find((e) => e.id === eventId);
     const sponsorName = currentUser?.sponsorProfile?.companyName || currentUser?.name || 'Sponsor';
-    const code = generateSponsorshipCode(sponsorName, amount);
-    setSponsorshipCodes((prev) => ({
-      ...prev,
-      [code]: { sponsor: sponsorName, amount, requirement, status: 'Active', code },
-    }));
-    setSponsorshipRequests((prev) => [
-      {
-        requestId: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
-        sponsorName,
-        sponsorEmail: currentUser?.email || '',
-        eventId,
-        eventTitle: targetEvent?.title || 'Event',
-        requirement,
-        amount,
-        pitch,
-        status: SPONSORSHIP_STATUS.APPROVED,
-        code,
-        date: new Date().toISOString().split('T')[0],
-        appliedBy: sponsorName,
-        appliedByEmail: currentUser?.email || '',
-      },
-      ...prev,
-    ]);
+    const request = {
+      requestId: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+      sponsorName,
+      sponsorEmail: currentUser?.email || '',
+      eventId,
+      eventTitle: targetEvent?.title || 'Event',
+      requirement,
+      amount,
+      pitch,
+      status: SPONSORSHIP_STATUS.APPROVED,
+      direction: 'offer',
+      date: new Date().toISOString().split('T')[0],
+      appliedBy: sponsorName,
+      appliedByEmail: currentUser?.email || '',
+    };
+    setSponsorshipRequests((prev) => [request, ...prev]);
+    linkSponsorshipToEvent(request);
   };
 
   const handleRequestVenueBooking = (newBooking) => {
@@ -493,31 +507,12 @@ export function App() {
   };
 
   const handleSimulateSponsorApprove = (requestId) => {
-    const req = sponsorshipRequests.find(r => r.requestId === requestId || r.id === requestId);
+    const req = sponsorshipRequests.find((r) => r.requestId === requestId || r.id === requestId);
     if (!req) return;
-
-    const generatedCode = generateSponsorshipCode(req.sponsorName, req.amount);
-
-    // Add to valid codes database
-    setSponsorshipCodes({
-      ...sponsorshipCodes,
-      [generatedCode]: {
-        sponsor: req.sponsorName || 'TechNova Solutions',
-        amount: req.amount,
-        requirement: req.requirement,
-        status: 'Active',
-        code: generatedCode
-      }
-    });
-
-    // Update request status
-    setSponsorshipRequests(
-      sponsorshipRequests.map(r =>
-        (r.requestId === requestId || r.id === requestId)
-          ? { ...r, status: SPONSORSHIP_STATUS.APPROVED, code: generatedCode, generatedCode: generatedCode }
-          : r
-      )
+    setSponsorshipRequests((prev) =>
+      prev.map((r) => (r.requestId === requestId || r.id === requestId ? { ...r, status: SPONSORSHIP_STATUS.APPROVED } : r))
     );
+    linkSponsorshipToEvent(req);
   };
 
   const handleSimulateSponsorReject = (requestId) => {
@@ -1238,7 +1233,6 @@ export function App() {
               onAddGoodiesToCart={handleAddGoodiesToCart}
               onRemoveGoodiesFromCart={handleRemoveGoodiesFromCart}
               onPlaceGoodiesOrder={handlePlaceGoodiesOrder}
-              sponsorshipCodes={sponsorshipCodes}
               sponsorshipRequests={sponsorshipRequests}
               onRequestSponsorship={handleRequestSponsorship}
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
@@ -1279,7 +1273,6 @@ export function App() {
               currentUser={currentUser}
               events={events}
               sponsorshipRequests={sponsorshipRequests}
-              sponsorshipCodes={sponsorshipCodes}
               onSimulateSponsorApprove={handleSimulateSponsorApprove}
               onSimulateSponsorReject={handleSimulateSponsorReject}
               onRequestSponsorship={handleSponsorOffer}
@@ -1339,7 +1332,6 @@ export function App() {
               handleSaveEvent(newEvent);
               setPreSelectedCommunity(null);
             }}
-            sponsorshipCodes={sponsorshipCodes}
             currentUser={currentUser}
             preSelectedCommunity={preSelectedCommunity}
           />
@@ -1357,7 +1349,8 @@ export function App() {
         if (selectedEvent) {
           return (
             <EventDetailsView
-              event={selectedEvent}
+              // Always show the latest copy (e.g. after a sponsorship is linked)
+              event={events.find((e) => e.id === selectedEvent.id) || selectedEvent}
               onBack={() => navigate('/discover')}
               onBackToDashboard={() => handleActiveViewChange('dashboard')}
               onRegister={handleRegisterForEvent}

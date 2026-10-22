@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { PageHeader, Button, Tabs, StatTile, StatGrid } from '../ui';
-import { isSponsorshipApproved, isSponsorshipPending, isSponsorshipRejected } from '../../utils/sponsorship';
+import { isSponsorshipApproved, isSponsorshipPending, isSponsorshipRejected, SPONSORSHIP_NEEDS } from '../../utils/sponsorship';
 
 export const SponsorDashboardView = ({
   currentUser,
   events = [],
   sponsorshipRequests = [],
-  sponsorshipCodes = [],
   onSimulateSponsorApprove,
   onSimulateSponsorReject,
   onRequestSponsorship,
@@ -91,7 +90,7 @@ export const SponsorDashboardView = ({
         kicker="Sponsor · Partnerships"
         title="Back the moments"
         accent="that matter."
-        description="Find events and communities that fit your audience, review organizer proposals and issue sponsorship codes."
+        description="Find events and communities that fit your audience, review organizer proposals and back events directly."
         actions={
           <Button variant="secondary" icon="explore" onClick={() => onRoleChange && onRoleChange('attendee')}>
             Switch to attendee
@@ -113,7 +112,7 @@ export const SponsorDashboardView = ({
         items={[
           { id: 'opportunities', label: 'Events seeking sponsors', icon: 'explore', count: events.length },
           { id: 'incoming-requests', label: 'Organizer proposals', icon: 'inbox', count: pendingRequests.length },
-          { id: 'active-sponsorships', label: 'Grants & codes', icon: 'verified', count: approvedRequests.length },
+          { id: 'active-sponsorships', label: 'Active sponsorships', icon: 'verified', count: approvedRequests.length },
         ]}
       />
 
@@ -210,7 +209,7 @@ export const SponsorDashboardView = ({
           <div className="flex justify-between items-center">
             <div>
               <h2 className="font-geist text-lg font-bold text-[#00355f]">Proposals Submitted by Organizers</h2>
-              <p className="font-inter text-xs text-gray-500">Review pitches and approve sponsorship grants with instant code generation.</p>
+              <p className="font-inter text-xs text-gray-500">Review pitches from organizers. Approving a proposal adds your sponsorship to their event automatically.</p>
             </div>
           </div>
 
@@ -226,7 +225,7 @@ export const SponsorDashboardView = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {sponsorshipRequests.map((req) => {
                 const reqKey = req.id || req.requestId;
-                const isApproved = isSponsorshipApproved(req) || Boolean(req.code);
+                const isApproved = isSponsorshipApproved(req);
                 const isRejected = isSponsorshipRejected(req) || localRejectedIds.includes(reqKey);
 
                 return (
@@ -271,7 +270,7 @@ export const SponsorDashboardView = ({
                         {isApproved ? (
                           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-700">
                             <span className="material-symbols-outlined text-sm">verified</span>
-                            <span>Code Issued: {req.generatedCode || req.code || 'TN2026-AI50'}</span>
+                            <span>Approved · added to event</span>
                           </div>
                         ) : isRejected ? (
                           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700">
@@ -291,10 +290,10 @@ export const SponsorDashboardView = ({
                             <button
                               onClick={() => handleApproveAndGenerate(reqKey)}
                               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1"
-                              title="Approve and issue sponsorship grant code"
+                              title="Approve this sponsorship and add it to the event"
                             >
                               <span className="material-symbols-outlined text-sm">check_circle</span>
-                              <span>Approve & Issue Code</span>
+                              <span>Approve sponsorship</span>
                             </button>
                           </>
                         )}
@@ -308,53 +307,55 @@ export const SponsorDashboardView = ({
         </div>
       )}
 
-      {/* TAB 3: Active Grants & Verification Codes */}
+      {/* TAB 3: Events this sponsor is backing */}
       {activeTab === 'active-sponsorships' && (
         <div className="space-y-4">
           <div>
-            <h2 className="font-geist text-lg font-bold text-[#00355f]">Active Sponsorship Codes</h2>
-            <p className="font-inter text-xs text-gray-500">Verification codes issued to organizers to automatically allocate and lock event funding.</p>
+            <h2 className="font-geist text-lg font-bold text-[#00355f]">Active Sponsorships</h2>
+            <p className="font-inter text-xs text-gray-500">Events you’re backing. Each sponsorship is linked to its event and shows in the organizer’s budget.</p>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md border border-[#e1e3e4] rounded-[2.5rem] p-6 md:p-8 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {[
-                { code: 'TN2026-AI50', sponsor: 'TechNova Solutions', amount: '€5,000', cat: 'Keynote & AI Track', status: 'Active' },
-                { code: 'TN2026-75K', sponsor: 'TechNova Solutions', amount: '€7,500', cat: 'Main Stage & Venue', status: 'Active' },
-                { code: 'BX2026-30K', sponsor: 'BrandX Media', amount: '€3,000', cat: 'Swag & Goodies', status: 'Active' },
-                ...approvedRequests.map((r, idx) => ({
-                  code: r.generatedCode || r.code || `SP-${String(r.id || r.requestId || idx + 1).toUpperCase()}`,
-                  sponsor: r.sponsorName || currentUser?.sponsorProfile?.companyName || currentUser?.name || 'My Company',
-                  amount: `€${Number(r.amount).toLocaleString()}`,
-                  cat: r.requirement || 'General Sponsorship',
-                  status: 'Active'
-                }))
-              ].map((c, i) => (
-                <div key={i} className="p-4 bg-gradient-to-br from-gray-50 to-blue-50/40 rounded-2xl border border-blue-100 flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">{c.sponsor}</span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Active</span>
-                    </div>
-                    <div className="font-mono text-base font-extrabold text-[#00355f] mt-1 tracking-wider">{c.code}</div>
-                    <div className="text-xs text-gray-600 mt-0.5">{c.cat}</div>
-                  </div>
-                  <div className="pt-2 border-t border-blue-100/60 flex justify-between items-center">
-                    <span className="font-geist text-sm font-black text-[#0f4c81]">{c.amount}</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(c.code);
-                        alert(`Verification code "${c.code}" copied to clipboard!`);
-                      }}
-                      className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg text-[10px] font-bold cursor-pointer"
-                    >
-                      Copy Code
-                    </button>
-                  </div>
-                </div>
-              ))}
+          {approvedRequests.length === 0 ? (
+            <div className="glass rounded-[24px] p-8 text-center space-y-2">
+              <span className="material-symbols-outlined text-4xl text-gray-300">handshake</span>
+              <p className="font-geist font-semibold text-[#00355f]">No active sponsorships yet</p>
+              <p className="text-xs text-gray-500">Approve an organizer’s proposal or sponsor an event from the first tab.</p>
             </div>
-          </div>
+          ) : (
+            <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {approvedRequests.map((r) => {
+                const need = SPONSORSHIP_NEEDS.find((n) => n.id === r.requirement);
+                const evt = events.find((e) => e.id === r.eventId);
+                return (
+                  <li key={r.requestId || r.id} className="glass rounded-[22px] p-4 flex flex-col gap-3 min-w-0">
+                    <div className="flex items-start gap-3">
+                      {evt?.imageUrl && <img src={evt.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="font-geist font-semibold text-[#00355f] leading-snug line-clamp-2">{r.eventTitle}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[15px]">{need?.icon || 'volunteer_activism'}</span>
+                          {need?.label || r.requirement || 'General support'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 mt-auto">
+                      <span className="font-geist text-lg font-semibold text-[#00355f]">€{Number(r.amount).toLocaleString()}</span>
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                        {r.direction === 'offer' ? 'Your offer' : 'Approved request'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewEventForRequest(r)}
+                      className="w-full py-2 rounded-full border border-[#c2c7d1] text-xs font-semibold text-[#00355f] hover:bg-gray-50 cursor-pointer"
+                    >
+                      View event
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
@@ -417,8 +418,8 @@ export const SponsorDashboardView = ({
                 <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
                   <span className="material-symbols-outlined text-2xl">check</span>
                 </div>
-                <h4 className="font-geist font-bold text-emerald-700">Sponsorship Proposal Dispatched!</h4>
-                <p className="font-inter text-xs text-gray-500">The event organizer will receive your direct corporate sponsorship offer.</p>
+                <h4 className="font-geist font-bold text-emerald-700">You’re now sponsoring this event</h4>
+                <p className="font-inter text-xs text-gray-500">Your sponsorship has been added to the event, and the organizer can see it in their budget.</p>
               </div>
             ) : (
               <form onSubmit={handleOfferSubmit} className="space-y-4 text-xs font-inter">

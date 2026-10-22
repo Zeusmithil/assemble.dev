@@ -685,7 +685,7 @@ export const CommunityAnalysisView = ({
                     })}
                   </div>
                   <div className="text-[11px] text-gray-400 text-center">
-                    Annual grant volume verified via Connect corporate sponsorship codes.
+                    Annual grant volume from approved Connect sponsorships.
                   </div>
                 </div>
               )}

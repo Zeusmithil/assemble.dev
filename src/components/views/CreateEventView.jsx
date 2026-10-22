@@ -1,10 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { INITIAL_VENUES, INITIAL_SPEAKERS, INITIAL_SERVICES } from '../../data/initialData';
+import { SPONSORSHIP_NEEDS } from '../../utils/sponsorship';
+import { Button, Icon } from '../ui';
+
+// Step ids are kept as before (4 was a removed catering step)
+const STEP_LABELS = { 1: 'Event basics', 2: 'Venue', 3: 'Speakers', 5: 'Swag & goodies', 6: 'Tickets', 7: 'Review & publish' };
+const STEP_ICONS = { 1: 'edit_note', 2: 'apartment', 3: 'record_voice_over', 5: 'redeem', 6: 'confirmation_number', 7: 'task_alt' };
 
 export const CreateEventView = ({
   onCancel,
   onSaveEvent,
-  sponsorshipCodes,
   currentUser,
   preSelectedCommunity,
 }) => {
@@ -17,6 +22,16 @@ export const CreateEventView = ({
   });
 
   const [currentStep, setCurrentStep] = useState(1);
+  const stepperRef = useRef(null);
+
+  // Keep the current step visible in the stepper on narrow screens (scrolls the strip only)
+  useEffect(() => {
+    const strip = stepperRef.current;
+    const active = strip?.querySelector('[aria-current="step"]');
+    if (!strip || !active) return;
+    const target = active.parentElement.offsetLeft - strip.clientWidth / 2 + active.offsetWidth / 2;
+    strip.scrollTo({ left: Math.max(0, target) });
+  }, [currentStep]);
 
   // Volunteer & Community states
   const [volunteersNeededOption, setVolunteersNeededOption] = useState('none');
@@ -34,10 +49,11 @@ export const CreateEventView = ({
   const [city, setCity] = useState('Chennai');
   const [expectedAttendees, setExpectedAttendees] = useState(250);
   const [budget, setBudget] = useState(5000);
-  const [budgetType, setBudgetType] = useState('set-budget');
-  const [budgetSponsorCode, setBudgetSponsorCode] = useState('');
-  const [budgetSponsorInfo, setBudgetSponsorInfo] = useState(null);
-  const [budgetVerifyError, setBudgetVerifyError] = useState('');
+  const [budgetType, setBudgetType] = useState('set-budget'); // 'set-budget' | 'no-budget'
+  // Sponsorship: what this event needs funding for. After publishing, sponsors see
+  // these needs and approved sponsorships are linked to the event automatically.
+  const [seekSponsors, setSeekSponsors] = useState(false);
+  const [sponsorNeeds, setSponsorNeeds] = useState([]); // [{ category, amount, note }]
   const [imageUrl, setImageUrl] = useState(
     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop'
   );
@@ -194,155 +210,137 @@ export const CreateEventView = ({
   const [goodiesSponsorInfo, setGoodiesSponsorInfo] = useState(null);
   const [goodiesVerifyError, setGoodiesVerifyError] = useState('');
 
-  const handleVerifySponsorCode = (serviceName, code, setSponsorInfo, setVerifyError) => {
-    if (!code.trim()) {
-      setVerifyError('Please enter a sponsorship code.');
-      return;
-    }
-    const matched = sponsorshipCodes[code.trim()];
-    if (matched) {
-      if (matched.requirement.toLowerCase() !== serviceName.toLowerCase()) {
-        setVerifyError(`⚠️ This code is linked to a sponsorship for ${matched.requirement}, not ${serviceName}.`);
-        setSponsorInfo(null);
-        return;
-      }
-      setSponsorInfo(matched);
-      setVerifyError('');
-    } else {
-      setVerifyError('✕ Invalid sponsorship code or code not found.');
-      setSponsorInfo(null);
-    }
+  const toggleSponsorNeed = (category) => {
+    setSponsorNeeds((prev) =>
+      prev.some((n) => n.category === category)
+        ? prev.filter((n) => n.category !== category)
+        : [...prev, { category, amount: 5000, note: '' }]
+    );
   };
+  const updateSponsorNeed = (category, key, value) => {
+    setSponsorNeeds((prev) => prev.map((n) => (n.category === category ? { ...n, [key]: value } : n)));
+  };
+  const sponsorTarget = sponsorNeeds.reduce((sum, n) => sum + (Number(n.amount) || 0), 0);
 
-  const renderFundingOptions = (
-    serviceName,
-    budgetType,
-    setBudgetType,
-    budgetVal,
-    setBudgetVal,
-    sponsorCode,
-    setSponsorCode,
-    verifyError,
-    setVerifyError,
-    sponsorInfo,
-    setSponsorInfo
-  ) => {
-    return (
-      <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl space-y-4 mt-6">
-        <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-          {serviceName} Funding Allocation
-        </span>
-
-        <div className="flex gap-6 text-xs font-semibold text-[#00355f]">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={`${serviceName}-funding`}
-              checked={budgetType === 'set-budget'}
-              onChange={() => setBudgetType('set-budget')}
-              className="text-[#0f4c81]"
-            />
-            <span>Set Budget</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={`${serviceName}-funding`}
-              checked={budgetType === 'no-budget'}
-              onChange={() => setBudgetType('no-budget')}
-              className="text-[#0f4c81]"
-            />
-            <span>No Budget</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={`${serviceName}-funding`}
-              checked={budgetType === 'sponsorship'}
-              onChange={() => setBudgetType('sponsorship')}
-              className="text-[#0f4c81]"
-            />
-            <span>Sponsorship</span>
-          </label>
+  // Budget plus optional sponsorship needs, shown in Event Basics
+  const renderBudgetAndSponsorship = () => (
+    <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl space-y-5">
+      <div className="space-y-3">
+        <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Event budget</span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'set-budget', label: 'Set a budget' },
+            { id: 'no-budget', label: 'No budget yet' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setBudgetType(opt.id)}
+              aria-pressed={budgetType === opt.id}
+              className={`px-4 py-2 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                budgetType === opt.id ? 'bg-[#0f4c81] text-white border-[#0f4c81]' : 'bg-white border-[#c2c7d1] text-[#5f5e5e] hover:bg-gray-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
-
         {budgetType === 'set-budget' && (
-          <div className="space-y-1">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block">Requirement Budget ($)</label>
+          <label className="block space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Total budget ($)</span>
             <input
               type="number"
-              value={budgetVal}
-              onChange={(e) => setBudgetVal(Number(e.target.value))}
-              className="px-3.5 py-2 border border-[#c2c7d1] bg-white rounded-xl text-xs font-bold w-32 outline-none"
+              min="0"
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+              className="px-3.5 py-2 border border-[#c2c7d1] bg-white rounded-xl text-sm font-semibold w-40 outline-none"
             />
-          </div>
+          </label>
         )}
+      </div>
 
-        {budgetType === 'no-budget' && (
-          <p className="text-[11px] text-gray-500 italic">
-            ✓ No fixed budget requested or specified at this stage.
-          </p>
-        )}
+      <div className="border-t border-gray-100 pt-5 space-y-4">
+        <label className="flex items-start justify-between gap-4 cursor-pointer">
+          <span>
+            <span className="text-sm font-semibold text-[#00355f] block">Looking for sponsors</span>
+            <span className="text-xs text-gray-500 block mt-0.5 leading-relaxed">
+              List what you need funding for. Sponsors will see these on your event, and when a sponsorship is approved it’s added to the event automatically.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={seekSponsors}
+            onChange={(e) => setSeekSponsors(e.target.checked)}
+            className="mt-1 w-5 h-5 rounded border-gray-300 text-[#0f4c81] focus:ring-[#0f4c81] shrink-0"
+          />
+        </label>
 
-        {budgetType === 'sponsorship' && (
+        {seekSponsors && (
           <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">Enter Sponsorship Code</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={sponsorCode}
-                  onChange={(e) => setSponsorCode(e.target.value)}
-                  placeholder="e.g. TN2026-75K"
-                  className="px-3.5 py-2 border border-[#c2c7d1] bg-white rounded-xl text-xs font-mono font-bold text-[#00355f]"
-                  disabled={!!sponsorInfo}
-                />
-                {!sponsorInfo ? (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="What do you need sponsorship for?">
+              {SPONSORSHIP_NEEDS.map((need) => {
+                const on = sponsorNeeds.some((n) => n.category === need.id);
+                return (
                   <button
+                    key={need.id}
                     type="button"
-                    onClick={() => handleVerifySponsorCode(serviceName, sponsorCode, setSponsorInfo, setVerifyError)}
-                    className="px-4 py-2 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold cursor-pointer"
+                    onClick={() => toggleSponsorNeed(need.id)}
+                    aria-pressed={on}
+                    className={`px-3.5 py-2 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      on ? 'bg-[#d2e4ff] border-[#0f4c81] text-[#0f4c81]' : 'bg-white border-[#c2c7d1] text-[#5f5e5e] hover:bg-gray-50'
+                    }`}
                   >
-                    Verify Code
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">{on ? 'check' : need.icon}</span>
+                    {need.label}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSponsorInfo(null);
-                      setSponsorCode('');
-                    }}
-                    className="px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    Reset Code
-                  </button>
-                )}
-              </div>
+                );
+              })}
             </div>
 
-            {verifyError && (
-              <p className="text-[11px] text-red-600 font-bold">{verifyError}</p>
-            )}
-
-            {sponsorInfo && (
-              <div className="p-3 bg-[#e2f7e2] border border-[#b4e7b4] text-[#1a853e] rounded-xl text-[11px]">
-                <div className="font-bold flex items-center gap-1">
-                  <span>✓ Sponsorship Verified</span>
-                </div>
-                <div className="mt-1 font-inter space-y-0.5">
-                  <p>Sponsor: <span className="font-bold">{sponsorInfo.sponsor}</span></p>
-                  <p>Sponsored Amount: <span className="font-bold">${sponsorInfo.amount.toLocaleString()}</span></p>
-                  <p>Status: Active</p>
-                </div>
+            {sponsorNeeds.length === 0 ? (
+              <p className="text-xs text-gray-500">Pick at least one thing you’d like a sponsor to support.</p>
+            ) : (
+              <div className="space-y-2">
+                {sponsorNeeds.map((n) => {
+                  const meta = SPONSORSHIP_NEEDS.find((x) => x.id === n.category);
+                  return (
+                    <div key={n.category} className="bg-white border border-[#e1e3e4] rounded-xl p-3 grid sm:grid-cols-[1fr_140px] gap-2 items-center">
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-[#00355f] flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-[#0f4c81]" aria-hidden="true">{meta?.icon}</span>
+                          {meta?.label}
+                        </span>
+                        <input
+                          type="text"
+                          value={n.note}
+                          onChange={(e) => updateSponsorNeed(n.category, 'note', e.target.value)}
+                          placeholder="Optional: what sponsors get (e.g. logo on stage backdrop)"
+                          className="mt-1.5 w-full px-3 py-1.5 border border-[#e1e3e4] rounded-lg text-xs outline-none"
+                        />
+                      </div>
+                      <label className="block">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Target ($)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={n.amount}
+                          onChange={(e) => updateSponsorNeed(n.category, 'amount', Number(e.target.value))}
+                          className="mt-1 w-full px-3 py-1.5 border border-[#c2c7d1] rounded-lg text-sm font-semibold outline-none"
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-gray-500 text-right">
+                  Seeking <span className="font-semibold text-[#00355f]">${sponsorTarget.toLocaleString()}</span> in sponsorship
+                </p>
               </div>
             )}
           </div>
         )}
       </div>
-    );
-  };
+    </div>
+  );
 
   // Determine active steps dynamically
   const getActiveSteps = () => {
@@ -483,9 +481,9 @@ export const CreateEventView = ({
     if (updated.ticketing) newActiveSteps.push(6);
     newActiveSteps.push(7);
 
-    // Redirect to Basics to prevent stepping index bounds
+    // If the step you're on was switched off, continue with the next included step
     if (!newActiveSteps.includes(currentStep)) {
-      setCurrentStep(1);
+      setCurrentStep(newActiveSteps.find((st) => st > currentStep) || 7);
     }
   };
 
@@ -512,7 +510,15 @@ export const CreateEventView = ({
     }
 
     setEnabledServices(updated);
-    setCurrentStep(1); // Safely return to step 1
+    // Keep your place unless the current step is no longer part of the plan
+    const stillIncluded =
+      currentStep === 1 ||
+      currentStep === 7 ||
+      (currentStep === 2 && updated.venue) ||
+      (currentStep === 3 && updated.speakers) ||
+      (currentStep === 5 && updated.goodies) ||
+      (currentStep === 6 && updated.ticketing);
+    if (!stillIncluded) setCurrentStep(1);
   };
 
   // Multiple Ticketing list actions
@@ -586,10 +592,25 @@ export const CreateEventView = ({
       visibility: 'Public',
       volunteersNeeded: volunteersNeededOption === 'number' ? Number(volunteersCount) : 0,
       associatedCommunities: selectedCommunities,
-      budget: budgetType === 'set-budget' ? Number(budget) : (budgetType === 'sponsorship' && budgetSponsorInfo ? budgetSponsorInfo.amount : 0),
+      budget: budgetType === 'set-budget' ? Number(budget) : 0,
       budgetType: budgetType,
-      budgetSponsorInfo: budgetSponsorInfo,
-      budgetSponsorCode: budgetType === 'sponsorship' ? budgetSponsorCode : null,
+      // Funding needs sponsors can back; approved sponsorships are credited here
+      seekingSponsors: seekSponsors && sponsorNeeds.length > 0,
+      sponsorshipOpportunities: seekSponsors
+        ? sponsorNeeds.map((n, i) => {
+            const meta = SPONSORSHIP_NEEDS.find((x) => x.id === n.category);
+            return {
+              id: `so-${Date.now()}-${i}`,
+              category: n.category,
+              requirement: meta?.label || n.category,
+              description: n.note || '',
+              amount: Number(n.amount) || 0,
+              fundedAmount: 0,
+              status: 'Open',
+            };
+          })
+        : [],
+      sponsors: [],
       ticketTiers: enabledServices.ticketing ? ticketTiers.map((t) => ({ ...t, sold: 0 })) : [],
       swagOrder: enabledServices.goodies ? selectedGoodies.map((g) => ({
         product: g.name,
@@ -609,61 +630,85 @@ export const CreateEventView = ({
 
   return (
     <div className="px-4 md:px-10 max-w-[1280px] mx-auto py-8 space-y-8 animate-fadeIn">
-      {/* Step Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-6">
+      {/* Header */}
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
         <div>
-          <span className="font-geist text-xs font-bold text-[#0f4c81] uppercase tracking-wider">
-            Step {activeStepsList.indexOf(currentStep) + 1} of {activeStepsList.length}
-          </span>
-          <h1 className="font-geist text-2xl md:text-3xl font-bold text-[#00355f] mt-0.5">
-            {currentStep === 1 && '1. Event Basics'}
-            {currentStep === 2 && '2. Venue Selection'}
-            {currentStep === 3 && '3. Keynote Speakers'}
-            {currentStep === 5 && '4. Swag & Goodies'}
-            {currentStep === 6 && '5. Registration & Ticketing'}
-            {currentStep === 7 && '6. Review & Publish'}
+          <p className="flex items-center gap-2.5 text-[12px] font-medium uppercase tracking-[0.2em]" style={{ color: 'var(--accent-ink)' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgb(var(--accent-rgb) / 0.16)' }}>
+              <Icon name="add_circle" className="!text-[16px]" />
+            </span>
+            Organizer · New event · Step {activeStepsList.indexOf(currentStep) + 1} of {activeStepsList.length}
+          </p>
+          <h1 className="mt-3 font-geist font-semibold tracking-[-0.03em] text-fg text-[32px] leading-[1.06] sm:text-[40px]">
+            Create an event
+            <br />
+            <span className="font-display italic font-normal tracking-[-0.01em]" style={{ color: 'var(--accent-ink)' }}>
+              {STEP_LABELS[currentStep]}
+            </span>
           </h1>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {budgetType === 'set-budget' && budget > 0 && (
-            <div className="px-3 py-1.5 bg-[#d2e4ff] text-[#00355f] rounded-lg text-xs font-bold flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base text-[#0f4c81]">receipt_long</span>
-              <span>Event Budget: ${budget}</span>
-            </div>
+            <span className="glass rounded-full px-3.5 py-2 text-[12px] font-semibold text-fg/80 flex items-center gap-1.5">
+              <Icon name="receipt_long" className="!text-[16px]" /> Budget ${Number(budget).toLocaleString()}
+            </span>
           )}
-          {budgetType === 'no-budget' && (
-            <div className="px-3 py-1.5 bg-[#f3f4f5] text-[#5f5e5e] rounded-lg text-xs font-bold flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base text-[#727780]">receipt_long</span>
-              <span>Event Budget: No Budget</span>
-            </div>
+          {seekSponsors && sponsorNeeds.length > 0 && (
+            <span className="glass rounded-full px-3.5 py-2 text-[12px] font-semibold text-fg/80 flex items-center gap-1.5">
+              <Icon name="handshake" className="!text-[16px]" /> Seeking ${sponsorTarget.toLocaleString()} sponsorship
+            </span>
           )}
-          {budgetType === 'sponsorship' && budgetSponsorInfo && (
-            <div className="px-3 py-1.5 bg-[#e2f7e2] text-[#1a853e] rounded-lg text-xs font-bold flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base text-[#1a853e]">handshake</span>
-              <span>Sponsored Budget: ${budgetSponsorInfo.amount}</span>
-            </div>
-          )}
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 border border-[#c2c7d1] rounded-lg text-xs font-semibold text-[#5f5e5e] hover:bg-[#e7e8e9] cursor-pointer"
-          >
-            Cancel
-          </button>
+          <Button variant="ghost" icon="close" onClick={onCancel}>Cancel</Button>
         </div>
-      </div>
+      </header>
 
-      {/* Progress Indicators Bar */}
-      <div className="grid gap-1.5 h-2 bg-[#e7e8e9] rounded-full overflow-hidden" style={{ gridTemplateColumns: `repeat(${activeStepsList.length}, minmax(0, 1fr))` }}>
-        {activeStepsList.map((s, index) => (
-          <div
-            key={s}
-            className={`h-full transition-all duration-300 ${
-              index <= activeStepsList.indexOf(currentStep) ? 'bg-[#0f4c81]' : 'bg-transparent'
-            }`}
-          />
-        ))}
-      </div>
+      {/* Stepper: finished and skipped steps can be revisited */}
+      <nav ref={stepperRef} aria-label="Event setup steps" className="relative max-w-full overflow-x-auto no-scrollbar -mx-1 px-1">
+        <ol className="flex items-center gap-2 min-w-max">
+          {activeStepsList.map((s, index) => {
+            const currentIndex = activeStepsList.indexOf(currentStep);
+            const isCurrent = s === currentStep;
+            const isSkipped = skippedSteps.includes(s) && !isCurrent;
+            const isDone = index < currentIndex && !isSkipped;
+            const canVisit = index < currentIndex;
+            return (
+              <li key={s} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => canVisit && setCurrentStep(s)}
+                  disabled={!canVisit}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                    isCurrent
+                      ? 'bg-fg text-bg'
+                      : isDone
+                      ? 'glass text-fg hover:bg-fg/[0.06] cursor-pointer'
+                      : isSkipped
+                      ? 'border border-dashed border-fg/25 text-fg/55 hover:text-fg cursor-pointer'
+                      : 'text-fg/45 cursor-default'
+                  }`}
+                >
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-semibold"
+                    style={
+                      isCurrent
+                        ? { background: 'rgb(var(--accent-rgb))', color: '#07080c' }
+                        : isDone
+                        ? { background: 'rgb(var(--accent-rgb) / 0.2)', color: 'var(--accent-ink)' }
+                        : { background: 'rgb(var(--fg-rgb) / 0.07)' }
+                    }
+                  >
+                    {isDone ? <Icon name="check" className="!text-[15px]" /> : index + 1}
+                  </span>
+                  {STEP_LABELS[s]}
+                  {isSkipped && <span className="text-[11px]">(skipped)</span>}
+                </button>
+                {index < activeStepsList.length - 1 && <span className="w-5 h-px bg-fg/15" aria-hidden="true" />}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       {/* Grid Layout: Form vs Configurator Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -673,9 +718,9 @@ export const CreateEventView = ({
           
           {/* Step 1: Event Basics */}
           {currentStep === 1 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="space-y-2">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Event Title
                 </label>
                 <input
@@ -689,7 +734,7 @@ export const CreateEventView = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                     Category
                   </label>
                   <select
@@ -710,7 +755,7 @@ export const CreateEventView = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                     Expected Attendees
                   </label>
                   <input
@@ -724,7 +769,7 @@ export const CreateEventView = ({
 
               {/* Volunteers Needed Configuration */}
               <div className="space-y-3 pt-2 text-left">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Volunteers Needed
                 </label>
                 <div className="flex gap-6 text-xs font-semibold text-[#00355f] pt-1">
@@ -767,7 +812,7 @@ export const CreateEventView = ({
 
               {/* Communities Association */}
               <div className="space-y-3 pt-2 text-left">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Associate with Communities
                 </label>
                 {preSelectedCommunity ? (
@@ -809,23 +854,11 @@ export const CreateEventView = ({
                 )}
               </div>
 
-              {/* Event Budget Funding Selector */}
-              {renderFundingOptions(
-                'Event',
-                budgetType,
-                setBudgetType,
-                budget,
-                setBudget,
-                budgetSponsorCode,
-                setBudgetSponsorCode,
-                budgetVerifyError,
-                setBudgetVerifyError,
-                budgetSponsorInfo,
-                setBudgetSponsorInfo
-              )}
+              {/* Budget and sponsorship needs */}
+              {renderBudgetAndSponsorship()}
 
               <div className="space-y-2">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Format
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -848,7 +881,7 @@ export const CreateEventView = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                     Start Date
                   </label>
                   <input
@@ -860,7 +893,7 @@ export const CreateEventView = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                     Start Time
                   </label>
                   <input
@@ -873,7 +906,7 @@ export const CreateEventView = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                  <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                     City / Location
                   </label>
                   <select
@@ -891,7 +924,7 @@ export const CreateEventView = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Description
                 </label>
                 <textarea
@@ -904,7 +937,7 @@ export const CreateEventView = ({
               </div>
 
               <div className="space-y-2 text-left">
-                <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                   Event Cover Image
                 </label>
                 
@@ -963,7 +996,7 @@ export const CreateEventView = ({
 
           {/* Step 2: Venue Selection */}
           {currentStep === 2 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="flex gap-4 border-b border-[#e1e3e4] pb-4">
                 <button
                   type="button"
@@ -1224,7 +1257,7 @@ export const CreateEventView = ({
 
                       {/* Image Upload for physical custom venue */}
                       <div className="space-y-2">
-                        <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                        <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                           Venue Image
                         </label>
                         {customVenueImage ? (
@@ -1288,7 +1321,7 @@ export const CreateEventView = ({
 
                       {/* Optional Image Upload for virtual custom venue */}
                       <div className="space-y-2 opacity-90">
-                        <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                        <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                           Venue Image (Optional)
                         </label>
                         {customVenueImage ? (
@@ -1346,7 +1379,7 @@ export const CreateEventView = ({
 
           {/* Step 3: Keynote Speakers */}
           {currentStep === 3 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
                 <h3 className="font-geist text-lg font-bold text-[#00355f] text-left">Select Keynote Speakers & Panellists</h3>
                 <span className="text-xs font-bold text-[#0f4c81] bg-[#d2e4ff] px-3 py-1 rounded-full">
@@ -1505,7 +1538,7 @@ export const CreateEventView = ({
 
           {/* Step 4: Catering & Event Services */}
           {currentStep === 4 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="flex justify-between items-center">
                 <h3 className="font-geist text-lg font-bold text-[#00355f]">Select Catering & Event Services</h3>
                 <span className="text-xs font-bold text-[#0f4c81] bg-[#d2e4ff] px-3 py-1 rounded-full">
@@ -1555,7 +1588,7 @@ export const CreateEventView = ({
 
           {/* Step 5: Swag & Goodies (Interactive Order Configurator) */}
           {currentStep === 5 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div>
                 <h3 className="font-geist text-lg font-bold text-[#00355f] text-left">Swag & Goodies Configurator</h3>
                 <p className="font-inter text-xs text-[#5f5e5e] mt-1 text-left">
@@ -1711,7 +1744,7 @@ export const CreateEventView = ({
 
                             {/* Printing Design Upload */}
                             <div className="space-y-2">
-                              <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                              <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                                 Upload Printing Design / Logo
                               </label>
                               {goodie.designImage ? (
@@ -1792,7 +1825,7 @@ export const CreateEventView = ({
 
                             {/* Engraving Design Upload */}
                             <div className="space-y-2">
-                              <label className="block font-geist text-xs font-bold text-[#00355f] uppercase tracking-wider">
+                              <label className="block text-[12px] font-medium uppercase tracking-[0.14em] text-fg/60">
                                 Upload Engraving Design / Logo
                               </label>
                               {goodie.designImage ? (
@@ -1884,7 +1917,7 @@ export const CreateEventView = ({
 
           {/* Step 6: Registration & Ticketing (Multiple Ticket Tiers Builder) */}
           {currentStep === 6 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="flex justify-between items-center border-b border-[#edeeef] pb-4">
                 <div>
                   <h3 className="font-geist text-lg font-bold text-[#00355f]">Ticketing Setup</h3>
@@ -1975,7 +2008,7 @@ export const CreateEventView = ({
 
           {/* Step 7: Review & Publish */}
           {currentStep === 7 && (
-            <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="glass rounded-[28px] p-6 md:p-8 space-y-6 shadow-2xs">
               <div className="text-center space-y-2 max-w-lg mx-auto">
                 <span className="material-symbols-outlined text-4xl text-[#0f4c81]">auto_awesome</span>
                 <h2 className="font-geist text-2xl font-bold text-[#00355f]">Your Event Is Ready</h2>
@@ -2180,210 +2213,162 @@ export const CreateEventView = ({
               </div>
 
               <div className="flex justify-center gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => handlePublish('draft')}
-                  className="px-6 py-3 border border-[#727780] rounded-xl font-geist font-bold text-xs text-[#00355f] hover:bg-[#f3f4f5] cursor-pointer"
-                >
-                  Save as Draft
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePublish('published')}
-                  className="px-8 py-3 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl font-geist font-bold text-xs shadow-xs cursor-pointer"
-                >
-                  Publish Event Live
-                </button>
+                <Button variant="secondary" icon="draft" onClick={() => handlePublish('draft')}>
+                  Save as draft
+                </Button>
+                <Button icon="rocket_launch" onClick={() => handlePublish('published')}>
+                  Publish event live
+                </Button>
               </div>
             </div>
           )}
 
-          {/* Navigation Buttons Row */}
-          <div className="flex justify-between items-center pt-4 border-t border-[#e1e3e4]">
-            {activeStepsList.indexOf(currentStep) > 0 ? (
-              <button
-                onClick={handleBack}
-                className="px-5 py-2.5 border border-[#c2c7d1] rounded-xl text-xs font-bold text-[#42474f] hover:bg-[#e7e8e9] transition-all cursor-pointer"
-              >
-                Previous
-              </button>
-            ) : (
-              <div />
-            )}
-
-            {currentStep < 7 && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSkip}
-                  className="px-5 py-2.5 border border-[#c2c7d1] rounded-xl text-xs font-bold text-[#5f5e5e] hover:bg-[#e7e8e9] transition-all cursor-pointer"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2.5 bg-[#0f4c81] text-white hover:bg-[#00355f] rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <span>Continue</span>
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </button>
-              </div>
-            )}
+          {/* Navigation: sticks to the bottom of the screen on phones */}
+          <div className="sticky bottom-4 z-20 lg:static">
+            <div className="relative rounded-full p-1 lg:p-0 lg:pt-2 flex justify-between items-center gap-2">
+              {/* Glass backing only while the bar floats over content (phones and tablets) */}
+              <span className="glass-strong absolute inset-0 rounded-full lg:hidden" aria-hidden="true" />
+              {activeStepsList.indexOf(currentStep) > 0 ? (
+                <Button variant="ghost" size="sm" icon="arrow_back" className="relative" onClick={handleBack}>Previous</Button>
+              ) : (
+                <span />
+              )}
+              {currentStep < 7 && (
+                <div className="relative flex items-center gap-1.5">
+                  <Button variant="ghost" size="sm" onClick={handleSkip}>Skip</Button>
+                  <Button size="sm" onClick={handleNext}>
+                    Continue
+                    <Icon name="arrow_forward" className="!text-[15px]" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Persistent Configurator Sidebar */}
-        <aside className="lg:col-span-4 bg-white border border-[#e1e3e4] rounded-[2rem] p-6 shadow-2xs space-y-6">
-          <div className="space-y-2 border-b border-[#edeeef] pb-4">
-            <h3 className="font-geist text-base font-bold text-[#00355f] flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-xl text-[#0f4c81]">design_services</span>
-              <span>Services Configurator</span>
-            </h3>
-            <p className="font-inter text-[11px] text-[#5f5e5e] leading-relaxed">
-              Add or remove services at any stage. Connect automatically builds your custom event package and plan.
+        {/* Event plan: which optional steps this event includes */}
+        <aside className="lg:col-span-4 glass rounded-[28px] p-5 sm:p-6 space-y-5 lg:sticky lg:top-24" aria-labelledby="event-plan-title">
+          <div>
+            <h3 id="event-plan-title" className="font-geist text-base font-semibold text-fg">What does your event need?</h3>
+            <p className="text-[12px] text-fg/55 mt-1 leading-relaxed">
+              Switch on only what you need. Each service adds a step; you can change this at any time.
             </p>
           </div>
 
-          {/* Pre-configured Bundles */}
+          {/* Quick start presets */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-              Pre-configured Bundles
-            </span>
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => handleApplyPackage('venue-only')}
-                className="w-full text-left px-3 py-2 border border-[#c2c7d1] hover:bg-[#f8f9fa] rounded-xl text-xs font-semibold text-[#00355f] flex justify-between items-center transition-all cursor-pointer"
-              >
-                <span>🏢 Venue Only</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPackage('venue-speaker')}
-                className="w-full text-left px-3 py-2 border border-[#c2c7d1] hover:bg-[#f8f9fa] rounded-xl text-xs font-semibold text-[#00355f] flex justify-between items-center transition-all cursor-pointer"
-              >
-                <span>🎤 Speaker + Venue</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPackage('venue-speaker-tickets')}
-                className="w-full text-left px-3 py-2 border border-[#c2c7d1] hover:bg-[#f8f9fa] rounded-xl text-xs font-semibold text-[#00355f] flex justify-between items-center transition-all cursor-pointer"
-              >
-                <span>🎟️ Venue + Speaker + Tickets</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPackage('venue-speaker-tickets-goodies')}
-                className="w-full text-left px-3 py-2 border border-[#c2c7d1] hover:bg-[#f8f9fa] rounded-xl text-xs font-semibold text-[#00355f] flex justify-between items-center transition-all cursor-pointer"
-              >
-                <span>🎁 Venue + Speaker + Tickets + Swag</span>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPackage('complete')}
-                className="w-full text-left px-3.5 py-2.5 bg-[#0f4c81] hover:bg-[#00355f] rounded-xl text-xs font-bold text-white flex justify-between items-center transition-all shadow-2xs cursor-pointer"
-              >
-                <span>⭐ Complete Event Package</span>
-                <span className="material-symbols-outlined text-sm">done_all</span>
-              </button>
+            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg/45 block">Quick start</span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'venue-only', label: 'Venue only' },
+                { id: 'venue-speaker', label: 'Venue + speakers' },
+                { id: 'venue-speaker-tickets', label: '+ Tickets' },
+                { id: 'complete', label: 'Everything' },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleApplyPackage(preset.id)}
+                  className="rounded-full px-3 py-1.5 text-[12px] font-medium border border-fg/12 text-fg/75 hover:text-fg hover:bg-fg/[0.05] transition-colors cursor-pointer"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Toggle capabilities */}
-          <div className="space-y-3 pt-4 border-t border-[#edeeef]">
-            <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-              Toggle Service Steps
-            </span>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enabledServices.venue}
-                  onChange={() => handleToggleService('venue')}
-                  className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
-                />
-                <span>🏢 Venue Selection</span>
-              </label>
+          <ul className="space-y-2">
+            <li className="flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-fg/[0.03]">
+              <Icon name="edit_note" className="!text-[20px] text-fg/50" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[13px] font-medium text-fg">Event basics</span>
+                <span className="block text-[12px] text-fg/50 truncate">{title || 'Untitled event'}</span>
+              </span>
+              <span className="text-[11px] text-fg/45">Always included</span>
+            </li>
 
-              <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enabledServices.speakers}
-                  onChange={() => handleToggleService('speakers')}
-                  className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
-                />
-                <span>🎤 Keynote Speakers</span>
-              </label>
+            {[
+              {
+                key: 'venue',
+                step: 2,
+                label: 'Venue',
+                icon: 'apartment',
+                hint: 'Book a space, add your own address or an online link',
+                status: selectedVenue && venueOption === 'marketplace' ? selectedVenue.name : customVenueName || 'Not set up yet',
+              },
+              {
+                key: 'speakers',
+                step: 3,
+                label: 'Speakers',
+                icon: 'record_voice_over',
+                hint: 'Invite keynote speakers and panellists',
+                status: selectedSpeakers.length ? `${selectedSpeakers.length} speaker${selectedSpeakers.length === 1 ? '' : 's'} selected` : 'Not set up yet',
+              },
+              {
+                key: 'goodies',
+                step: 5,
+                label: 'Swag & goodies',
+                icon: 'redeem',
+                hint: 'Order branded merchandise for attendees',
+                status: selectedGoodies.length ? `${selectedGoodies.length} item${selectedGoodies.length === 1 ? '' : 's'} configured` : 'Not set up yet',
+              },
+              {
+                key: 'ticketing',
+                step: 6,
+                label: 'Tickets',
+                icon: 'confirmation_number',
+                hint: 'Ticket tiers, prices and capacity',
+                status: ticketTiers.length ? `${ticketTiers.length} tier${ticketTiers.length === 1 ? '' : 's'} set up` : 'Not set up yet',
+              },
+            ].map((svc) => {
+              const on = enabledServices[svc.key];
+              return (
+                <li
+                  key={svc.key}
+                  className={`rounded-2xl px-3 py-2.5 border transition-colors ${on ? 'border-fg/10 bg-fg/[0.02]' : 'border-dashed border-fg/12'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon name={svc.icon} className="!text-[20px]" style={{ color: on ? 'var(--accent-ink)' : undefined }} />
+                    <span className="flex-1 min-w-0">
+                      <span className={`block text-[13px] font-medium ${on ? 'text-fg' : 'text-fg/55'}`}>{svc.label}</span>
+                      <span className="block text-[12px] text-fg/50 truncate">{on ? svc.status : svc.hint}</span>
+                    </span>
+                    {/* Switch */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={`Include ${svc.label}`}
+                      onClick={() => handleToggleService(svc.key)}
+                      className="relative w-10 h-6 rounded-full shrink-0 transition-colors cursor-pointer"
+                      style={{ background: on ? 'rgb(var(--accent-rgb))' : 'rgb(var(--fg-rgb) / 0.15)' }}
+                    >
+                      <span
+                        className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
+                        style={{ left: on ? 18 : 2 }}
+                      />
+                    </button>
+                  </div>
+                  {on && currentStep !== svc.step && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(svc.step)}
+                      className="mt-1.5 ml-8 text-[12px] font-medium cursor-pointer hover:underline underline-offset-4"
+                      style={{ color: 'var(--accent-ink)' }}
+                    >
+                      Go to step
+                    </button>
+                  )}
+                </li>
+              );
+            })}
 
-              <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enabledServices.goodies}
-                  onChange={() => handleToggleService('goodies')}
-                  className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
-                />
-                <span>🎁 Swag & Goodies</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-xs text-[#00355f] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enabledServices.ticketing}
-                  onChange={() => handleToggleService('ticketing')}
-                  className="w-4 h-4 text-[#0f4c81] border-[#c2c7d1] rounded focus:ring-0 cursor-pointer"
-                />
-                <span>🎟️ Registration & Tickets</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Centralized Event Plan */}
-          <div className="space-y-3 pt-4 border-t border-[#edeeef]">
-            <span className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-              Centralized Event Plan
-            </span>
-            <div className="space-y-2.5 text-[11px] font-inter text-[#5f5e5e] max-h-48 overflow-y-auto">
-              <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">📋</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Basics: </span>
-                  {title || 'Untitled Gathering'}
-                </div>
-              </div>
-              <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">🏢</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Venue: </span>
-                  {enabledServices.venue ? (selectedVenue ? selectedVenue.name : customVenueName || 'Pending Selection') : 'Not Required'}
-                </div>
-              </div>
-              <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">🎤</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Speakers: </span>
-                  {enabledServices.speakers ? `${selectedSpeakers.length} Speaker(s) selected` : 'Not Required'}
-                </div>
-              </div>
-              <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">🎁</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Swag & Goodies: </span>
-                  {enabledServices.goodies ? `${selectedGoodies.length} item(s) configured` : 'Not Required'}
-                </div>
-              </div>
-              <div className="flex gap-2 items-start">
-                <span className="text-[#0f4c81]">🎟️</span>
-                <div>
-                  <span className="font-bold text-[#00355f]">Ticketing: </span>
-                  {enabledServices.ticketing ? `${ticketTiers.length} Tier(s) configured` : 'Not Required'}
-                </div>
-              </div>
-            </div>
-          </div>
+            <li className="flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-fg/[0.03]">
+              <Icon name="task_alt" className="!text-[20px] text-fg/50" />
+              <span className="flex-1 text-[13px] font-medium text-fg">Review & publish</span>
+              <span className="text-[11px] text-fg/45">Always included</span>
+            </li>
+          </ul>
         </aside>
         
       </div>

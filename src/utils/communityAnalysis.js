@@ -168,7 +168,6 @@ export const computeCommunityStats = (community, allEvents = [], sponsorshipRequ
     amount: Number(r.amount) || 0,
     requirement: r.requirement || 'Sponsorship Grant',
     tier: r.tier || 'Verified Grant',
-    code: r.code || r.generatedCode
   }));
 
   const combinedSponsorships = [...historicalSponsorships, ...convertedActiveSponsorships];

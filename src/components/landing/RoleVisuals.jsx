@@ -592,7 +592,7 @@ export const SponsorVisual = ({ progress, events, communities }) => {
       )}
 
       <Depth progress={progress} depth={2.2} className="absolute right-4 sm:right-10 top-6 z-20 hidden sm:block">
-        <Chip rgb={rgb} icon="verified">Code TN2026-75K issued</Chip>
+        <Chip rgb={rgb} icon="verified">Sponsorship linked to event</Chip>
       </Depth>
     </div>
   );

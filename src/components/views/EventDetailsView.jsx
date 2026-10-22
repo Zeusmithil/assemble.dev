@@ -246,6 +246,47 @@ export const EventDetailsView = ({
                   </p>
                 </div>
 
+                {/* Sponsors: who supports the event, and what it is still looking for */}
+                {(() => {
+                  const supporters = [
+                    ...new Set([
+                      ...(event.sponsors || []).map((sp) => sp.sponsorName),
+                      ...(event.sponsorshipOpportunities || []).filter((o) => o.sponsor).map((o) => o.sponsor),
+                    ]),
+                  ];
+                  const open = (event.sponsorshipOpportunities || []).filter((o) => o.status !== 'Funded');
+                  if (!supporters.length && !open.length) return null;
+                  return (
+                    <div className="border border-gray-100 rounded-2xl p-6 space-y-4">
+                      {supporters.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-geist text-xs font-bold text-black uppercase tracking-wider">Supported by</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {supporters.map((name) => (
+                              <span key={name} className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-xs font-semibold text-black flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[15px] text-blue-600" aria-hidden="true">verified</span>
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {open.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-geist text-xs font-bold text-black uppercase tracking-wider">Looking for sponsors</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {open.map((o) => (
+                              <span key={o.id} className="px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-600">
+                                {o.requirement}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {event.whatsIncluded && event.whatsIncluded.length > 0 && (
                   <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-3">
                     <h4 className="font-geist text-xs font-bold text-black uppercase tracking-wider">
