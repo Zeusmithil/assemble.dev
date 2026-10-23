@@ -72,6 +72,14 @@ export const SignupView = ({
   const [step, setStep] = useState(initialRole ? 2 : 1); // 1 = Role Selection, 2 = Role-specific Form, 3 = Organizer Community Setup
   const [selectedRole, setSelectedRole] = useState(initialRole || 'attendee');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearFieldError = (fieldName) => {
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => ({ ...prev, [fieldName]: '' }));
+    }
+    if (error) setError('');
+  };
 
   // Common General Fields
   const [fullName, setFullName] = useState('');
@@ -254,59 +262,33 @@ export const SignupView = ({
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
+    const newErrors = {};
+
+    // 1. General validations
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Need to fill this field';
     }
 
-    // Role-specific validation for venue
-    if (selectedRole === 'venue') {
-      if (!venueSpaceType) {
-        setError('Please select whether your space is a corporate venue or an independent space.');
-        return;
-      }
-      if (!venueName.trim()) {
-        setError('Please enter the venue name.');
-        return;
-      }
-      if (!venueAddress.trim()) {
-        setError('Please provide the physical venue address.');
-        return;
-      }
-      if (!venueCapacity || Number(venueCapacity) <= 0) {
-        setError('Please provide a valid attendee capacity.');
-        return;
-      }
-      if (venueSpaceType === 'corporate') {
-        const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','protonmail.com'];
-        const emailDomain = venueCompanyEmail.split('@')[1]?.toLowerCase();
-        if (!venueCompanyEmail.includes('@') || freeDomains.includes(emailDomain)) {
-          setError('Please provide a valid business/company email (no free email providers).');
-          return;
-        }
-        if (!venueWebsite.trim()) {
-          setError('Please provide your official company website.');
-          return;
-        }
-      }
-      if (venueSpaceType === 'independent') {
-        if (!venueLegalName.trim()) {
-          setError('Please enter your legal name for identity verification.');
-          return;
-        }
-        if (!venueOtpVerified) {
-          setError('Please verify your phone number with the OTP before submitting.');
-          return;
-        }
-        if (!venueOwnershipDoc) {
-          setError('Please upload an ownership/access document (rental agreement, utility bill, etc.).');
-          return;
-        }
-      }
-      if (venueFaceScanState !== 'done') {
-        setError('Please complete the face scan before submitting.');
-        return;
-      }
+    if (!email.trim()) {
+      newErrors.email = 'Need to fill this field';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please provide a valid email address';
+    }
+
+    if (!phone.trim()) {
+      newErrors.phone = 'Need to fill this field';
+    }
+
+    if (!password) {
+      newErrors.password = 'Need to fill this field';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Need to fill this field';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     // Check duplicate email
@@ -319,10 +301,90 @@ export const SignupView = ({
       'sponsor@connect.dev',
       'venue@connect.dev',
     ];
-    const emailExists = defaultEmails.includes(email.toLowerCase()) || localUsers.some((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (email.trim()) {
+      const emailExists = defaultEmails.includes(email.toLowerCase()) || localUsers.some((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (emailExists) {
+        newErrors.email = 'An account with this email already exists';
+      }
+    }
 
-    if (emailExists) {
-      setError('An account with this email already exists. Please log in instead.');
+    // 2. Role-specific validation
+    if (selectedRole === 'organizer') {
+      if (!organizationName.trim()) {
+        newErrors.organizationName = 'Need to fill this field';
+      }
+    }
+
+    if (selectedRole === 'speaker') {
+      if (!speakerTitle.trim()) {
+        newErrors.speakerTitle = 'Need to fill this field';
+      }
+      if (!speakerOrg.trim()) {
+        newErrors.speakerOrg = 'Need to fill this field';
+      }
+      if (!speakerBio.trim()) {
+        newErrors.speakerBio = 'Need to fill this field';
+      }
+      if (chargeForSpeaking !== 'free') {
+        if (!speakingFee || Number(speakingFee) <= 0) {
+          newErrors.speakingFee = 'Need to fill this field with an amount';
+        }
+      }
+    }
+
+    if (selectedRole === 'sponsor') {
+      if (!companyName.trim()) {
+        newErrors.companyName = 'Need to fill this field';
+      }
+      if (!companyWebsite.trim()) {
+        newErrors.companyWebsite = 'Need to fill this field';
+      }
+    }
+
+    if (selectedRole === 'venue') {
+      if (!venueSpaceType) {
+        newErrors.venueSpaceType = 'Please select whether your space is a corporate venue or an independent space.';
+      }
+      if (!venueName.trim()) {
+        newErrors.venueName = 'Need to fill this field';
+      }
+      if (!venueAddress.trim()) {
+        newErrors.venueAddress = 'Need to fill this field';
+      }
+      if (!venueCapacity || Number(venueCapacity) <= 0) {
+        newErrors.venueCapacity = 'Need to fill this field with a valid capacity';
+      }
+      if (venueSpaceType === 'corporate') {
+        const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','protonmail.com'];
+        const emailDomain = venueCompanyEmail.split('@')[1]?.toLowerCase();
+        if (!venueCompanyEmail.trim()) {
+          newErrors.venueCompanyEmail = 'Need to fill this field';
+        } else if (!venueCompanyEmail.includes('@') || freeDomains.includes(emailDomain)) {
+          newErrors.venueCompanyEmail = 'Please provide a valid business/company email (no free email providers).';
+        }
+        if (!venueWebsite.trim()) {
+          newErrors.venueWebsite = 'Need to fill this field';
+        }
+      }
+      if (venueSpaceType === 'independent') {
+        if (!venueLegalName.trim()) {
+          newErrors.venueLegalName = 'Need to fill this field with your legal name';
+        }
+        if (!venueOtpVerified) {
+          newErrors.venueOtpVerified = 'Please verify your phone number with the OTP before submitting.';
+        }
+        if (!venueOwnershipDoc) {
+          newErrors.venueOwnershipDoc = 'Please upload an ownership/access document.';
+        }
+      }
+      if (venueFaceScanState !== 'done') {
+        newErrors.venueFaceScan = 'Please complete the face scan before submitting.';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      setError('Please fill in the required fields highlighted below.');
       return;
     }
 
@@ -480,8 +542,14 @@ export const SignupView = ({
   const handleOrganizerCommunitySubmit = (e) => {
     e.preventDefault();
     setError('');
+    const newErrors = {};
+
     if (communityChoice === 'create') {
       if (!commName.trim()) {
+        newErrors.commName = 'Need to fill this field';
+      }
+      if (Object.keys(newErrors).length > 0) {
+        setFieldErrors(newErrors);
         setError('Please enter a community name.');
         return;
       }
@@ -498,11 +566,20 @@ export const SignupView = ({
 
       finalizeSignup(newCom);
     } else if (communityChoice === 'join') {
-      const matched = communities.find((c) => c.code?.toUpperCase() === commJoinCode.trim().toUpperCase());
-      if (!matched) {
-        setError('Invalid community code. Check the code or choose another option.');
+      if (!commJoinCode.trim()) {
+        newErrors.commJoinCode = 'Need to fill this field';
+      } else {
+        const matched = communities.find((c) => c.code?.toUpperCase() === commJoinCode.trim().toUpperCase());
+        if (!matched) {
+          newErrors.commJoinCode = 'Invalid community code. Check the code or choose another option.';
+        }
+      }
+      if (Object.keys(newErrors).length > 0) {
+        setFieldErrors(newErrors);
+        setError(newErrors.commJoinCode || 'Invalid community code.');
         return;
       }
+      const matched = communities.find((c) => c.code?.toUpperCase() === commJoinCode.trim().toUpperCase());
       finalizeSignup(matched);
     } else {
       finalizeSignup(null);
@@ -647,7 +724,7 @@ export const SignupView = ({
 
         {/* STEP 2: Role-Specific Sign Up Form */}
         {step === 2 && (
-          <form onSubmit={handleInitialFormSubmit} className="space-y-6">
+          <form onSubmit={handleInitialFormSubmit} noValidate className="space-y-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#0f4c81]">
@@ -684,27 +761,61 @@ export const SignupView = ({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Name</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Name *</label>
+                    {fieldErrors.fullName && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.fullName}</span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    required
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      clearFieldError('fullName');
+                    }}
                     placeholder="e.g. Elena Rostova"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.fullName
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.fullName && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.fullName}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Email Address</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Email Address *</label>
+                    {fieldErrors.email && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.email}</span>
+                    )}
+                  </div>
                   <input
                     type="email"
-                    required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearFieldError('email');
+                    }}
                     placeholder="you@domain.com"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.email
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.email && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.email}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -726,41 +837,92 @@ export const SignupView = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number *</label>
+                    {fieldErrors.phone && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.phone}</span>
+                    )}
+                  </div>
                   <input
                     type="tel"
-                    required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      clearFieldError('phone');
+                    }}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.phone
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.phone && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.phone}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Password</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Password *</label>
+                    {fieldErrors.password && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.password}</span>
+                    )}
+                  </div>
                   <input
                     type="password"
-                    required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearFieldError('password');
+                    }}
                     placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.password
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.password && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.password}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Confirm Password</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Confirm Password *</label>
+                    {fieldErrors.confirmPassword && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.confirmPassword}</span>
+                    )}
+                  </div>
                   <input
                     type="password"
-                    required
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      clearFieldError('confirmPassword');
+                    }}
                     placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.confirmPassword
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.confirmPassword}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -803,15 +965,32 @@ export const SignupView = ({
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Organization / Company Name</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Organization / Company Name *</label>
+                      {fieldErrors.organizationName && (
+                        <span className="text-[10px] font-bold text-rose-600">{fieldErrors.organizationName}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      required
                       value={organizationName}
-                      onChange={(e) => setOrganizationName(e.target.value)}
+                      onChange={(e) => {
+                        setOrganizationName(e.target.value);
+                        clearFieldError('organizationName');
+                      }}
                       placeholder="e.g. Design Scale India"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                        fieldErrors.organizationName
+                          ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                      }`}
                     />
+                    {fieldErrors.organizationName && (
+                      <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        <span>{fieldErrors.organizationName}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Organization Type</label>
@@ -839,26 +1018,60 @@ export const SignupView = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Professional Title</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Professional Title *</label>
+                      {fieldErrors.speakerTitle && (
+                        <span className="text-[10px] font-bold text-rose-600">{fieldErrors.speakerTitle}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      required
                       value={speakerTitle}
-                      onChange={(e) => setSpeakerTitle(e.target.value)}
+                      onChange={(e) => {
+                        setSpeakerTitle(e.target.value);
+                        clearFieldError('speakerTitle');
+                      }}
                       placeholder="e.g. Principal UX Architect"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                        fieldErrors.speakerTitle
+                          ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                      }`}
                     />
+                    {fieldErrors.speakerTitle && (
+                      <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        <span>{fieldErrors.speakerTitle}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Organization / Affiliation</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Organization / Affiliation *</label>
+                      {fieldErrors.speakerOrg && (
+                        <span className="text-[10px] font-bold text-rose-600">{fieldErrors.speakerOrg}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      required
                       value={speakerOrg}
-                      onChange={(e) => setSpeakerOrg(e.target.value)}
+                      onChange={(e) => {
+                        setSpeakerOrg(e.target.value);
+                        clearFieldError('speakerOrg');
+                      }}
                       placeholder="e.g. Google / Atlassian"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                        fieldErrors.speakerOrg
+                          ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                      }`}
                     />
+                    {fieldErrors.speakerOrg && (
+                      <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        <span>{fieldErrors.speakerOrg}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -890,15 +1103,32 @@ export const SignupView = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Short Biography</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Short Biography *</label>
+                    {fieldErrors.speakerBio && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.speakerBio}</span>
+                    )}
+                  </div>
                   <textarea
-                    required
                     rows={2}
                     value={speakerBio}
-                    onChange={(e) => setSpeakerBio(e.target.value)}
+                    onChange={(e) => {
+                      setSpeakerBio(e.target.value);
+                      clearFieldError('speakerBio');
+                    }}
                     placeholder="Provide a brief overview of your background, industry experience, and keynote focus..."
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs resize-none"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter resize-none transition-all ${
+                      fieldErrors.speakerBio
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                    }`}
                   />
+                  {fieldErrors.speakerBio && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.speakerBio}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -991,24 +1221,39 @@ export const SignupView = ({
                   </div>
 
                   {chargeForSpeaking !== 'free' && (
-                    <div className="flex gap-2 pt-2">
-                      <select
-                        value={feeCurrency}
-                        onChange={(e) => setFeeCurrency(e.target.value)}
-                        className="w-20 px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xs"
-                      >
-                        <option value="€">€ (EUR)</option>
-                        <option value="$">$ (USD)</option>
-                        <option value="₹">₹ (INR)</option>
-                        <option value="£">£ (GBP)</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={speakingFee}
-                        onChange={(e) => setSpeakingFee(e.target.value)}
-                        placeholder="Approximate fee amount"
-                        className="flex-grow px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                      />
+                    <div className="space-y-1 pt-2">
+                      <div className="flex gap-2">
+                        <select
+                          value={feeCurrency}
+                          onChange={(e) => setFeeCurrency(e.target.value)}
+                          className="w-20 px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xs"
+                        >
+                          <option value="€">€ (EUR)</option>
+                          <option value="$">$ (USD)</option>
+                          <option value="₹">₹ (INR)</option>
+                          <option value="£">£ (GBP)</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={speakingFee}
+                          onChange={(e) => {
+                            setSpeakingFee(e.target.value);
+                            clearFieldError('speakingFee');
+                          }}
+                          placeholder="Approximate fee amount"
+                          className={`flex-grow px-3 py-2 rounded-xl text-xs transition-all ${
+                            fieldErrors.speakingFee
+                              ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                              : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                          }`}
+                        />
+                      </div>
+                      {fieldErrors.speakingFee && (
+                        <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">error</span>
+                          <span>{fieldErrors.speakingFee}</span>
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1024,26 +1269,60 @@ export const SignupView = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company Name</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company Name *</label>
+                      {fieldErrors.companyName && (
+                        <span className="text-[10px] font-bold text-rose-600">{fieldErrors.companyName}</span>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      required
                       value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
+                      onChange={(e) => {
+                        setCompanyName(e.target.value);
+                        clearFieldError('companyName');
+                      }}
                       placeholder="e.g. TechNova Solutions"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                        fieldErrors.companyName
+                          ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                      }`}
                     />
+                    {fieldErrors.companyName && (
+                      <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        <span>{fieldErrors.companyName}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company Website</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company Website *</label>
+                      {fieldErrors.companyWebsite && (
+                        <span className="text-[10px] font-bold text-rose-600">{fieldErrors.companyWebsite}</span>
+                      )}
+                    </div>
                     <input
                       type="url"
-                      required
                       value={companyWebsite}
-                      onChange={(e) => setCompanyWebsite(e.target.value)}
+                      onChange={(e) => {
+                        setCompanyWebsite(e.target.value);
+                        clearFieldError('companyWebsite');
+                      }}
                       placeholder="https://technova.com"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                        fieldErrors.companyWebsite
+                          ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                      }`}
                     />
+                    {fieldErrors.companyWebsite && (
+                      <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        <span>{fieldErrors.companyWebsite}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1125,10 +1404,15 @@ export const SignupView = ({
 
                 {/* ── STEP 1: Space Type Selector ── */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-                    What best describes your venue? *
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                      What best describes your venue? *
+                    </label>
+                    {fieldErrors.venueSpaceType && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueSpaceType}</span>
+                    )}
+                  </div>
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-1 rounded-2xl ${fieldErrors.venueSpaceType ? 'ring-2 ring-rose-400/30' : ''}`}>
                     {[
                       { value: 'corporate', icon: 'domain', label: 'Corporate / Company Space', sub: 'Hotel, event center, co-working space with an official entity' },
                       { value: 'independent', icon: 'storefront', label: 'Independent Space', sub: 'Hall, auditorium, community center, private property' },
@@ -1136,10 +1420,15 @@ export const SignupView = ({
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setVenueSpaceType(opt.value)}
+                        onClick={() => {
+                          setVenueSpaceType(opt.value);
+                          clearFieldError('venueSpaceType');
+                        }}
                         className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                           venueSpaceType === opt.value
                             ? 'border-[#0f4c81] bg-blue-50'
+                            : fieldErrors.venueSpaceType
+                            ? 'border-rose-300 bg-rose-50/30 hover:border-rose-400'
                             : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                         }`}
                       >
@@ -1151,6 +1440,12 @@ export const SignupView = ({
                       </button>
                     ))}
                   </div>
+                  {fieldErrors.venueSpaceType && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.venueSpaceType}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* ── STEP 2: Basic Info (shown when space type selected) ── */}
@@ -1158,14 +1453,32 @@ export const SignupView = ({
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Name *</label>
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Name *</label>
+                          {fieldErrors.venueName && (
+                            <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueName}</span>
+                          )}
+                        </div>
                         <input
                           type="text"
                           value={venueName}
-                          onChange={(e) => setVenueName(e.target.value)}
+                          onChange={(e) => {
+                            setVenueName(e.target.value);
+                            clearFieldError('venueName');
+                          }}
                           placeholder="e.g. Sir Mutha Concert Hall"
-                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                            fieldErrors.venueName
+                              ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                              : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                          }`}
                         />
+                        {fieldErrors.venueName && (
+                          <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">error</span>
+                            <span>{fieldErrors.venueName}</span>
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Venue Type</label>
@@ -1182,26 +1495,62 @@ export const SignupView = ({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Physical Address *</label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Full Physical Address *</label>
+                        {fieldErrors.venueAddress && (
+                          <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueAddress}</span>
+                        )}
+                      </div>
                       <input
                         type="text"
                         value={venueAddress}
-                        onChange={(e) => setVenueAddress(e.target.value)}
+                        onChange={(e) => {
+                          setVenueAddress(e.target.value);
+                          clearFieldError('venueAddress');
+                        }}
                         placeholder="e.g. 7 Lady McNichols Rd, Chetpet, Chennai"
-                        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                          fieldErrors.venueAddress
+                            ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                            : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                        }`}
                       />
+                      {fieldErrors.venueAddress && (
+                        <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">error</span>
+                          <span>{fieldErrors.venueAddress}</span>
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Guest Capacity *</label>
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Guest Capacity *</label>
+                          {fieldErrors.venueCapacity && (
+                            <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueCapacity}</span>
+                          )}
+                        </div>
                         <input
                           type="number"
                           value={venueCapacity}
-                          onChange={(e) => setVenueCapacity(e.target.value)}
+                          onChange={(e) => {
+                            setVenueCapacity(e.target.value);
+                            clearFieldError('venueCapacity');
+                          }}
                           placeholder="350"
-                          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81] focus:bg-white"
+                          className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                            fieldErrors.venueCapacity
+                              ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                              : 'bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+                          }`}
                         />
+                        {fieldErrors.venueCapacity && (
+                          <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">error</span>
+                            <span>{fieldErrors.venueCapacity}</span>
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Hourly Booking Rate ($ / hr)</label>
@@ -1339,25 +1688,62 @@ export const SignupView = ({
                       {venueSpaceType === 'corporate' && (
                         <div className="space-y-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company / Business Email *</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Company / Business Email *</label>
+                              {fieldErrors.venueCompanyEmail && (
+                                <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueCompanyEmail}</span>
+                              )}
+                            </div>
                             <input
                               type="email"
                               value={venueCompanyEmail}
-                              onChange={(e) => setVenueCompanyEmail(e.target.value)}
+                              onChange={(e) => {
+                                setVenueCompanyEmail(e.target.value);
+                                clearFieldError('venueCompanyEmail');
+                              }}
                               placeholder="bookings@grandvenuehall.com"
-                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                                fieldErrors.venueCompanyEmail
+                                  ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                                  : 'bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81]'
+                              }`}
                             />
-                            <p className="text-[10px] text-gray-400">Free email providers (Gmail, Yahoo, etc.) are not accepted.</p>
+                            {fieldErrors.venueCompanyEmail ? (
+                              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                <span>{fieldErrors.venueCompanyEmail}</span>
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-gray-400">Free email providers (Gmail, Yahoo, etc.) are not accepted.</p>
+                            )}
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Official Company Website *</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Official Company Website *</label>
+                              {fieldErrors.venueWebsite && (
+                                <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueWebsite}</span>
+                              )}
+                            </div>
                             <input
                               type="url"
                               value={venueWebsite}
-                              onChange={(e) => setVenueWebsite(e.target.value)}
+                              onChange={(e) => {
+                                setVenueWebsite(e.target.value);
+                                clearFieldError('venueWebsite');
+                              }}
                               placeholder="https://grandvenuehall.com"
-                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                                fieldErrors.venueWebsite
+                                  ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                                  : 'bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81]'
+                              }`}
                             />
+                            {fieldErrors.venueWebsite && (
+                              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                <span>{fieldErrors.venueWebsite}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1365,27 +1751,58 @@ export const SignupView = ({
                       {venueSpaceType === 'independent' && (
                         <div className="space-y-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Legal Name (Owner / Manager) *</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Legal Name (Owner / Manager) *</label>
+                              {fieldErrors.venueLegalName && (
+                                <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueLegalName}</span>
+                              )}
+                            </div>
                             <input
                               type="text"
                               value={venueLegalName}
-                              onChange={(e) => setVenueLegalName(e.target.value)}
+                              onChange={(e) => {
+                                setVenueLegalName(e.target.value);
+                                clearFieldError('venueLegalName');
+                              }}
                               placeholder="Your full legal name as on your ID"
-                              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                                fieldErrors.venueLegalName
+                                  ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                                  : 'bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81]'
+                              }`}
                             />
-                            <p className="text-[10px] text-gray-400">Your face scan will be linked to this name for identity verification.</p>
+                            {fieldErrors.venueLegalName ? (
+                              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                <span>{fieldErrors.venueLegalName}</span>
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-gray-400">Your face scan will be linked to this name for identity verification.</p>
+                            )}
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number + OTP *</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Phone Number + OTP *</label>
+                              {fieldErrors.venueOtpVerified && (
+                                <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueOtpVerified}</span>
+                              )}
+                            </div>
                             <div className="flex gap-2">
                               <input
                                 type="tel"
                                 value={venueContactPhone || phone}
-                                onChange={(e) => setVenueContactPhone(e.target.value)}
+                                onChange={(e) => {
+                                  setVenueContactPhone(e.target.value);
+                                  clearFieldError('venueOtpVerified');
+                                }}
                                 placeholder="+91 98765 43210"
                                 disabled={venueOtpVerified}
-                                className="flex-grow px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-inter focus:outline-none focus:border-[#0f4c81]"
+                                className={`flex-grow px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                                  fieldErrors.venueOtpVerified
+                                    ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                                    : 'bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-[#0f4c81]'
+                                }`}
                               />
                               {!venueOtpVerified && (
                                 <button
@@ -1413,7 +1830,10 @@ export const SignupView = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (venuePhoneOtp.length === 6) setVenueOtpVerified(true);
+                                    if (venuePhoneOtp.length === 6) {
+                                      setVenueOtpVerified(true);
+                                      clearFieldError('venueOtpVerified');
+                                    }
                                   }}
                                   className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0"
                                 >
@@ -1424,12 +1844,27 @@ export const SignupView = ({
                             {venueOtpVerified && (
                               <p className="text-[11px] text-emerald-600 font-semibold">✓ Phone number verified</p>
                             )}
+                            {fieldErrors.venueOtpVerified && !venueOtpVerified && (
+                              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                <span>{fieldErrors.venueOtpVerified}</span>
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Ownership / Access Document *</label>
-                            <label className="border-2 border-dashed border-gray-300 hover:border-[#0f4c81] bg-white rounded-2xl p-3 flex items-center gap-3 cursor-pointer transition-all group">
-                              <span className="material-symbols-outlined text-xl text-gray-400 group-hover:text-[#0f4c81]">upload_file</span>
+                            <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Ownership / Access Document *</label>
+                              {fieldErrors.venueOwnershipDoc && (
+                                <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueOwnershipDoc}</span>
+                              )}
+                            </div>
+                            <label className={`border-2 border-dashed bg-white rounded-2xl p-3 flex items-center gap-3 cursor-pointer transition-all group ${
+                              fieldErrors.venueOwnershipDoc
+                                ? 'border-rose-400 bg-rose-50/30'
+                                : 'border-gray-300 hover:border-[#0f4c81]'
+                            }`}>
+                              <span className={`material-symbols-outlined text-xl ${fieldErrors.venueOwnershipDoc ? 'text-rose-500' : 'text-gray-400 group-hover:text-[#0f4c81]'}`}>upload_file</span>
                               <div>
                                 <span className="text-xs font-bold text-[#00355f] group-hover:text-[#0f4c81] block">
                                   {venueOwnershipDoc ? `✓ ${venueOwnershipDoc.name}` : 'Upload rental agreement, utility bill, or property paper'}
@@ -1439,19 +1874,35 @@ export const SignupView = ({
                               <input
                                 type="file"
                                 accept=".pdf,image/*"
-                                onChange={(e) => setVenueOwnershipDoc(e.target.files[0] || null)}
+                                onChange={(e) => {
+                                  setVenueOwnershipDoc(e.target.files[0] || null);
+                                  clearFieldError('venueOwnershipDoc');
+                                }}
                                 className="hidden"
                               />
                             </label>
+                            {fieldErrors.venueOwnershipDoc && (
+                              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">error</span>
+                                <span>{fieldErrors.venueOwnershipDoc}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
 
                       {/* Face Scan — both tiers */}
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Face Scan *</label>
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Face Scan *</label>
+                          {fieldErrors.venueFaceScan && (
+                            <span className="text-[10px] font-bold text-rose-600">{fieldErrors.venueFaceScan}</span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-gray-500">We capture a single photo to tie your identity to this venue registration. Your face is recorded for trust and accountability.</p>
-                        <div className="rounded-2xl overflow-hidden bg-gray-900 w-full aspect-video relative flex items-center justify-center">
+                        <div className={`rounded-2xl overflow-hidden bg-gray-900 w-full aspect-video relative flex items-center justify-center ${
+                          fieldErrors.venueFaceScan ? 'ring-4 ring-rose-500/50 border-2 border-rose-500' : ''
+                        }`}>
                           {venueFaceScanState === 'idle' && (
                             <button
                               type="button"
@@ -1461,6 +1912,7 @@ export const SignupView = ({
                                   venueStreamRef.current = stream;
                                   if (venueVideoRef.current) venueVideoRef.current.srcObject = stream;
                                   setVenueFaceScanState('capturing');
+                                  clearFieldError('venueFaceScan');
                                 } catch {
                                   setError('Camera access denied. Please allow camera access to proceed.');
                                 }
@@ -1486,6 +1938,7 @@ export const SignupView = ({
                                   setVenueFaceScan(canvas.toDataURL('image/jpeg'));
                                   venueStreamRef.current?.getTracks().forEach((t) => t.stop());
                                   setVenueFaceScanState('done');
+                                  clearFieldError('venueFaceScan');
                                 }}
                                 className="absolute bottom-3 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-white text-[#00355f] rounded-2xl text-xs font-black cursor-pointer shadow-lg flex items-center gap-2"
                               >
@@ -1513,6 +1966,12 @@ export const SignupView = ({
                             </>
                           )}
                         </div>
+                        {fieldErrors.venueFaceScan && (
+                          <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">error</span>
+                            <span>{fieldErrors.venueFaceScan}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1590,7 +2049,7 @@ export const SignupView = ({
 
         {/* STEP 3: Organizer Community Setup */}
         {step === 3 && (
-          <form onSubmit={handleOrganizerCommunitySubmit} className="space-y-6">
+          <form onSubmit={handleOrganizerCommunitySubmit} noValidate className="space-y-6">
             <div className="border-b border-gray-100 pb-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#0f4c81]">Community Onboarding</span>
               <h2 className="font-geist text-xl font-bold text-[#00355f] mt-0.5">
@@ -1610,7 +2069,12 @@ export const SignupView = ({
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setCommunityChoice(opt.id)}
+                  onClick={() => {
+                    setCommunityChoice(opt.id);
+                    clearFieldError('commName');
+                    clearFieldError('commJoinCode');
+                    setError('');
+                  }}
                   className={`p-4 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
                     communityChoice === opt.id
                       ? 'bg-[#0f4c81] text-white border-[#0f4c81] shadow-xs'
@@ -1626,15 +2090,32 @@ export const SignupView = ({
             {communityChoice === 'create' && (
               <div className="p-5 bg-blue-50/60 rounded-3xl border border-blue-100 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Community Name</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Community Name *</label>
+                    {fieldErrors.commName && (
+                      <span className="text-[10px] font-bold text-rose-600">{fieldErrors.commName}</span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    required
                     value={commName}
-                    onChange={(e) => setCommName(e.target.value)}
+                    onChange={(e) => {
+                      setCommName(e.target.value);
+                      clearFieldError('commName');
+                    }}
                     placeholder="e.g. AI Founders Guild"
-                    className="w-full px-3.5 py-2.5 bg-white border border-[#c2c7d1] rounded-xl text-xs"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-inter transition-all ${
+                      fieldErrors.commName
+                        ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                        : 'bg-white border border-[#c2c7d1] text-gray-900 focus:outline-none focus:border-[#0f4c81]'
+                    }`}
                   />
+                  {fieldErrors.commName && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">error</span>
+                      <span>{fieldErrors.commName}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1675,15 +2156,32 @@ export const SignupView = ({
 
             {communityChoice === 'join' && (
               <div className="p-5 bg-blue-50/60 rounded-3xl border border-blue-100 space-y-3">
-                <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Enter Community Code</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">Enter Community Code *</label>
+                  {fieldErrors.commJoinCode && (
+                    <span className="text-[10px] font-bold text-rose-600">{fieldErrors.commJoinCode}</span>
+                  )}
+                </div>
                 <input
                   type="text"
-                  required
                   value={commJoinCode}
-                  onChange={(e) => setCommJoinCode(e.target.value)}
+                  onChange={(e) => {
+                    setCommJoinCode(e.target.value);
+                    clearFieldError('commJoinCode');
+                  }}
                   placeholder="e.g. EH-AI2026"
-                  className="w-full px-3.5 py-2.5 bg-white border border-[#c2c7d1] rounded-xl text-xs font-mono font-bold text-[#00355f]"
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    fieldErrors.commJoinCode
+                      ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                      : 'bg-white border border-[#c2c7d1] text-[#00355f] focus:outline-none focus:border-[#0f4c81]'
+                  }`}
                 />
+                {fieldErrors.commJoinCode && (
+                  <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    <span>{fieldErrors.commJoinCode}</span>
+                  </p>
+                )}
               </div>
             )}
 

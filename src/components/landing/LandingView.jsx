@@ -124,7 +124,7 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
   ];
 
   return (
-    <section ref={ref} id="top" aria-labelledby="hero-title" className="relative min-h-[100svh] flex items-center pt-28 pb-24 overflow-hidden">
+    <section ref={ref} id="top" aria-labelledby="hero-title" className="relative min-h-[100svh] flex items-center pt-20 pb-8 overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-5 sm:px-8 w-full grid lg:grid-cols-12 gap-10 items-center">
         <div className="lg:col-span-7 relative">
           <motion.p
@@ -213,11 +213,11 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
         </div>
 
         {/* Desktop: glass satellites orbit the 3D ecosystem rendered behind */}
-        <div className="hidden lg:block lg:col-span-5 relative h-[560px]" aria-label="Roles on Connect">
+        <div className="hidden lg:block lg:col-span-5 relative h-[500px]" aria-label="Roles on Connect">
           {ROLE_JOURNEY.map((r, i) => {
             const rad = (orbit[i].angle * Math.PI) / 180;
-            const x = 50 + Math.cos(rad) * 46 * orbit[i].r;
-            const y = 50 + Math.sin(rad) * 34 * orbit[i].r;
+            const x = 50 + Math.cos(rad) * 44 * orbit[i].r;
+            const y = 40 + Math.sin(rad) * 22 * orbit[i].r;
             return (
               <motion.button
                 key={r.id}
@@ -249,19 +249,6 @@ const Hero = React.forwardRef(({ stats, onExplore, onDiscoverRoles, onJumpTo }, 
           })}
         </div>
       </div>
-
-      <motion.button
-        type="button"
-        onClick={onDiscoverRoles}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-fg/45 hover:text-fg/80 transition-colors cursor-pointer"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: 1 }}
-        aria-label="Scroll to the roles"
-      >
-        Scroll
-        <span className="w-px h-10 bg-gradient-to-b from-white/50 to-transparent" />
-      </motion.button>
     </section>
   );
 });

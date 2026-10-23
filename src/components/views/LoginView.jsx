@@ -6,10 +6,28 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+
+    const newErrors = {};
+    if (!email.trim()) {
+      newErrors.email = 'Need to fill this field';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please provide a valid email address';
+    }
+
+    if (!password) {
+      newErrors.password = 'Need to fill this field';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      setError('Please fill in the required fields highlighted below.');
+      return;
+    }
 
     const localUsers = JSON.parse(localStorage.getItem('assemble_users') || '[]');
 
@@ -31,11 +49,13 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
     if (matchedUser) {
       onLoginSuccess(matchedUser);
     } else {
-      setError('Incorrect email or password. Please try again.');
+      setFieldErrors({
+        email: 'Incorrect email or password',
+        password: 'Incorrect email or password',
+      });
+      setError('Incorrect email or password. Please check the highlighted fields and try again.');
     }
   };
-
-
 
   const handleBack = () => {
     // A pending redirect means we were bounced here from a protected page;
@@ -79,24 +99,45 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
         </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-xs font-bold text-center">
-            {error}
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-2xl text-xs font-bold text-center flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-base">warning</span>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
-              Email Address
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] font-bold text-[#00355f] uppercase tracking-wider block">
+                Email Address
+              </label>
+              {fieldErrors.email && (
+                <span className="text-[10px] font-bold text-rose-600">
+                  {fieldErrors.email}
+                </span>
+              )}
+            </div>
             <input
               type="email"
-              required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                if (error) setError('');
+              }}
               placeholder="you@domain.com"
-              className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white transition-all"
+              className={`w-full px-4 py-3 rounded-xl text-sm font-inter transition-all ${
+                fieldErrors.email
+                  ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                  : 'bg-[#f8f9fa] border border-[#c2c7d1] text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+              }`}
             />
+            {fieldErrors.email && (
+              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">error</span>
+                <span>{fieldErrors.email}</span>
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -114,12 +155,25 @@ export const LoginView = ({ navigate, onLoginSuccess }) => {
             </div>
             <input
               type="password"
-              required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
+                if (error) setError('');
+              }}
               placeholder="••••••••"
-              className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#c2c7d1] rounded-xl text-sm font-inter text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white transition-all"
+              className={`w-full px-4 py-3 rounded-xl text-sm font-inter transition-all ${
+                fieldErrors.password
+                  ? 'border-2 border-rose-500 bg-rose-50/50 text-rose-900 focus:outline-none focus:border-rose-600 focus:ring-2 focus:ring-rose-200'
+                  : 'bg-[#f8f9fa] border border-[#c2c7d1] text-[#191c1d] focus:outline-none focus:border-[#0f4c81] focus:bg-white'
+              }`}
             />
+            {fieldErrors.password && (
+              <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">error</span>
+                <span>{fieldErrors.password}</span>
+              </p>
+            )}
           </div>
 
           <button

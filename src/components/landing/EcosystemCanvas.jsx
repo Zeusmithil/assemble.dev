@@ -66,8 +66,9 @@ const FORMATIONS = [
 const HANDSHAKE_INDEX = 5;
 const FINAL_INDEX = FORMATIONS.length - 1;
 
-// Scene centre offset (fraction of width) so the field sits behind each section's visual
-const OFFSETS_DESKTOP = [0.2, 0.18, -0.2, 0.2, 0, 0.2, -0.2, 0];
+// Scene centre offset (fraction of width): placed behind each section's text (opposite side of the visual card)
+// for attendee, organizer, venue provider, volunteer, and sponsor so 3D models & transitions are clearly visible
+const OFFSETS_DESKTOP = [0.2, -0.2, 0.2, -0.2, 0, -0.2, 0.2, 0];
 const ZOOMS = [1, 0.95, 0.95, 0.95, 0.92, 1.0, 0.95, 1.2];
 // Vertical offset (fraction of height): the speaker's mic sits low, under the centred copy
 const OFFSETS_Y = [0, 0, 0, 0, 0.2, 0, 0, 0];
