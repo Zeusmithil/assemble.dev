@@ -1,684 +1,479 @@
-# Assemble.dev — End-to-End Backend Architecture & Implementation Plan
+# Assemble.dev — Python (FastAPI) + Supabase Backend Architecture & Plan
 
-> Complete guide to setting up the database, relational schemas, RESTful APIs, real-time WebSockets, and AI services for the **Assemble.dev** event and community platform.
-
----
-
-## 1. Where to Create & Host the Database
-
-Because Assemble.dev features complex relational connections (Users with multi-role profiles, Events, Ticket issuance, Sponsorship packages & verification codes, Expense ledgers, and Marketplaces), a **PostgreSQL** relational database is strongly recommended.
-
-### Recommended Database Hosting Options
-
-| Provider | Best For | Why Choose It | How to Create |
-|---|---|---|---|
-| **[Supabase](https://supabase.com/)** *(Recommended)* | Production & MVP | Managed PostgreSQL, generous free tier (500MB), built-in Auth & Realtime engines, SQL GUI editor | 1. Sign up at supabase.com<br>2. "New Project"<br>3. Copy the Connection URI from Project Settings > Database |
-| **[Neon.tech](https://neon.tech/)** | Serverless Postgres | Instant branch cloning, zero-scale idle, automatic connection pooling | 1. Sign up at neon.tech<br>2. Create Project<br>3. Copy `DATABASE_URL` |
-| **Docker (Local Dev)** | Offline / Local Testing | Fast local development without internet dependency | Run `docker run --name assemble-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16-alpine` |
+> Complete guide to setting up **Supabase** (PostgreSQL, Auth, Storage) with a **Python (FastAPI)** backend for the **Assemble.dev** platform.
 
 ---
 
-## 2. Tech Stack & Directory Structure
+## 1. Supabase Setup (Your Next Steps)
 
-- **Runtime:** Node.js (v18+)
-- **Framework:** Express.js (`express: ^4.21.2` already installed in root) or Fastify
-- **ORM / Migrations:** Prisma ORM (`@prisma/client` + `prisma`)
-- **Authentication:** JWT (`jsonwebtoken`) + Password hashing (`bcryptjs`)
-- **Real-Time Engine:** Socket.io (`socket.io` for live quizzes, polls, chat in Community Room)
-- **AI Integrations:** `@google/genai` (Server-side Gemini 2.0 / 1.5 Flash for activity generation and community due diligence)
+Since you are using **Supabase**, here is the exact immediate checklist:
 
-### Recommended Project Layout
+### Step 1.1: Create your Supabase Project
+1. Log in at **[supabase.com](https://supabase.com/)** and click **"New Project"**.
+2. Name your project (e.g. `assemble-backend`), set a strong database password, and choose a region close to your target users (e.g., `South Asia (Mumbai)` or `Southeast Asia (Singapore)`).
+3. Once the database is provisioned, go to **Project Settings > API** and copy:
+   - **Project URL** (`https://<project-ref>.supabase.co`)
+   - **Project API Key (`anon` / `public`)**
+   - **Project API Key (`service_role` / `secret`)** (Keep this secure; used only in the Python backend)
+4. Go to **Project Settings > Database** and copy the **Connection string** (URI).
+
+### Step 1.2: Run the SQL Schema in Supabase SQL Editor
+Go to the **SQL Editor** tab in your Supabase dashboard and execute the SQL schema provided in **Section 3** below. This instantly creates all tables, indexes, and relations.
+
+---
+
+## 2. Python Backend Tech Stack & Directory Structure
+
+- **Language:** Python 3.10+
+- **Framework:** **FastAPI** (`fastapi[standard]`, `uvicorn`) — high performance, native async, automatic interactive Swagger docs at `http://localhost:8000/docs`.
+- **Database & Auth:** **Supabase Python SDK** (`supabase>=2.0.0`) + **PostgreSQL** (`asyncpg` / `psycopg2`).
+- **Data Validation & Serializers:** **Pydantic v2** (`pydantic`, `pydantic-settings`).
+- **Real-Time Communication:** FastAPI WebSockets (`websockets`) for the live Community Room (chat, quizzes, leaderboard).
+- **AI Integrations:** Google Gemini SDK (`google-genai`) for quiz generation and sponsor due diligence.
+
+### Project Layout (`backend/`)
 
 ```
 assemble.dev/
-├── backend/                       # Dedicated backend directory
-│   ├── prisma/
-│   │   ├── schema.prisma          # Database schema & relationships
-│   │   └── seed.ts                # Seed script with INITIAL_EVENTS, INITIAL_COMMUNITIES
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── db.ts              # PrismaClient instance
-│   │   │   └── gemini.ts          # Google Gen AI client setup
-│   │   ├── controllers/
-│   │   │   ├── authController.ts
-│   │   │   ├── eventController.ts
-│   │   │   ├── ticketController.ts
-│   │   │   ├── communityController.ts
-│   │   │   ├── sponsorshipController.ts
-│   │   │   ├── marketplaceController.ts
-│   │   │   └── aiController.ts
-│   │   ├── middlewares/
-│   │   │   ├── auth.ts            # JWT verification
-│   │   │   ├── roleCheck.ts       # Role capability validation
-│   │   │   └── errorHandler.ts
-│   │   ├── routes/
-│   │   │   ├── authRoutes.ts
-│   │   │   ├── eventRoutes.ts
-│   │   │   ├── ticketRoutes.ts
-│   │   │   ├── communityRoutes.ts
-│   │   │   ├── sponsorshipRoutes.ts
-│   │   │   ├── marketplaceRoutes.ts
-│   │   │   └── aiRoutes.ts
-│   │   ├── sockets/
-│   │   │   └── communityRoom.ts   # WebSocket handlers for live room
-│   │   └── server.ts              # Express + HTTP Server + Socket.io entry
-│   ├── .env                       # Backend env variables (DATABASE_URL, JWT_SECRET, GEMINI_API_KEY)
-│   ├── tsconfig.json
-│   └── package.json
+├── backend/                       # Python Backend directory
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                # FastAPI entrypoint & router registry
+│   │   ├── config.py              # Environment configuration (Pydantic Settings)
+│   │   ├── dependencies.py        # Supabase client & Auth dependencies
+│   │   ├── models/                # Pydantic schemas (Request / Response validation)
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py
+│   │   │   ├── event.py
+│   │   │   ├── ticket.py
+│   │   │   ├── community.py
+│   │   │   ├── sponsorship.py
+│   │   │   └── marketplace.py
+│   │   ├── routers/               # API route handlers
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py            # User authentication & role switching
+│   │   │   ├── events.py          # Events CRUD, budgeting, analytics
+│   │   │   ├── tickets.py         # Ticket booking & QR door check-in
+│   │   │   ├── communities.py     # Communities, discussions, due diligence
+│   │   │   ├── sponsorships.py    # Sponsorship requests, funding, verification codes
+│   │   │   ├── marketplace.py     # Venues, speakers, goodies merchandise orders
+│   │   │   └── ai.py              # Gemini AI quiz generation & analytics
+│   │   ├── websockets/
+│   │   │   ├── __init__.py
+│   │   │   └── community_room.py  # WebSocket manager for live room sync
+│   │   └── services/
+│   │       ├── __init__.py
+│   │       ├── supabase_client.py # Supabase client singleton
+│   │       └── gemini_service.py  # Gemini AI calls
+│   ├── scripts/
+│   │   └── seed_data.py           # Seed script matching INITIAL_EVENTS & INITIAL_COMMUNITIES
+│   ├── .env                       # Environment variables
+│   ├── requirements.txt           # Python dependencies
+│   └── README.md
 └── src/                           # Existing React frontend
 ```
 
 ---
 
-## 3. Database Schema & Tables (Entity Breakdown)
+## 3. Supabase PostgreSQL Schema (Run in Supabase SQL Editor)
 
-```mermaid
-erDiagram
-    USERS ||--o{ USER_PROFILES : has
-    USERS ||--o{ EVENTS : organizes
-    USERS ||--o{ TICKETS : owns
-    COMMUNITIES ||--o{ COMMUNITY_MEMBERS : includes
-    COMMUNITIES ||--o{ EVENTS : hosts
-    COMMUNITIES ||--o{ COMMUNITY_MESSAGES : contains
-    EVENTS ||--o{ TICKETS : issues
-    EVENTS ||--o{ EVENT_SCHEDULES : has
-    EVENTS ||--o{ EVENT_EXPENSES : incurs
-    EVENTS ||--o{ SPONSORSHIP_REQUESTS : receives
-    EVENTS ||--o{ VENUE_BOOKINGS : reserves
-    EVENTS ||--o{ SPEAKER_INVITES : invites
-    EVENTS ||--o{ MERCH_ORDERS : orders
-```
+Copy and run this in your **Supabase Dashboard > SQL Editor**:
 
-### 3.1. User & Identity Tables
-1. **`users`**
-   - `id`: UUID (Primary Key, default `gen_random_uuid()`)
-   - `email`: VARCHAR (Unique, Indexed)
-   - `password_hash`: VARCHAR
-   - `name`: VARCHAR
-   - `avatar_url`: VARCHAR (Nullable)
-   - `phone`: VARCHAR (Nullable)
-   - `active_role`: VARCHAR (`attendee`, `organizer`, `speaker`, `sponsor`, `venue`)
-   - `capabilities`: TEXT[] (Array of allowed roles, e.g. `['attendee', 'organizer']`)
-   - `created_at`, `updated_at`: TIMESTAMP
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-2. **`user_profiles`** (Stores specialized profile configurations)
-   - `id`: UUID (Primary Key)
-   - `user_id`: UUID (Foreign Key -> `users.id`, Unique per role)
-   - `role`: VARCHAR (`organizer`, `speaker`, `sponsor`, `venue`)
-   - `profile_data`: JSONB
-     - *Organizer:* `{ "organizationName": "...", "bio": "...", "website": "..." }`
-     - *Speaker:* `{ "headline": "...", "bio": "...", "expertise": ["Design Tokens", "React"], "feeRange": "€1,000–€3,000" }`
-     - *Sponsor:* `{ "companyName": "TechNova", "industry": "Cloud", "budgetRange": "€10,000+", "targetCategories": ["Technology"] }`
-     - *Venue:* `{ "venueName": "Concert Hall", "address": "...", "city": "Chennai", "capacity": 500 }`
+-- 1. USERS & PROFILES
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255),
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    city VARCHAR(100),
+    active_role VARCHAR(50) DEFAULT 'attendee',
+    capabilities TEXT[] DEFAULT ARRAY['attendee']::TEXT[],
+    avatar_url TEXT,
+    bio TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-### 3.2. Community & Live Room Tables
-3. **`communities`**
-   - `id`: UUID (Primary Key)
-   - `name`: VARCHAR
-   - `slug`: VARCHAR (Unique)
-   - `code`: VARCHAR (Unique, e.g., `AI2026X7`, `CODE2026`)
-   - `description`: TEXT
-   - `category`: VARCHAR
-   - `image_url`: VARCHAR
-   - `location`: VARCHAR
-   - `created_by`: UUID (FK -> `users.id`)
-   - `activity_status`: VARCHAR (`Active`, `Highly Active`)
-   - `created_at`: TIMESTAMP
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL,
+    profile_data JSONB DEFAULT '{}'::JSONB,
+    UNIQUE(user_id, role)
+);
 
-4. **`community_members`**
-   - `id`: UUID (Primary Key)
-   - `community_id`: UUID (FK -> `communities.id`)
-   - `user_id`: UUID (FK -> `users.id`)
-   - `role`: VARCHAR (`admin`, `moderator`, `member`)
-   - `joined_at`: TIMESTAMP
+-- 2. COMMUNITIES & LIVE ROOM
+CREATE TABLE IF NOT EXISTS communities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    image_url TEXT,
+    location VARCHAR(100),
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    activity_status VARCHAR(50) DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-5. **`community_messages`**
-   - `id`: UUID (Primary Key)
-   - `community_id`: UUID (FK -> `communities.id`, Indexed)
-   - `user_id`: UUID (FK -> `users.id`)
-   - `text`: TEXT
-   - `created_at`: TIMESTAMP
+CREATE TABLE IF NOT EXISTS community_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    community_id UUID REFERENCES communities(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(50) DEFAULT 'member',
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(community_id, user_id)
+);
 
-6. **`community_activities`** (Interactive quizzes, rapid-fire, trivia)
-   - `id`: UUID (Primary Key)
-   - `community_id`: UUID (FK -> `communities.id`)
-   - `created_by`: UUID (FK -> `users.id`)
-   - `title`: VARCHAR
-   - `type`: VARCHAR (`Quiz`, `Trivia`, `RapidFire`, `GuessThePerson`, `Custom`)
-   - `config`: JSONB (Questions, options, correct answers, time limit)
-   - `status`: VARCHAR (`draft`, `live`, `completed`)
-   - `created_at`: TIMESTAMP
+CREATE TABLE IF NOT EXISTS community_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    community_id UUID REFERENCES communities(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_name VARCHAR(255),
+    text TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-### 3.3. Events, Schedule & Expenses
-7. **`events`**
-   - `id`: UUID (Primary Key)
-   - `title`: VARCHAR
-   - `description`: TEXT
-   - `category`: VARCHAR
-   - `format`: VARCHAR (`In-Person`, `Virtual`, `Hybrid`)
-   - `start_date`: DATE
-   - `start_time`: VARCHAR
-   - `location`: VARCHAR
-   - `city`: VARCHAR
-   - `organizer_id`: UUID (FK -> `users.id`, Indexed)
-   - `community_id`: UUID (FK -> `communities.id`, Nullable)
-   - `price`: DECIMAL (Default 0)
-   - `is_free`: BOOLEAN (Default false)
-   - `image_url`: VARCHAR
-   - `expected_attendees`: INT
-   - `registered_count`: INT (Default 0)
-   - `checked_in_count`: INT (Default 0)
-   - `budget`: DECIMAL (Default 0)
-   - `revenue`: DECIMAL (Default 0)
-   - `whats_included`: JSONB (Array of string benefits)
-   - `venue_details`: JSONB (`{ name, address, facilities }`)
-   - `status`: VARCHAR (`draft`, `published`, `completed`, `cancelled`)
-   - `visibility`: VARCHAR (`Public`, `Private`)
-   - `created_at`, `updated_at`: TIMESTAMP
+-- 3. EVENTS, TICKETS & EXPENSES
+CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100) NOT NULL,
+    format VARCHAR(50) DEFAULT 'In-Person',
+    start_date DATE NOT NULL,
+    start_time VARCHAR(50),
+    location VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    organizer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    organizer_name VARCHAR(255),
+    organizer_email VARCHAR(255),
+    community_id UUID REFERENCES communities(id) ON DELETE SET NULL,
+    price NUMERIC(10, 2) DEFAULT 0.00,
+    is_free BOOLEAN DEFAULT true,
+    image_url TEXT,
+    expected_attendees INT DEFAULT 100,
+    registered_count INT DEFAULT 0,
+    checked_in_count INT DEFAULT 0,
+    budget NUMERIC(12, 2) DEFAULT 0.00,
+    revenue NUMERIC(12, 2) DEFAULT 0.00,
+    ticket_tiers JSONB DEFAULT '[]'::JSONB,
+    sponsorship_opportunities JSONB DEFAULT '[]'::JSONB,
+    swag_order JSONB,
+    venue_details JSONB,
+    status VARCHAR(50) DEFAULT 'published',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-8. **`event_schedules`**
-   - `id`: UUID (Primary Key)
-   - `event_id`: UUID (FK -> `events.id`, Cascade Delete)
-   - `time`: VARCHAR
-   - `title`: VARCHAR
-   - `description`: TEXT (Nullable)
-   - `speaker_name`: VARCHAR (Nullable)
+CREATE TABLE IF NOT EXISTS event_expenses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    allocated NUMERIC(10, 2) DEFAULT 0.00,
+    spent NUMERIC(10, 2) DEFAULT 0.00,
+    status VARCHAR(50) DEFAULT 'Paid',
+    date DATE DEFAULT CURRENT_DATE
+);
 
-9. **`event_expenses`**
-   - `id`: UUID (Primary Key)
-   - `event_id`: UUID (FK -> `events.id`, Cascade Delete)
-   - `title`: VARCHAR
-   - `category`: VARCHAR (`Venue`, `Equipment`, `Catering`, `Speakers`, `Swag`, `Marketing`, `Other`)
-   - `allocated`: DECIMAL
-   - `spent`: DECIMAL
-   - `status`: VARCHAR (`Pending`, `Paid`)
-   - `date`: DATE
+CREATE TABLE IF NOT EXISTS tickets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id VARCHAR(50) UNIQUE NOT NULL,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_name VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    location VARCHAR(100),
+    registration_type VARCHAR(50) DEFAULT 'Attendee',
+    ticket_tier_name VARCHAR(100),
+    price NUMERIC(10, 2) DEFAULT 0.00,
+    volunteer_status VARCHAR(50) DEFAULT 'None',
+    community_status VARCHAR(50) DEFAULT 'None',
+    status VARCHAR(50) DEFAULT 'confirmed', -- 'confirmed', 'checked-in', 'cancelled'
+    checked_in_at TIMESTAMP WITH TIME ZONE,
+    registration_date DATE DEFAULT CURRENT_DATE
+);
 
-10. **`tickets`**
-    - `id`: UUID (Primary Key)
-    - `ticket_code`: VARCHAR (Unique - e.g., `TKT-94821` used for QR scanning)
-    - `event_id`: UUID (FK -> `events.id`, Indexed)
-    - `user_id`: UUID (FK -> `users.id`, Indexed)
-    - `tier_name`: VARCHAR (`Standard`, `VIP`, `Early Bird`)
-    - `price_paid`: DECIMAL
-    - `status`: VARCHAR (`active`, `checked_in`, `cancelled`)
-    - `checked_in_at`: TIMESTAMP (Nullable)
-    - `created_at`: TIMESTAMP
+-- 4. SPONSORSHIPS & MARKETPLACE
+CREATE TABLE IF NOT EXISTS sponsorship_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    request_id VARCHAR(50) UNIQUE NOT NULL,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    sponsor_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    requirement VARCHAR(100) NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'REQUESTED', -- 'REQUESTED', 'APPROVED', 'REJECTED'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
-11. **`saved_events`**
-    - `user_id`: UUID (FK -> `users.id`)
-    - `event_id`: UUID (FK -> `events.id`)
-    - Primary Key: `(user_id, event_id)`
-
-### 3.4. Sponsorship Marketplace
-12. **`sponsorship_packages`**
-    - `id`: UUID (Primary Key)
-    - `event_id`: UUID (FK -> `events.id`)
-    - `tier`: VARCHAR (`Title Partner`, `Gold Sponsor`, `Silver Sponsor`, etc.)
-    - `amount`: DECIMAL
-    - `spots_available`: INT
-    - `spots_taken`: INT (Default 0)
-    - `perks`: JSONB (Array of string perks)
-
-13. **`sponsorship_requests`**
-    - `id`: UUID (Primary Key)
-    - `request_id`: VARCHAR (Unique - e.g., `REQ-1092`)
-    - `event_id`: UUID (FK -> `events.id`, Indexed)
-    - `sponsor_id`: UUID (FK -> `users.id`, Indexed)
-    - `requirement`: VARCHAR (`Venue`, `Goodies`, `Speakers`, `Catering`)
-    - `amount`: DECIMAL
-    - `pitch`: TEXT (Nullable)
-    - `status`: VARCHAR (`REQUESTED`, `APPROVED`, `REJECTED`, `FUNDED`)
-    - `created_at`: TIMESTAMP
-
-14. **`sponsorship_codes`**
-    - `id`: UUID (Primary Key)
-    - `code`: VARCHAR (Unique - e.g., `TN2026-75K`)
-    - `sponsor_id`: UUID (FK -> `users.id`)
-    - `event_id`: UUID (FK -> `events.id`, Nullable)
-    - `amount`: DECIMAL
-    - `requirement`: VARCHAR
-    - `status`: VARCHAR (`Active`, `Redeemed`, `Expired`)
-    - `redeemed_at`: TIMESTAMP (Nullable)
-
-### 3.5. Venues, Speakers & Merch Marketplace
-15. **`venues`**
-    - `id`: UUID (Primary Key)
-    - `owner_id`: UUID (FK -> `users.id`)
-    - `name`: VARCHAR
-    - `address`: TEXT
-    - `city`: VARCHAR
-    - `capacity`: INT
-    - `hourly_rate`: DECIMAL
-    - `daily_rate`: DECIMAL
-    - `facilities`: TEXT[]
-    - `images`: TEXT[]
-
-16. **`venue_bookings`**
-    - `id`: UUID (Primary Key)
-    - `booking_id`: VARCHAR (Unique - e.g., `VB-4421`)
-    - `venue_id`: UUID (FK -> `venues.id`)
-    - `event_id`: UUID (FK -> `events.id`)
-    - `organizer_id`: UUID (FK -> `users.id`)
-    - `booking_date`: DATE
-    - `status`: VARCHAR (`Pending`, `Approved`, `Declined`)
-    - `amount`: DECIMAL
-
-17. **`speaker_invites`**
-    - `id`: UUID (Primary Key)
-    - `invite_id`: VARCHAR (Unique - e.g., `SPK-9012`)
-    - `speaker_id`: UUID (FK -> `users.id`)
-    - `event_id`: UUID (FK -> `events.id`)
-    - `organizer_id`: UUID (FK -> `users.id`)
-    - `session_title`: VARCHAR
-    - `status`: VARCHAR (`Pending`, `Accepted`, `Declined`)
-    - `honorarium`: DECIMAL
-
-18. **`merch_orders`**
-    - `id`: UUID (Primary Key)
-    - `order_id`: VARCHAR (Unique - e.g., `MERCH-81204`)
-    - `event_id`: UUID (FK -> `events.id`)
-    - `organizer_id`: UUID (FK -> `users.id`)
-    - `items`: JSONB (Product details, quantities, custom designs)
-    - `total_amount`: DECIMAL
-    - `status`: VARCHAR (`submitted`, `confirmed`, `production`, `quality`, `shipped`, `delivered`)
-    - `delivery_date`: DATE
-
----
-
-## 4. Prisma Schema Template (`schema.prisma`)
-
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  passwordHash  String
-  name          String
-  avatarUrl     String?
-  phone         String?
-  activeRole    String         @default("attendee")
-  capabilities  String[]       @default(["attendee"])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  profiles      UserProfile[]
-  events        Event[]        @relation("OrganizedEvents")
-  tickets       Ticket[]
-  memberships   CommunityMember[]
-  messages      CommunityMessage[]
-  requests      SponsorshipRequest[]
-  bookings      VenueBooking[]
-  savedEvents   SavedEvent[]
-}
-
-model UserProfile {
-  id          String   @id @default(uuid())
-  userId      String
-  role        String
-  profileData Json
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, role])
-}
-
-model Community {
-  id             String             @id @default(uuid())
-  name           String
-  code           String             @unique
-  description    String
-  category       String
-  imageUrl       String?
-  location       String?
-  activityStatus String             @default("Active")
-  createdAt      DateTime           @default(now())
-
-  members        CommunityMember[]
-  messages       CommunityMessage[]
-  activities     CommunityActivity[]
-  events         Event[]
-}
-
-model CommunityMember {
-  id          String    @id @default(uuid())
-  communityId String
-  userId      String
-  role        String    @default("member")
-  joinedAt    DateTime  @default(now())
-
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([communityId, userId])
-}
-
-model CommunityMessage {
-  id          String    @id @default(uuid())
-  communityId String
-  userId      String
-  text        String
-  createdAt   DateTime  @default(now())
-
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model CommunityActivity {
-  id          String    @id @default(uuid())
-  communityId String
-  title       String
-  type        String
-  config      Json
-  status      String    @default("draft")
-  createdAt   DateTime  @default(now())
-
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-}
-
-model Event {
-  id                String               @id @default(uuid())
-  title             String
-  description       String
-  category          String
-  format            String               @default("In-Person")
-  startDate         DateTime
-  startTime         String
-  location          String
-  city              String
-  organizerId       String
-  communityId       String?
-  price             Decimal              @default(0)
-  isFree            Boolean              @default(false)
-  imageUrl          String?
-  expectedAttendees Int                  @default(100)
-  registeredCount   Int                  @default(0)
-  checkedInCount    Int                  @default(0)
-  budget            Decimal              @default(0)
-  revenue           Decimal              @default(0)
-  status            String               @default("published")
-  visibility        String               @default("Public")
-  whatsIncluded     Json?
-  venueDetails      Json?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-
-  organizer         User                 @relation("OrganizedEvents", fields: [organizerId], references: [id])
-  community         Community?           @relation(fields: [communityId], references: [id])
-  schedules         EventSchedule[]
-  expenses          EventExpense[]
-  tickets           Ticket[]
-  packages          SponsorshipPackage[]
-  sponsorRequests   SponsorshipRequest[]
-  venueBookings     VenueBooking[]
-  savedBy           SavedEvent[]
-}
-
-model EventSchedule {
-  id          String   @id @default(uuid())
-  eventId     String
-  time        String
-  title       String
-  description String?
-  speakerName String?
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-model EventExpense {
-  id         String   @id @default(uuid())
-  eventId    String
-  title      String
-  category   String
-  allocated  Decimal  @default(0)
-  spent      Decimal  @default(0)
-  status     String   @default("Pending")
-  date       DateTime @default(now())
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-model Ticket {
-  id          String    @id @default(uuid())
-  ticketCode  String    @unique
-  eventId     String
-  userId      String
-  tierName    String    @default("General")
-  pricePaid   Decimal   @default(0)
-  status      String    @default("active")
-  checkedInAt DateTime?
-  createdAt   DateTime  @default(now())
-
-  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model SavedEvent {
-  userId    String
-  eventId   String
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  @@id([userId, eventId])
-}
-
-model SponsorshipPackage {
-  id             String   @id @default(uuid())
-  eventId        String
-  tier           String
-  amount         Decimal
-  spotsAvailable Int      @default(1)
-  spotsTaken     Int      @default(0)
-  perks          Json
-  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-model SponsorshipRequest {
-  id          String   @id @default(uuid())
-  requestId   String   @unique
-  eventId     String
-  sponsorId   String
-  requirement String
-  amount      Decimal
-  pitch       String?
-  status      String   @default("REQUESTED")
-  createdAt   DateTime @default(now())
-
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  sponsor     User     @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-}
-
-model VenueBooking {
-  id          String   @id @default(uuid())
-  bookingId   String   @unique
-  venueId     String
-  eventId     String
-  organizerId String
-  bookingDate DateTime
-  status      String   @default("Pending")
-  amount      Decimal
-  createdAt   DateTime @default(now())
-
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  organizer   User     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
-}
+CREATE TABLE IF NOT EXISTS merchandise_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id VARCHAR(50) UNIQUE NOT NULL,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    event_title VARCHAR(255),
+    items JSONB NOT NULL,
+    total_amount NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'submitted',
+    date DATE DEFAULT CURRENT_DATE
+);
 ```
 
 ---
 
-## 5. Complete REST API Specifications
+## 4. Python Backend Implementation Files
 
-Base URL: `http://localhost:5000/api/v1`  
-Protected routes require header: `Authorization: Bearer <JWT_TOKEN>`
-
-### 5.1. Authentication & Profiles (`/api/v1/auth`, `/api/v1/users`)
-- `POST /auth/signup`
-  - Body: `{ email, password, name, role }`
-  - Response: `{ user, token }`
-- `POST /auth/login`
-  - Body: `{ email, password }`
-  - Response: `{ user, token }`
-- `GET /auth/me`
-  - Response: User session, active role, permissions & capabilities
-- `POST /auth/switch-role`
-  - Body: `{ role: 'organizer' }`
-- `PUT /users/profile`
-  - Body: `{ role, profileData }` (Updates speaker/sponsor/venue/organizer profiles)
-
-### 5.2. Events & Management (`/api/v1/events`)
-- `GET /events`
-  - Query Params: `?city=Chennai&category=Technology&search=Architecture&page=1`
-- `POST /events`
-  - Body: Complete event creation wizard payload (details, schedule items, initial expenses, sponsorship packages)
-- `GET /events/:id`
-  - Response: Event details with linked speakers, schedule, venue, and sponsorship status
-- `PUT /events/:id`
-  - Update event details, status (`published`, `cancelled`)
-- `POST /events/:id/save`
-  - Bookmark / save event for current attendee
-- `GET /events/user/saved`
-  - Fetch attendee's bookmarked events
-- `GET /events/:id/expenses`
-  - List allocated vs spent expenses and remaining budget
-- `POST /events/:id/expenses`
-  - Body: `{ title, category, allocated, spent, status }`
-
-### 5.3. Tickets & Attendee Check-In (`/api/v1/tickets`)
-- `POST /tickets/book`
-  - Body: `{ eventId, tierName, price }`
-  - Response: `{ ticketCode, qrPayload, status }`
-- `GET /tickets/my-tickets`
-  - List all tickets purchased/claimed by current user
-- `POST /tickets/verify-qr`
-  - Body: `{ ticketCode }`
-  - Checks in attendee, updates `checkedInCount` on event, prevents double check-ins
-
-### 5.4. Communities & Live Room (`/api/v1/communities`)
-- `GET /communities`
-  - List all registered communities
-- `GET /communities/:id`
-  - Community stats, member counts, organizers, past events
-- `POST /communities/:id/join`
-  - Toggle membership
-- `GET /communities/:id/messages`
-  - Retrieve recent chat messages
-- `GET /communities/:id/analysis`
-  - Compute due-diligence credibility metrics for prospective sponsors
-
-### 5.5. Sponsorship Management (`/api/v1/sponsorships`)
-- `GET /sponsorships/requests`
-  - Filter by organizer's events or sponsor's applications
-- `POST /sponsorships/request`
-  - Body: `{ eventId, requirement, amount, pitch }`
-- `POST /sponsorships/:requestId/respond`
-  - Body: `{ status: 'APPROVED' | 'REJECTED' }`
-  - Generates sponsorship verification code (`TN2026-75K`) upon approval
-- `POST /sponsorships/redeem-code`
-  - Body: `{ code, eventId }`
-  - Validates and applies sponsored funds to event expenses
-
-### 5.6. Marketplaces (`/api/v1/marketplace`)
-- `GET /marketplace/venues`
-  - Browse venue listings by city and capacity
-- `POST /marketplace/venues/book`
-  - Reserve venue for an event
-- `GET /marketplace/speakers`
-  - Browse available speakers by expertise and fee
-- `POST /marketplace/speakers/invite`
-  - Send speaking invite with proposed topic and honorarium
-- `POST /marketplace/merch/orders`
-  - Body: `{ eventId, items: [...], totalAmount }`
-- `GET /marketplace/merch/orders`
-  - Track order production and shipment status
-
-### 5.7. AI Services via Gemini (`/api/v1/ai`)
-- `POST /ai/generate-activity`
-  - Body: `{ type: 'Quiz', topic: 'AI & ML', count: 5, difficulty: 'Medium' }`
-  - Calls Gemini 2.0 / 1.5 Flash via `@google/genai` to return structured JSON questions with options and explanations
-- `POST /ai/community-diligence`
-  - Body: `{ communityId }`
-  - Generates executive sponsor ROI summary based on past event attendance and repeat attendee rates
-
----
-
-## 6. Real-Time WebSocket Architecture (Socket.io)
-
-For the **Community Room** (`src/components/views/CommunityRoomView.jsx`), real-time sync is essential for live interaction:
-
-```
-Browser Client                                    Backend (Socket.io)
-      |                                                    |
-      |--- emit('room:join', { communityId, user }) ------>| Join socket room
-      |                                                    |
-      |--- emit('chat:send', { text }) ------------------->| Save message in DB
-      |<-- emit('chat:message', message) ------------------| Broadcast to room members
-      |                                                    |
-      |--- emit('activity:start', { activityId }) -------->| Organizer launches live quiz
-      |<-- emit('activity:question', currentQuestion) -----| Broadcast to participants
-      |                                                    |
-      |--- emit('activity:answer', { questionId, ans }) -->| Calculate participant score
-      |<-- emit('activity:leaderboard', topScores) --------| Live leaderboard update
+### 4.1. `backend/requirements.txt`
+```text
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+supabase==2.11.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+websockets==14.1
+google-genai==0.1.1
+httpx==0.28.1
 ```
 
----
-
-## 7. Step-by-Step Implementation Roadmap
-
-### Step 1: Initialize Backend Directory & Dependencies
-Run in root terminal:
-```bash
-mkdir backend
-cd backend
-npm init -y
-npm install express cors dotenv jsonwebtoken bcryptjs @prisma/client socket.io @google/genai
-npm install -D prisma typescript @types/node @types/express @types/cors @types/jsonwebtoken @types/bcryptjs ts-node nodemon
-npx tsc --init
-npx prisma init
-```
-
-### Step 2: Configure Environment Variables (`backend/.env`)
+### 4.2. `backend/.env`
 ```env
-PORT=5000
-DATABASE_URL="postgresql://user:password@localhost:5432/assemble_dev?schema=public"
-JWT_SECRET="assemble_super_secret_jwt_key_2026"
-GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
-FRONTEND_URL="http://localhost:3000"
+PORT=8000
+ENVIRONMENT=development
+FRONTEND_URL=http://localhost:3000
+
+# Supabase Credentials (from Project Settings > API)
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+
+# JWT & AI
+JWT_SECRET=super_secret_jwt_key_assemble_2026
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### Step 3: Run Database Migrations
-Copy the Prisma schema from Section 4 to `backend/prisma/schema.prisma`, then run:
-```bash
-npx prisma db push
+### 4.3. `backend/app/config.py`
+```python
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    PORT: int = 8000
+    ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost:3000"
+    
+    SUPABASE_URL: str
+    SUPABASE_ANON_KEY: str
+    SUPABASE_SERVICE_ROLE_KEY: str
+    
+    JWT_SECRET: str
+    GEMINI_API_KEY: str = ""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+settings = Settings()
 ```
 
-### Step 4: Seed Initial Data
-Create `backend/prisma/seed.ts` to insert the initial data from `src/data/initialData.js` (`INITIAL_EVENTS`, `INITIAL_COMMUNITIES`, etc.) so the database immediately matches the current UI mock state:
-```bash
-npx prisma db seed
+### 4.4. `backend/app/services/supabase_client.py`
+```python
+from supabase import create_client, Client
+from app.config import settings
+
+# Admin client with Service Role for privileged operations (backend API)
+supabase_admin: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+
+# Public client
+supabase_public: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
 ```
 
-### Step 5: Connect Frontend to Backend
-1. Create an API helper in `src/utils/api.js`:
-   ```javascript
-   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+### 4.5. `backend/app/main.py`
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.config import settings
+from app.routers import auth, events, tickets, communities, sponsorships, marketplace, ai
+from app.websockets import community_room
 
-   export const apiRequest = async (endpoint, options = {}) => {
-     const token = localStorage.getItem('assemble_token');
-     const headers = {
-       'Content-Type': 'application/json',
-       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-       ...options.headers,
-     };
-     const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-     if (!res.ok) throw new Error((await res.json()).message || 'API Error');
-     return res.json();
-   };
-   ```
-2. Replace `localStorage.getItem('assemble_events')` calls in `App.jsx` with calls to `apiRequest('/events')`.
+app = FastAPI(
+    title="Assemble.dev API",
+    description="Python FastAPI backend powered by Supabase PostgreSQL for events & communities",
+    version="1.0.0"
+)
+
+# CORS setup for the React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
+app.include_router(tickets.router, prefix="/api/v1/tickets", tags=["Tickets & Check-In"])
+app.include_router(communities.router, prefix="/api/v1/communities", tags=["Communities"])
+app.include_router(sponsorships.router, prefix="/api/v1/sponsorships", tags=["Sponsorships"])
+app.include_router(marketplace.router, prefix="/api/v1/marketplace", tags=["Marketplace"])
+app.include_router(ai.router, prefix="/api/v1/ai", tags=["Gemini AI"])
+
+# WebSocket for Community Live Room
+app.include_router(community_room.router, tags=["Live WebSockets"])
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "framework": "FastAPI", "database": "Supabase"}
+```
+
+### 4.6. Example Router: `backend/app/routers/events.py`
+```python
+from fastapi import APIRouter, HTTPException, Query
+from typing import Optional, List
+from app.services.supabase_client import supabase_admin
+from pydantic import BaseModel
+
+router = APIRouter()
+
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    category: str
+    format: str = "In-Person"
+    startDate: str
+    time: Optional[str] = "10:00 AM"
+    location: str
+    city: str
+    price: float = 0.0
+    isFree: bool = True
+    expectedAttendees: int = 100
+    ticketTiers: Optional[list] = []
+    swagOrder: Optional[list] = None
+    imageUrl: Optional[str] = ""
+
+@router.get("/")
+def get_events(city: Optional[str] = None, category: Optional[str] = None):
+    query = supabase_admin.table("events").select("*")
+    if city and city != "All Cities":
+        query = query.eq("city", city)
+    if category and category != "All":
+        query = query.eq("category", category)
+    
+    res = query.order("created_at", desc=True).execute()
+    return res.data
+
+@router.post("/")
+def create_event(payload: EventCreate):
+    data = payload.model_dump()
+    # Map camelCase to database columns if needed
+    db_payload = {
+        "title": data["title"],
+        "description": data["description"],
+        "category": data["category"],
+        "format": data["format"],
+        "start_date": data["startDate"],
+        "start_time": data.get("time"),
+        "location": data["location"],
+        "city": data["city"],
+        "price": data["price"],
+        "is_free": data["isFree"],
+        "expected_attendees": data["expectedAttendees"],
+        "ticket_tiers": data.get("ticketTiers") or [],
+        "swag_order": data.get("swagOrder"),
+        "image_url": data.get("imageUrl"),
+        "status": "published"
+    }
+    res = supabase_admin.table("events").insert(db_payload).execute()
+    if not res.data:
+        raise HTTPException(status_code=400, detail="Failed to create event")
+    return res.data[0]
+```
+
+### 4.7. Example Router: Door Check-In in `backend/app/routers/tickets.py`
+```python
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from app.services.supabase_client import supabase_admin
+
+router = APIRouter()
+
+class CheckInRequest(BaseModel):
+    ticket_id: str
+
+@router.post("/check-in")
+def check_in_ticket(req: CheckInRequest):
+    ticket_id = req.ticket_id.strip()
+    
+    # 1. Fetch ticket
+    res = supabase_admin.table("tickets").select("*").ilike("ticket_id", ticket_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    ticket = res.data[0]
+    if ticket["status"] == "checked-in":
+        return {
+            "success": False,
+            "message": f"Already checked in! {ticket['user_name']} was admitted earlier.",
+            "ticket": ticket
+        }
+    
+    # 2. Mark checked in
+    supabase_admin.table("tickets").update({"status": "checked-in"}).eq("id", ticket["id"]).execute()
+    
+    # 3. Increment event checked-in count
+    supabase_admin.rpc("increment_event_checkins", {"evt_id": ticket["event_id"]}).execute()
+    
+    return {
+        "success": True,
+        "message": f"✓ Admitted! {ticket['user_name']} checked in successfully.",
+        "ticket": ticket
+    }
+```
+
+---
+
+## 5. Connecting the React Frontend to Python + Supabase
+
+In the React frontend, add a simple API helper:
+
+### `src/utils/api.js`
+```javascript
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+export const api = {
+  get: async (endpoint) => {
+    const res = await fetch(`${API_BASE}${endpoint}`);
+    if (!res.ok) throw new Error((await res.json()).detail || 'API Error');
+    return res.json();
+  },
+  post: async (endpoint, data) => {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || 'API Error');
+    return res.json();
+  },
+};
+```
+
+---
+
+## 6. Execution Roadmap
+
+| Step | Action | Command / Tool |
+|---|---|---|
+| **1. Create Project** | Create Supabase project & get API keys | [supabase.com](https://supabase.com) dashboard |
+| **2. Run Schemas** | Execute Section 3 SQL in Supabase SQL editor | Supabase SQL Editor |
+| **3. Setup Backend** | Create Python virtual environment & install requirements | `python -m venv venv`<br>`source venv/bin/activate` (or `venv\Scripts\activate`)<br>`pip install -r requirements.txt` |
+| **4. Configure .env** | Paste Supabase URL and Service Role Key into `backend/.env` | Text Editor |
+| **5. Run FastAPI** | Start backend server with auto-reload | `uvicorn app.main:app --reload --port 8000` |
+| **6. Interactive Docs** | Verify routes and test APIs visually | Open `http://localhost:8000/docs` in browser |
