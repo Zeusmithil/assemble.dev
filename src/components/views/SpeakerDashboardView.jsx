@@ -245,12 +245,6 @@ export const SpeakerDashboardView = ({
               <p className="font-inter text-xs text-gray-500 max-w-sm mx-auto">
                 When organizers discover your profile in the Speakers Marketplace and invite you, their proposals will appear here.
               </p>
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="px-5 py-2.5 bg-[#0f4c81] text-white rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Polish Your Profile
-              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -17,7 +17,7 @@ export const CreateEventView = ({
   const [enabledServices, setEnabledServices] = useState({
     venue: true,
     speakers: true,
-    goodies: true,
+    goodies: false,
     ticketing: true
   });
 
@@ -612,7 +612,7 @@ export const CreateEventView = ({
         : [],
       sponsors: [],
       ticketTiers: enabledServices.ticketing ? ticketTiers.map((t) => ({ ...t, sold: 0 })) : [],
-      swagOrder: enabledServices.goodies ? selectedGoodies.map((g) => ({
+      swagOrder: (enabledServices.goodies && selectedGoodies.length > 0) ? selectedGoodies.map((g) => ({
         product: g.name,
         type: g.type,
         quantity: g.type === 'printed' ? Object.values(g.sizes || {}).reduce((a, b) => a + b, 0) : g.quantity,
